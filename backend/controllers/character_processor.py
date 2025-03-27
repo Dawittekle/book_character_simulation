@@ -1,7 +1,7 @@
 import json
 import logging
-from typing import List
-from pydantic import BaseModel, ValidationError, root_validator
+from typing import List, Optional
+from pydantic import BaseModel, ValidationError
 from langchain.chains import LLMChain
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from datetime import datetime
@@ -23,26 +23,26 @@ class PsiParameters(BaseModel):
     goal_directedness: float   
     securing_rate: float        
 
-    
-
-class CharacterProfile(BaseModel):
-    """Complete character representation"""
-    name: str
-    personality: str
-    key_events: List[str]
-    relationships: List[str]
-    psi_parameters: PsiParameters
-
 class EmotionState(BaseModel):
-    """Dynamic emotional state derived from Psi parameters"""
+    """Dynamic emotional state updated based on Dorner's Psi Theory"""
     anger: float
     sadness: float
     pride: float
     joy: float
     bliss: float
 
+class CharacterProfile(BaseModel):
+    """Complete character representation including updated emotional state"""
+    id: Optional[str]
+    name: str
+    personality: str
+    key_events: List[str]
+    relationships: List[str]
+    psi_parameters: PsiParameters
+    emotion_state: EmotionState
+
 class CharacterProcessor:
-    """Handles character extraction and emotional modeling"""
+    """Handles character extraction with integrated emotion state update and database storage"""
     
     def __init__(self, llm):
         self.llm = llm
@@ -51,21 +51,30 @@ class CharacterProcessor:
         self.db = CharacterDB()
 
     def _create_prompt_template(self):
-        """Structured prompt for reliable JSON generation"""
-        template = """Extract characters from this text with their psychological profile:
-        
+        template = """Extract characters from this text with their psychological profile and updated emotional state.
+        Please don't forget any character—even villains should be included.
+        every single character should be extracted protagonist, antagonist, the evil the good, etc every one should be extracted.
+
         For each character, provide:
-        - Name: Full name or primary identifier
-        - Personality: 3-5 key traits (e.g., "idealistic, stubborn")
-        - Key Events: Major story events (2-3 items)
-        - Relationships: Important connections (2-3 items)
-        - Psi Parameters (0.0-1.0):
-          * valence_level: Attraction(+)/Aversion(-) tendency
-          * arousal_level: Action readiness
-          * selection_threshold: Resistance to goal changes
-          * resolution_level: Perceptual accuracy
-          * goal_directedness: Focus on objectives
-          * securing_rate: Environment checking frequency
+        - Name: Full name or primary identifier.
+        - Personality: 3-5 key traits (e.g., "idealistic, stubborn").
+        - Key Events: Major story events (2-3 items).
+        - Relationships: Important connections (2-3 items).
+        - Psi Parameters (values between 0.0 and 1.0):
+        * valence_level: Attraction(+)/Aversion(-) tendency.
+        * arousal_level: Action readiness.
+        * selection_threshold: Resistance to goal changes.
+        * resolution_level: Perceptual accuracy.
+        * goal_directedness: Focus on objectives.
+        * securing_rate: Environment checking frequency.
+        - Emotion State:
+        * anger
+        * sadness
+        * pride
+        * joy
+        * bliss.
+        
+        initialize the emotion state of the character based on Dorner’s Psi Theory
 
         Example Output:
         [
@@ -81,6 +90,13 @@ class CharacterProcessor:
                     "resolution_level": 0.9,
                     "goal_directedness": 0.85,
                     "securing_rate": 0.4
+                }},
+                "emotion_state": {{
+                    "anger": 0.14,
+                    "sadness": 0.05,
+                    "pride": 0.36,
+                    "joy": 0.36,
+                    "bliss": 0.19
                 }}
             }}
         ]
@@ -98,7 +114,7 @@ class CharacterProcessor:
                 characters = [CharacterProfile(**c) for c in existing]
                 logger.info(f"Returning cached characters for text_id {text_id}")
                 return characters
-            except ValidationError as e:
+            except Exception as e:
                 logger.warning(f"Cache validation failed, reprocessing: {str(e)}")
         
         try:
@@ -109,8 +125,10 @@ class CharacterProcessor:
             
             characters_dict = [char.dict() for char in characters]
             self.db.store_characters(text_id, characters_dict)
-            
             logger.info(f"Stored {len(characters)} new characters for text_id {text_id}")
+
+            characters = self.db.get_characters(text_id)
+            characters = [CharacterProfile(**c) for c in characters]
             return characters
             
         except Exception as e:
@@ -133,13 +151,3 @@ class CharacterProcessor:
             f.write(f"Error occurred at {datetime.now()}\n")
             f.write(f"Input Text: {original_text[:500]}\n")
             f.write(f"Raw LLM Output: {raw_response}\n\n")
-
-def calculate_emotions(psi: PsiParameters) -> EmotionState:
-    """Calculate emotional state from current Psi parameters"""
-    return EmotionState(
-        anger=max(0, (1 - psi.valence_level) * psi.arousal_level),
-        sadness=(1 - psi.valence_level) * (1 - psi.arousal_level),
-        pride=(1 - psi.securing_rate) * psi.goal_directedness,
-        joy=psi.valence_level * psi.arousal_level,
-        bliss=psi.valence_level * (1 - psi.arousal_level)
-    )

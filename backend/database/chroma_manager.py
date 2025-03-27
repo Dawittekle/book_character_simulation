@@ -1,6 +1,5 @@
 import hashlib
 import chromadb
-from chromadb.utils import embedding_functions
 import json
 import logging
 from dotenv import load_dotenv
@@ -12,16 +11,12 @@ load_dotenv()
 class CharacterDB:
     
     def __init__(self):
-        self.client = chromadb.Client()
-        
-        self.embedding_function = embedding_functions.OpenAIEmbeddingFunction(
-            api_key=os.getenv('OPENAI_API_KEY'),
-            model_name="text-embedding-3-small"
-        )
+        db_path = os.getenv('CHROMA_DB_PATH', './chroma_db')
+
+        self.client = chromadb.PersistentClient(path=db_path)
         
         self.collection = self.client.get_or_create_collection(
             name="characters",
-            embedding_function=self.embedding_function
         )
 
     def _generate_character_id(self, text_id: str, character_name: str) -> str:
@@ -45,7 +40,9 @@ class CharacterDB:
             
             for char in characters:
                 char_id = self._generate_character_id(text_id, char['name'])
+                char["id"] = char_id
                 doc = f"""
+                char_id: {char_id}
                 Character: {char['name']}
                 Personality: {char['personality']}
                 Key Events: {', '.join(char['key_events'])}
@@ -96,3 +93,32 @@ class CharacterDB:
         except Exception as e:
             logger.error(f"Retrieval failed: {str(e)}")
             return None
+
+    def get_character_by_id(self, character_id: str, text_id: str):
+        """
+        Retrieve a specific character by its ID and text_id
+        Args:
+            character_id: The unique ID of the character
+            text_id: Source document identifier
+        Returns:
+            Dictionary of character data or None if not found
+        """
+        try:
+            results = self.collection.get(
+                where={"text_id": text_id},
+                include=["metadatas"]
+            )
+            results = [json.loads(meta["raw_data"]) for meta in results["metadatas"]]
+            character = next((char for char in results if char["id"] == character_id), None)
+            if not character:
+                return None
+            return character
+            
+        except Exception as e:
+            logger.error(f"Retrieval failed for character {character_id}: {str(e)}")
+            return None
+        
+        
+
+    
+    
