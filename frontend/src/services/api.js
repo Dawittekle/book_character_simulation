@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:5000/api';
+// Vite: set VITE_API_URL at build time (e.g. /api behind nginx) or leave unset for local dev default.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const apiService = {
   // Extract characters from text or PDF
