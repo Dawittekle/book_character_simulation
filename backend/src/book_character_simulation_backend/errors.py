@@ -16,3 +16,11 @@ class NotFoundError(AppError):
 
 class ConfigurationError(AppError):
     status_code = 500
+
+
+class UpstreamServiceError(AppError):
+    status_code = 502
+
+
+class UpstreamRateLimitError(AppError):
+    status_code = 429

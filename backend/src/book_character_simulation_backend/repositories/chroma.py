@@ -5,6 +5,9 @@ import logging
 from pathlib import Path
 
 import chromadb
+from chromadb.config import Settings as ChromaSettings
+from chromadb.telemetry.product import ProductTelemetryClient, ProductTelemetryEvent
+from overrides import override
 
 from ..schemas.character import CharacterProfile
 from ..schemas.chat import ChatSessionState, FactualMemoryRecord
@@ -12,10 +15,25 @@ from ..schemas.chat import ChatSessionState, FactualMemoryRecord
 logger = logging.getLogger(__name__)
 
 
+class NoOpProductTelemetryClient(ProductTelemetryClient):
+    @override
+    def capture(self, event: ProductTelemetryEvent) -> None:
+        return None
+
+
 class _BaseChromaRepository:
     def __init__(self, db_path: Path):
         db_path.mkdir(parents=True, exist_ok=True)
-        self.client = chromadb.PersistentClient(path=str(db_path))
+        self.client = chromadb.PersistentClient(
+            path=str(db_path),
+            settings=ChromaSettings(
+                anonymized_telemetry=False,
+                chroma_product_telemetry_impl=(
+                    "book_character_simulation_backend.repositories.chroma."
+                    "NoOpProductTelemetryClient"
+                ),
+            ),
+        )
 
 
 class ChromaCharacterRepository(_BaseChromaRepository):

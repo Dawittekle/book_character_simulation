@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from openai import OpenAI
+from openai import APIStatusError, OpenAI, RateLimitError
 
+from ..errors import UpstreamRateLimitError, UpstreamServiceError
 from .base import LLMProvider
 
 
@@ -12,14 +13,23 @@ class OpenAIProvider(LLMProvider):
         self.temperature = temperature
 
     def generate_json(self, *, system_prompt: str, user_prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            temperature=self.temperature,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
-        content = response.choices[0].message.content
-        return content or "{}"
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                temperature=self.temperature,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            content = response.choices[0].message.content
+            return content or "{}"
+        except RateLimitError as exc:
+            raise UpstreamRateLimitError(
+                "OpenAI rate limit reached. Check usage limits or billing."
+            ) from exc
+        except APIStatusError as exc:
+            raise UpstreamServiceError(
+                f"OpenAI request failed with status {exc.status_code}."
+            ) from exc

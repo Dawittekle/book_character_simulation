@@ -20,19 +20,21 @@ def _services() -> dict:
 @api_blueprint.route("/health", methods=["GET"])
 def health_check():
     settings = current_app.config["SETTINGS"]
+    enabled_providers = [
+        provider
+        for provider, key in {
+            "openai": settings.openai_api_key,
+            "gemini": settings.gemini_api_key,
+        }.items()
+        if key
+    ]
     return jsonify(
         {
             "status": "ok",
             "environment": settings.app_env,
             "default_provider": settings.llm_provider,
-            "enabled_providers": [
-                provider
-                for provider, key in {
-                    "openai": settings.openai_api_key,
-                    "gemini": settings.gemini_api_key,
-                }.items()
-                if key
-            ],
+            "configured_provider_ready": settings.llm_provider in enabled_providers,
+            "enabled_providers": enabled_providers,
         }
     )
 

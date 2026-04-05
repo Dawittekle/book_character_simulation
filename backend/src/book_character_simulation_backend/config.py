@@ -52,6 +52,7 @@ class Settings:
         backend_dir = Path(__file__).resolve().parents[2]
         default_chroma_path = backend_dir / "chroma_db"
         load_dotenv(backend_dir / ".env")
+        os.environ.setdefault("ANONYMIZED_TELEMETRY", "FALSE")
         chroma_db_path = Path(os.getenv("CHROMA_DB_PATH", str(default_chroma_path)))
         if not chroma_db_path.is_absolute():
             chroma_db_path = backend_dir / chroma_db_path
