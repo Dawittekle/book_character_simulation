@@ -1,4 +1,14 @@
-from app import app
+from pathlib import Path
+import sys
+
+SRC_DIR = Path(__file__).resolve().parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from book_character_simulation_backend import create_app
+from book_character_simulation_backend.config import Settings
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    settings = Settings.from_env()
+    app = create_app(settings)
+    app.run(host=settings.host, port=settings.port, debug=settings.debug)
