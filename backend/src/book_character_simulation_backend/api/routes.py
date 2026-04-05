@@ -17,9 +17,14 @@ def _services() -> dict:
     return current_app.extensions["services"]
 
 
+def _database_manager():
+    return current_app.extensions["database_manager"]
+
+
 @api_blueprint.route("/health", methods=["GET"])
 def health_check():
     settings = current_app.config["SETTINGS"]
+    database_manager = _database_manager()
     enabled_providers = [
         provider
         for provider, key in {
@@ -35,6 +40,13 @@ def health_check():
             "default_provider": settings.llm_provider,
             "configured_provider_ready": settings.llm_provider in enabled_providers,
             "enabled_providers": enabled_providers,
+            "database_configured": database_manager.is_configured,
+            "database_connected": database_manager.check_connection()
+            if database_manager.is_configured
+            else False,
+            "supabase_configured": bool(
+                settings.supabase_url and settings.supabase_anon_key
+            ),
         }
     )
 

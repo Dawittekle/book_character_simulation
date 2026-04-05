@@ -39,6 +39,13 @@ class Settings:
     port: int
     cors_origins: list[str]
     chroma_db_path: Path
+    database_url: str | None
+    sqlalchemy_echo: bool
+    auto_create_relational_schema: bool
+    supabase_url: str | None
+    supabase_anon_key: str | None
+    supabase_service_role_key: str | None
+    supabase_jwt_secret: str | None
     llm_provider: str
     llm_temperature: float
     max_source_characters: int
@@ -67,6 +74,15 @@ class Settings:
                 ["http://localhost:5173", "http://127.0.0.1:5173"],
             ),
             chroma_db_path=chroma_db_path,
+            database_url=os.getenv("DATABASE_URL"),
+            sqlalchemy_echo=_as_bool(os.getenv("SQLALCHEMY_ECHO"), False),
+            auto_create_relational_schema=_as_bool(
+                os.getenv("AUTO_CREATE_RELATIONAL_SCHEMA"), False
+            ),
+            supabase_url=os.getenv("SUPABASE_URL"),
+            supabase_anon_key=os.getenv("SUPABASE_ANON_KEY"),
+            supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+            supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET"),
             llm_provider=os.getenv("LLM_PROVIDER", "openai").strip().lower(),
             llm_temperature=_as_float(os.getenv("LLM_TEMPERATURE"), 0.7),
             max_source_characters=_as_int(os.getenv("MAX_SOURCE_CHARACTERS"), 50000),

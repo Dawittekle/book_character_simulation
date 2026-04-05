@@ -5,6 +5,7 @@ from flask_cors import CORS
 
 from .api.routes import api_blueprint
 from .config import Settings
+from .db.session import DatabaseManager
 from .repositories.chroma import (
     ChromaCharacterRepository,
     ChromaFactualMemoryRepository,
@@ -28,6 +29,9 @@ def create_app(settings: Settings | None = None) -> Flask:
     app = Flask(__name__)
     app.config["SETTINGS"] = resolved_settings
     CORS(app, resources={r"/api/*": {"origins": resolved_settings.cors_origins}})
+    database_manager = DatabaseManager(resolved_settings)
+    if resolved_settings.auto_create_relational_schema and database_manager.is_configured:
+        database_manager.create_schema()
 
     character_repository = ChromaCharacterRepository(resolved_settings.chroma_db_path)
     session_repository = ChromaSessionRepository(resolved_settings.chroma_db_path)
@@ -47,6 +51,7 @@ def create_app(settings: Settings | None = None) -> Flask:
             factual_memory_repository=factual_memory_repository,
         ),
     }
+    app.extensions["database_manager"] = database_manager
 
     app.register_blueprint(api_blueprint)
     return app
