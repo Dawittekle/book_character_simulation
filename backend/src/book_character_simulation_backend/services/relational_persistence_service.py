@@ -49,6 +49,49 @@ class RelationalPersistenceService:
                 text_id,
             )
 
+    def get_characters(self, *, text_id: str) -> list[CharacterProfile]:
+        if not self.is_enabled:
+            return []
+
+        with self.database_manager.session_scope() as session:
+            return self.repository.list_characters_by_text_id(session, text_id)
+
+    def get_character(
+        self, *, text_id: str, stable_character_key: str
+    ) -> CharacterProfile | None:
+        if not self.is_enabled:
+            return None
+
+        with self.database_manager.session_scope() as session:
+            return self.repository.get_character_profile(
+                session,
+                text_id=text_id,
+                stable_character_key=stable_character_key,
+            )
+
+    def get_chat_session(self, *, session_id: str) -> ChatSessionState | None:
+        if not self.is_enabled:
+            return None
+
+        with self.database_manager.session_scope() as session:
+            return self.repository.get_chat_session_state(session, session_id=session_id)
+
+    def list_character_memories(
+        self,
+        *,
+        text_id: str,
+        stable_character_key: str,
+    ) -> list[FactualMemoryRecord]:
+        if not self.is_enabled:
+            return []
+
+        with self.database_manager.session_scope() as session:
+            return self.repository.list_character_memories(
+                session,
+                text_id=text_id,
+                stable_character_key=stable_character_key,
+            )
+
     def persist_chat_state(
         self,
         *,

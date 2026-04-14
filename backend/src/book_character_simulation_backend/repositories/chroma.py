@@ -15,6 +15,10 @@ from ..schemas.chat import ChatSessionState, FactualMemoryRecord
 logger = logging.getLogger(__name__)
 
 
+def _placeholder_embeddings(count: int) -> list[list[float]]:
+    return [[0.0] for _ in range(count)]
+
+
 class NoOpProductTelemetryClient(ProductTelemetryClient):
     @override
     def capture(self, event: ProductTelemetryEvent) -> None:
@@ -59,7 +63,12 @@ class ChromaCharacterRepository(_BaseChromaRepository):
                 }
             )
 
-        self.collection.upsert(documents=documents, ids=ids, metadatas=metadatas)
+        self.collection.upsert(
+            documents=documents,
+            embeddings=_placeholder_embeddings(len(ids)),
+            ids=ids,
+            metadatas=metadatas,
+        )
         logger.info("Stored %s characters for text_id=%s", len(characters), text_id)
 
     def get_characters(self, text_id: str) -> list[CharacterProfile]:
@@ -98,6 +107,7 @@ class ChromaSessionRepository(_BaseChromaRepository):
         self.collection.upsert(
             ids=[session.id],
             documents=[json.dumps(payload)],
+            embeddings=_placeholder_embeddings(1),
             metadatas=[
                 {
                     "character_id": session.character_id,
@@ -141,5 +151,6 @@ class ChromaFactualMemoryRepository(_BaseChromaRepository):
         self.collection.upsert(
             ids=[memory.id],
             documents=[memory.fact],
+            embeddings=_placeholder_embeddings(1),
             metadatas=[memory.model_dump(mode="json")],
         )

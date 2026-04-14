@@ -14,13 +14,29 @@ from ..db.models import (
     ChatSession,
     UserAccount,
 )
-from ..schemas.character import CharacterProfile
-from ..schemas.chat import ChatSessionState, FactualMemoryRecord
+from ..schemas.character import CharacterProfile, EmotionState, PsiParameters
+from ..schemas.chat import (
+    ChatMessage as ChatHistoryMessage,
+    ChatSessionState,
+    FactualMemoryRecord,
+)
 
 
 class RelationalRepository:
     demo_email = "local-demo@book-character-simulation.local"
     demo_display_name = "Local Demo User"
+
+    @staticmethod
+    def _to_character_profile(record: CharacterProfileRecord) -> CharacterProfile:
+        return CharacterProfile(
+            id=record.stable_character_key or record.id,
+            name=record.name,
+            personality=record.personality,
+            key_events=record.key_events,
+            relationships=record.relationships,
+            psi_parameters=PsiParameters.model_validate(record.psi_parameters),
+            emotion_state=EmotionState.model_validate(record.emotion_state),
+        )
 
     def get_or_create_demo_user(self, session: Session) -> UserAccount:
         record = session.scalar(
@@ -120,6 +136,20 @@ class RelationalRepository:
         )
         return source.book if source is not None else None
 
+    def list_characters_by_text_id(
+        self, session: Session, text_id: str
+    ) -> list[CharacterProfile]:
+        book = self.get_book_by_text_id(session, text_id)
+        if book is None:
+            return []
+
+        records = session.scalars(
+            select(CharacterProfileRecord)
+            .where(CharacterProfileRecord.book_id == book.id)
+            .order_by(CharacterProfileRecord.name.asc())
+        ).all()
+        return [self._to_character_profile(record) for record in records]
+
     def get_character_by_stable_key(
         self, session: Session, *, book_id: str, stable_character_key: str
     ) -> CharacterProfileRecord | None:
@@ -129,6 +159,96 @@ class RelationalRepository:
                 CharacterProfileRecord.stable_character_key == stable_character_key,
             )
         )
+
+    def get_character_profile(
+        self, session: Session, *, text_id: str, stable_character_key: str
+    ) -> CharacterProfile | None:
+        book = self.get_book_by_text_id(session, text_id)
+        if book is None:
+            return None
+
+        record = self.get_character_by_stable_key(
+            session,
+            book_id=book.id,
+            stable_character_key=stable_character_key,
+        )
+        if record is None:
+            return None
+        return self._to_character_profile(record)
+
+    def get_chat_session_state(
+        self, session: Session, *, session_id: str
+    ) -> ChatSessionState | None:
+        record = session.get(ChatSession, session_id)
+        if record is None:
+            return None
+
+        character = session.get(CharacterProfileRecord, record.character_id)
+        if character is None:
+            return None
+
+        messages = session.scalars(
+            select(ChatMessage)
+            .where(ChatMessage.session_id == record.id)
+            .order_by(ChatMessage.sequence_number.asc())
+        ).all()
+
+        return ChatSessionState(
+            id=record.id,
+            character_id=character.stable_character_key or character.id,
+            text_id=character.source_text_id or "",
+            psi_parameters=PsiParameters.model_validate(record.latest_psi_parameters),
+            emotion_state=EmotionState.model_validate(record.latest_emotion_state),
+            chat_history=[
+                ChatHistoryMessage(
+                    type="user" if message.role == ChatRole.user else "ai",
+                    content=message.content,
+                )
+                for message in messages
+            ],
+            created_at=record.created_at,
+            last_updated=record.last_message_at or record.updated_at,
+        )
+
+    def list_character_memories(
+        self,
+        session: Session,
+        *,
+        text_id: str,
+        stable_character_key: str,
+    ) -> list[FactualMemoryRecord]:
+        book = self.get_book_by_text_id(session, text_id)
+        if book is None:
+            return []
+
+        character = self.get_character_by_stable_key(
+            session,
+            book_id=book.id,
+            stable_character_key=stable_character_key,
+        )
+        if character is None:
+            return []
+
+        records = session.scalars(
+            select(CharacterMemory)
+            .where(
+                CharacterMemory.book_id == book.id,
+                CharacterMemory.character_id == character.id,
+            )
+            .order_by(CharacterMemory.created_at.asc())
+        ).all()
+
+        return [
+            FactualMemoryRecord(
+                id=record.id,
+                character_id=stable_character_key,
+                text_id=text_id,
+                fact=record.fact,
+                source_session_id=record.session_id,
+                created_at=record.created_at,
+            )
+            for record in records
+        ]
 
     def get_or_create_chat_session(
         self,

@@ -53,7 +53,14 @@ class ChatService:
         session_id: str | None = None,
         llm_provider: str | None = None,
     ) -> ChatTurnResult:
-        character = self.character_repository.get_character_by_id(text_id, character_id)
+        character = None
+        if self.relational_persistence_service is not None:
+            character = self.relational_persistence_service.get_character(
+                text_id=text_id,
+                stable_character_key=character_id,
+            )
+        if character is None:
+            character = self.character_repository.get_character_by_id(text_id, character_id)
         if character is None:
             raise NotFoundError("Character not found.")
 
@@ -123,7 +130,13 @@ class ChatService:
         emotion_state,
     ) -> ChatSessionState:
         if session_id:
-            existing = self.session_repository.get(session_id)
+            existing = None
+            if self.relational_persistence_service is not None:
+                existing = self.relational_persistence_service.get_chat_session(
+                    session_id=session_id
+                )
+            if existing is None:
+                existing = self.session_repository.get(session_id)
             if (
                 existing is not None
                 and existing.character_id == character_id
@@ -149,9 +162,16 @@ class ChatService:
         character_response: str,
     ) -> None:
         provider = self.provider_factory.get_provider(provider_name)
-        existing_memories = self.factual_memory_repository.list_for_character(
-            character_id, text_id
-        )
+        existing_memories = []
+        if self.relational_persistence_service is not None:
+            existing_memories = self.relational_persistence_service.list_character_memories(
+                text_id=text_id,
+                stable_character_key=character_id,
+            )
+        if not existing_memories:
+            existing_memories = self.factual_memory_repository.list_for_character(
+                character_id, text_id
+            )
         existing_facts = {memory.fact.strip().lower() for memory in existing_memories}
 
         system_prompt, user_prompt = fact_extraction_prompt(
@@ -196,7 +216,14 @@ class ChatService:
         )
 
     def _format_factual_memories(self, character_id: str, text_id: str) -> str:
-        memories = self.factual_memory_repository.list_for_character(character_id, text_id)
+        memories = []
+        if self.relational_persistence_service is not None:
+            memories = self.relational_persistence_service.list_character_memories(
+                text_id=text_id,
+                stable_character_key=character_id,
+            )
+        if not memories:
+            memories = self.factual_memory_repository.list_for_character(character_id, text_id)
         if not memories:
             return "No previous factual memories."
         return "\n".join(f"- {memory.fact}" for memory in memories)

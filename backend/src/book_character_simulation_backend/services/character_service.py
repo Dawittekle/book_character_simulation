@@ -35,9 +35,27 @@ class CharacterService:
         text: str,
         llm_provider: str | None = None,
     ) -> list[CharacterProfile]:
+        if self.relational_persistence_service is not None:
+            relational_characters = self.relational_persistence_service.get_characters(
+                text_id=text_id
+            )
+            if relational_characters:
+                logger.info(
+                    "Returning Postgres-backed cached characters for text_id=%s",
+                    text_id,
+                )
+                self.character_repository.store_characters(text_id, relational_characters)
+                return relational_characters
+
         cached_characters = self.character_repository.get_characters(text_id)
         if cached_characters:
             logger.info("Returning cached characters for text_id=%s", text_id)
+            if self.relational_persistence_service is not None:
+                self.relational_persistence_service.persist_character_extraction(
+                    text_id=text_id,
+                    extracted_text=text[: self.settings.max_source_characters],
+                    characters=cached_characters,
+                )
             return cached_characters
 
         prepared_text = text[: self.settings.max_source_characters]
