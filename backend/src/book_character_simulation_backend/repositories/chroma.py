@@ -15,8 +15,8 @@ from ..schemas.chat import ChatSessionState, FactualMemoryRecord
 logger = logging.getLogger(__name__)
 
 
-def _placeholder_embeddings(count: int) -> list[list[float]]:
-    return [[0.0] for _ in range(count)]
+def _placeholder_embeddings(count: int, dimension: int = 384) -> list[list[float]]:
+    return [[0.0] * dimension for _ in range(count)]
 
 
 class NoOpProductTelemetryClient(ProductTelemetryClient):

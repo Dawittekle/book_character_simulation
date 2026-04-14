@@ -12,6 +12,7 @@ dependencies = [
   "alembic>=1.13,<2.0",
   "Flask>=3.0,<4.0",
   "Flask-Cors>=4.0,<6.0",
+  "PyJWT[crypto]>=2.9,<3.0",
   "PyMuPDF>=1.24,<2.0",
   "SQLAlchemy>=2.0,<3.0",
   "chromadb>=0.6,<0.7",
@@ -21,6 +22,7 @@ dependencies = [
   "pydantic>=2.8,<3.0",
   "psycopg[binary]>=3.2,<4.0",
   "python-dotenv>=1.0,<2.0",
+  "requests>=2.32,<3.0",
 ]
 
 [project.optional-dependencies]

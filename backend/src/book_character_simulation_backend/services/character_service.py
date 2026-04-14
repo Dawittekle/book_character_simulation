@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 
+from ..auth import AuthenticatedUser
 from ..config import Settings
 from ..errors import AppError
 from ..llm import LLMProviderFactory
@@ -31,12 +32,14 @@ class CharacterService:
     def extract_characters(
         self,
         *,
+        authenticated_user: AuthenticatedUser | None,
         text_id: str,
         text: str,
         llm_provider: str | None = None,
     ) -> list[CharacterProfile]:
         if self.relational_persistence_service is not None:
             relational_characters = self.relational_persistence_service.get_characters(
+                authenticated_user=authenticated_user,
                 text_id=text_id
             )
             if relational_characters:
@@ -44,19 +47,22 @@ class CharacterService:
                     "Returning Postgres-backed cached characters for text_id=%s",
                     text_id,
                 )
-                self.character_repository.store_characters(text_id, relational_characters)
+                if authenticated_user is None:
+                    self.character_repository.store_characters(text_id, relational_characters)
                 return relational_characters
 
-        cached_characters = self.character_repository.get_characters(text_id)
-        if cached_characters:
-            logger.info("Returning cached characters for text_id=%s", text_id)
-            if self.relational_persistence_service is not None:
-                self.relational_persistence_service.persist_character_extraction(
-                    text_id=text_id,
-                    extracted_text=text[: self.settings.max_source_characters],
-                    characters=cached_characters,
-                )
-            return cached_characters
+        if authenticated_user is None:
+            cached_characters = self.character_repository.get_characters(text_id)
+            if cached_characters:
+                logger.info("Returning cached characters for text_id=%s", text_id)
+                if self.relational_persistence_service is not None:
+                    self.relational_persistence_service.persist_character_extraction(
+                        authenticated_user=authenticated_user,
+                        text_id=text_id,
+                        extracted_text=text[: self.settings.max_source_characters],
+                        characters=cached_characters,
+                    )
+                return cached_characters
 
         prepared_text = text[: self.settings.max_source_characters]
         system_prompt, user_prompt = character_extraction_prompt(prepared_text)
@@ -78,9 +84,11 @@ class CharacterService:
             item["id"] = character_id
             characters.append(CharacterProfile.model_validate(item))
 
-        self.character_repository.store_characters(text_id, characters)
+        if authenticated_user is None:
+            self.character_repository.store_characters(text_id, characters)
         if self.relational_persistence_service is not None:
             self.relational_persistence_service.persist_character_extraction(
+                authenticated_user=authenticated_user,
                 text_id=text_id,
                 extracted_text=prepared_text,
                 characters=characters,

@@ -21,6 +21,14 @@ def _database_manager():
     return current_app.extensions["database_manager"]
 
 
+def _auth_service():
+    return current_app.extensions["auth_service"]
+
+
+def _authenticated_user():
+    return _auth_service().authenticate_request(request.headers.get("Authorization"))
+
+
 @api_blueprint.route("/health", methods=["GET"])
 def health_check():
     settings = current_app.config["SETTINGS"]
@@ -72,6 +80,7 @@ def extract_characters():
 
         text_id = hashlib.sha256(text.encode("utf-8")).hexdigest()
         characters = _services()["character_service"].extract_characters(
+            authenticated_user=_authenticated_user(),
             text_id=text_id,
             text=text,
             llm_provider=llm_provider,
@@ -100,6 +109,7 @@ def chat_with_character(character_id: str):
             raise BadRequestError("No text_id provided.")
 
         response_payload = _services()["chat_service"].chat(
+            authenticated_user=_authenticated_user(),
             character_id=character_id,
             text_id=text_id,
             user_message=user_message,

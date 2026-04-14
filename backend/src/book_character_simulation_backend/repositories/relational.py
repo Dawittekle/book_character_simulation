@@ -3,6 +3,8 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import AuthenticatedUser
+from ..db.base import utc_now
 from ..db.models import (
     Book,
     BookProcessingStatus,
@@ -53,6 +55,48 @@ class RelationalRepository:
         session.flush()
         return record
 
+    @staticmethod
+    def _fallback_email(subject: str) -> str:
+        return f"supabase-user-{subject}@book-character-simulation.local"
+
+    def get_or_create_owner(
+        self, session: Session, authenticated_user: AuthenticatedUser | None
+    ) -> UserAccount:
+        if authenticated_user is None:
+            return self.get_or_create_demo_user(session)
+
+        record = session.scalar(
+            select(UserAccount).where(
+                UserAccount.supabase_user_id == authenticated_user.subject
+            )
+        )
+        if record is None and authenticated_user.email:
+            record = session.scalar(
+                select(UserAccount).where(UserAccount.email == authenticated_user.email)
+            )
+
+        email = authenticated_user.email or self._fallback_email(authenticated_user.subject)
+        display_name = authenticated_user.display_name or email
+
+        if record is None:
+            record = UserAccount(
+                supabase_user_id=authenticated_user.subject,
+                email=email,
+                display_name=display_name,
+                avatar_url=authenticated_user.avatar_url,
+            )
+            session.add(record)
+            session.flush()
+            return record
+
+        record.supabase_user_id = authenticated_user.subject
+        record.email = email
+        record.display_name = display_name
+        record.avatar_url = authenticated_user.avatar_url
+        record.last_login_at = utc_now()
+        session.flush()
+        return record
+
     def get_or_create_book(
         self,
         *,
@@ -62,7 +106,12 @@ class RelationalRepository:
         extracted_text: str,
     ) -> Book:
         source = session.scalar(
-            select(BookSource).where(BookSource.extracted_text_hash == text_id)
+            select(BookSource)
+            .join(Book, BookSource.book_id == Book.id)
+            .where(
+                BookSource.extracted_text_hash == text_id,
+                Book.owner_user_id == owner.id,
+            )
         )
         if source is not None:
             if source.extracted_text != extracted_text:
@@ -130,16 +179,23 @@ class RelationalRepository:
 
         return records
 
-    def get_book_by_text_id(self, session: Session, text_id: str) -> Book | None:
+    def get_book_by_text_id(
+        self, session: Session, *, owner: UserAccount, text_id: str
+    ) -> Book | None:
         source = session.scalar(
-            select(BookSource).where(BookSource.extracted_text_hash == text_id)
+            select(BookSource)
+            .join(Book, BookSource.book_id == Book.id)
+            .where(
+                BookSource.extracted_text_hash == text_id,
+                Book.owner_user_id == owner.id,
+            )
         )
         return source.book if source is not None else None
 
     def list_characters_by_text_id(
-        self, session: Session, text_id: str
+        self, session: Session, *, owner: UserAccount, text_id: str
     ) -> list[CharacterProfile]:
-        book = self.get_book_by_text_id(session, text_id)
+        book = self.get_book_by_text_id(session, owner=owner, text_id=text_id)
         if book is None:
             return []
 
@@ -161,9 +217,14 @@ class RelationalRepository:
         )
 
     def get_character_profile(
-        self, session: Session, *, text_id: str, stable_character_key: str
+        self,
+        session: Session,
+        *,
+        owner: UserAccount,
+        text_id: str,
+        stable_character_key: str,
     ) -> CharacterProfile | None:
-        book = self.get_book_by_text_id(session, text_id)
+        book = self.get_book_by_text_id(session, owner=owner, text_id=text_id)
         if book is None:
             return None
 
@@ -177,9 +238,14 @@ class RelationalRepository:
         return self._to_character_profile(record)
 
     def get_chat_session_state(
-        self, session: Session, *, session_id: str
+        self, session: Session, *, owner: UserAccount, session_id: str
     ) -> ChatSessionState | None:
-        record = session.get(ChatSession, session_id)
+        record = session.scalar(
+            select(ChatSession).where(
+                ChatSession.id == session_id,
+                ChatSession.owner_user_id == owner.id,
+            )
+        )
         if record is None:
             return None
 
@@ -214,10 +280,11 @@ class RelationalRepository:
         self,
         session: Session,
         *,
+        owner: UserAccount,
         text_id: str,
         stable_character_key: str,
     ) -> list[FactualMemoryRecord]:
-        book = self.get_book_by_text_id(session, text_id)
+        book = self.get_book_by_text_id(session, owner=owner, text_id=text_id)
         if book is None:
             return []
 
