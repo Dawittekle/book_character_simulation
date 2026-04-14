@@ -1,260 +1,298 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import apiService from '../services/api';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import './ChatInterface.css';
+import CharacterInsights from './CharacterInsights';
+import apiService from '../services/api';
+import {
+  countSavedConversations,
+  getInitials,
+  truncateText,
+} from '../lib/formatters';
+import {
+  getConversationSnapshot,
+  getWorkspaceBook,
+  saveConversationSnapshot,
+  upsertWorkspaceBook,
+} from '../lib/workspaceStore';
 
-function ChatInterface() {
-  const [character, setCharacter] = useState(null);
+function ChatInterface({ ownerKey, session, workspaceVersion, onWorkspaceChanged }) {
+  const { textId, characterId } = useParams();
+  const messagesEndRef = useRef(null);
+  const [book, setBook] = useState(() => getWorkspaceBook(ownerKey, textId));
+  const [character, setCharacter] = useState(() =>
+    getWorkspaceBook(ownerKey, textId)?.characters.find(
+      (candidate) => candidate.id === characterId,
+    ),
+  );
   const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
   const [sessionId, setSessionId] = useState(null);
   const [emotionState, setEmotionState] = useState(null);
   const [psiParameters, setPsiParameters] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  const { characterId } = useParams();
-  const navigate = useNavigate();
-  const messagesEndRef = useRef(null);
-  const textId = useRef('');
-
-  // Load character data from localStorage
-  useEffect(() => {
-    const storedCharacter = localStorage.getItem('selectedCharacter');
-    const storedCharacters = localStorage.getItem('characters');
-    
-    if (storedCharacter) {
-      const parsedCharacter = JSON.parse(storedCharacter);
-      setCharacter(parsedCharacter);
-      setEmotionState(parsedCharacter.emotion_state);
-      setPsiParameters(parsedCharacter.psi_parameters);
-      textId.current = parsedCharacter.text_id;
-    } else if (storedCharacters) {
-      // If no selected character but we have characters list, find by ID
-      const parsedCharacters = JSON.parse(storedCharacters);
-      const foundCharacter = parsedCharacters.find(c => c.id === characterId);
-      
-      if (foundCharacter) {
-        setCharacter(foundCharacter);
-        setEmotionState(foundCharacter.emotion_state);
-        setPsiParameters(foundCharacter.psi_parameters);
-        textId.current = foundCharacter.text_id;
-      } else {
-        setError('Character not found');
-        setTimeout(() => navigate('/characters'), 3000);
-      }
-    } else {
-      setError('No character data found');
-      setTimeout(() => navigate('/'), 3000);
-    }
-  }, [characterId, navigate]);
+  const [provider, setProvider] = useState('server_default');
+  const [inputValue, setInputValue] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+    const nextBook = getWorkspaceBook(ownerKey, textId);
+    const nextCharacter =
+      nextBook?.characters.find((candidate) => candidate.id === characterId) || null;
+    const snapshot = getConversationSnapshot(ownerKey, textId, characterId);
 
-  const handleInputChange = (e) => {
-    setInputMessage(e.target.value);
+    setBook(nextBook);
+    setCharacter(nextCharacter);
+    setMessages(snapshot?.messages || []);
+    setSessionId(snapshot?.sessionId || null);
+    setEmotionState(snapshot?.emotionState || nextCharacter?.emotion_state || null);
+    setPsiParameters(snapshot?.psiParameters || nextCharacter?.psi_parameters || null);
+    setProvider(nextBook?.preferredProvider || 'server_default');
+    setErrorMessage('');
+  }, [ownerKey, textId, characterId, workspaceVersion]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+    });
+  }, [messages, isSending]);
+
+  const handleProviderChange = (nextProvider) => {
+    setProvider(nextProvider);
+
+    if (!book) {
+      return;
+    }
+
+    upsertWorkspaceBook(ownerKey, {
+      ...book,
+      preferredProvider: nextProvider,
+      activeCharacterId: characterId,
+    });
+    onWorkspaceChanged();
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    
-    if (!inputMessage.trim() || loading) return;
-    
-    const userMessage = inputMessage.trim();
-    setInputMessage('');
-    
-    // Add user message to chat
-    setMessages(prevMessages => [
-      ...prevMessages, 
-      { type: 'user', content: userMessage }
-    ]);
-    
-    setLoading(true);
-    
-    // Inside handleSendMessage function
+  const handleSendMessage = async (event) => {
+    event.preventDefault();
+
+    const trimmedMessage = inputValue.trim();
+    if (!trimmedMessage || !character || !book || isSending) {
+      return;
+    }
+
+    const optimisticMessage = {
+      id: `local-${Date.now()}`,
+      type: 'user',
+      content: trimmedMessage,
+    };
+
+    const optimisticMessages = [...messages, optimisticMessage];
+
+    setMessages(optimisticMessages);
+    setInputValue('');
+    setErrorMessage('');
+    setIsSending(true);
+
     try {
-      // Create form data for the request
-      const formData = new FormData();
-      formData.append('message', userMessage);
-      formData.append('text_id', textId.current);
-      
-      if (sessionId) {
-        formData.append('session_id', sessionId);
-      }
-      
-      const responseData = await apiService.chatWithCharacter(
+      const response = await apiService.chatWithCharacter({
         characterId,
-        userMessage,
-        textId.current,
-        sessionId
-      );
-      
-      setSessionId(responseData[0].session_id);
-      
-      setPsiParameters(responseData[0].updated_psi);
-      setEmotionState(responseData[0].emotion_state);
-      
-      setMessages(prevMessages => [
-        ...prevMessages,
-        { type: 'ai', content: responseData[0].reply }
-      ]);
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setError('Failed to send message. Please try again.');
+        message: trimmedMessage,
+        textId,
+        sessionId,
+        llmProvider: provider === 'server_default' ? undefined : provider,
+        accessToken: session.access_token,
+      });
+
+      const nextMessages = [
+        ...optimisticMessages,
+        {
+          id: `assistant-${Date.now()}`,
+          type: 'ai',
+          content: response.reply,
+        },
+      ];
+
+      setMessages(nextMessages);
+      setSessionId(response.session_id);
+      setEmotionState(response.emotion_state);
+      setPsiParameters(response.updated_psi);
+
+      upsertWorkspaceBook(ownerKey, {
+        ...book,
+        preferredProvider: provider,
+        activeCharacterId: characterId,
+      });
+      saveConversationSnapshot(ownerKey, {
+        textId,
+        characterId,
+        sessionId: response.session_id,
+        messages: nextMessages,
+        psiParameters: response.updated_psi,
+        emotionState: response.emotion_state,
+      });
+      onWorkspaceChanged();
+    } catch (error) {
+      setMessages(messages);
+      setInputValue(trimmedMessage);
+      setErrorMessage(error.message || 'Sending the message failed.');
     } finally {
-      setLoading(false);
+      setIsSending(false);
     }
   };
 
-  if (error) {
+  if (!book || !character) {
     return (
-      <div className="error-container">
-        <div className="error-message">{error}</div>
+      <div className="empty-state surface-card">
+        <h2>This conversation is missing its saved book or character context.</h2>
+        <p>Return to the character board and reopen the conversation from there.</p>
+        <Link className="primary-button" to="/">
+          Back to library
+        </Link>
       </div>
     );
   }
 
-  if (!character) {
-    return <div className="loading">Loading character data...</div>;
-  }
-
   return (
-    <div className="chat-interface-container">
-      <div className="chat-header">
-        <button 
-          className="back-button"
-          onClick={() => navigate('/characters')}
-        >
-          Back to Characters
-        </button>
-        <h2>Conversation with {character.name}</h2>
-      </div>
-      
-      <div className="chat-content">
-        <div className="chat-messages">
-          {messages.length === 0 ? (
-            <div className="empty-chat-message">
-              Start a conversation with {character.name}
+    <div className="chat-page">
+      <section className="chat-layout">
+        <article className="chat-thread surface-card">
+          <header className="chat-thread-header">
+            <div className="chat-thread-title">
+              <span className="character-thread-avatar">{getInitials(character.name)}</span>
+              <div>
+                <h2>{character.name}</h2>
+                <p>{truncateText(character.personality, 145)}</p>
+              </div>
             </div>
-          ) : (
-            messages.map((message, index) => (
-              <div 
-                key={index} 
-                className={`message ${message.type === 'user' ? 'user-message' : 'ai-message'}`}
+
+            <div className="chat-thread-actions">
+              <select
+                aria-label="Select provider"
+                value={provider}
+                onChange={(event) => handleProviderChange(event.target.value)}
               >
-                <div className="message-content">{message.content}</div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-          
-          {loading && (
-            <div className="ai-typing">
-              <div className="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+                <option value="server_default">Server default</option>
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+              <Link className="secondary-button" to={`/workspace/${textId}`}>
+                Back to board
+              </Link>
             </div>
-          )}
-        </div>
-        
-        <div className="character-state-panel">
-          <div className="character-info">
-            <h3>{character.name}</h3>
-            <p className="personality">{character.personality}</p>
+          </header>
+
+          {errorMessage ? <div className="alert-banner">{errorMessage}</div> : null}
+
+          <div className="chat-messages">
+            {messages.length ? (
+              messages.map((message) => (
+                <article
+                  className={
+                    message.type === 'user'
+                      ? 'chat-bubble is-user'
+                      : 'chat-bubble is-ai'
+                  }
+                  key={message.id || `${message.type}-${message.content}`}
+                >
+                  <span className="chat-bubble-role">
+                    {message.type === 'user' ? 'You' : character.name}
+                  </span>
+                  <p>{message.content}</p>
+                </article>
+              ))
+            ) : (
+              <div className="chat-empty-state">
+                <span className="section-eyebrow">Conversation starter</span>
+                <h3>Open with a grounded question.</h3>
+                <p>
+                  Ask about a relationship, a recent event, or a motivation you
+                  want the character to explain in their own voice.
+                </p>
+              </div>
+            )}
+
+            {isSending ? (
+              <div className="chat-bubble is-ai is-typing">
+                <span className="chat-bubble-role">{character.name}</span>
+                <div className="typing-dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+            ) : null}
+
+            <div ref={messagesEndRef} />
           </div>
-          
-          {emotionState && (
-            <div className="emotion-state-section">
-              <h4>Emotional State:</h4>
-              <div className="emotion-bars">
-                {Object.entries(emotionState).map(([emotion, value]) => (
-                  <div key={emotion} className="emotion-bar-container">
-                    <span className="emotion-label">{emotion.charAt(0).toUpperCase() + emotion.slice(1)}</span>
-                    <div className="emotion-bar-bg">
-                      <div 
-                        className="emotion-bar-fill" 
-                        style={{ 
-                          width: `${value * 100}%`,
-                          backgroundColor: getEmotionColor(emotion)
-                        }}
-                      ></div>
-                    </div>
-                    <span className="emotion-value">{(value * 100).toFixed(0)}%</span>
-                  </div>
-                ))}
-              </div>
+
+          <form className="chat-composer" onSubmit={handleSendMessage}>
+            <textarea
+              placeholder={`Ask ${character.name} something grounded in ${book.title}...`}
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  handleSendMessage(event);
+                }
+              }}
+            />
+
+            <div className="chat-composer-footer">
+              <span className="field-hint">
+                Press Enter to send, Shift + Enter for a new line.
+              </span>
+              <button
+                className="primary-button"
+                disabled={!inputValue.trim() || isSending}
+                type="submit"
+              >
+                {isSending ? 'Sending...' : 'Send message'}
+              </button>
             </div>
-          )}
-          
-          {psiParameters && (
-            <div className="psi-parameters-section">
-              <h4>Psychological Parameters:</h4>
-              <div className="psi-parameters-grid">
-                {Object.entries(psiParameters).map(([param, value]) => (
-                  <div key={param} className="psi-parameter">
-                    <span className="psi-parameter-label">{formatParameterName(param)}</span>
-                    <div className="psi-parameter-bar-bg">
-                      <div 
-                        className="psi-parameter-bar-fill" 
-                        style={{ 
-                          width: `${value * 100}%`,
-                          backgroundColor: '#3498db'
-                        }}
-                      ></div>
-                    </div>
-                    <span className="psi-parameter-value">{(value * 100).toFixed(0)}%</span>
-                  </div>
-                ))}
-              </div>
+          </form>
+        </article>
+
+        <aside className="chat-sidebar">
+          <section className="chat-sidebar-card surface-card">
+            <span className="section-eyebrow">Session context</span>
+            <h3>{book.title}</h3>
+            <p>{truncateText(book.preview, 220)}</p>
+            <div className="chat-session-meta">
+              <span className="outline-pill">{countSavedConversations(book)} saved chats</span>
+              <span className="outline-pill">
+                {sessionId ? 'Session linked' : 'New session'}
+              </span>
             </div>
-          )}
-        </div>
-      </div>
-      
-      <form className="chat-input-form" onSubmit={handleSendMessage}>
-        <input
-          type="text"
-          value={inputMessage}
-          onChange={handleInputChange}
-          placeholder="Type your message..."
-          disabled={loading}
-        />
-        <button 
-          type="submit" 
-          disabled={!inputMessage.trim() || loading}
-        >
-          Send
-        </button>
-      </form>
+          </section>
+
+          <CharacterInsights emotionState={emotionState} psiParameters={psiParameters} />
+
+          <section className="chat-sidebar-card surface-card">
+            <span className="section-eyebrow">Key events</span>
+            <ul className="chat-sidebar-list">
+              {character.key_events.length ? (
+                character.key_events.map((eventItem) => <li key={eventItem}>{eventItem}</li>)
+              ) : (
+                <li>No events were extracted yet.</li>
+              )}
+            </ul>
+          </section>
+
+          <section className="chat-sidebar-card surface-card">
+            <span className="section-eyebrow">Relationships</span>
+            <ul className="chat-sidebar-list">
+              {character.relationships.length ? (
+                character.relationships.map((relationship) => (
+                  <li key={relationship}>{relationship}</li>
+                ))
+              ) : (
+                <li>No relationships were extracted yet.</li>
+              )}
+            </ul>
+          </section>
+        </aside>
+      </section>
     </div>
   );
-}
-
-// Helper function to format parameter names
-function formatParameterName(name) {
-  return name
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-// Helper function to get color for each emotion
-function getEmotionColor(emotion) {
-  const colors = {
-    anger: '#FF5252',
-    sadness: '#536DFE',
-    pride: '#FFD740',
-    joy: '#66BB6A',
-    bliss: '#26C6DA'
-  };
-  
-  return colors[emotion] || '#9E9E9E';
 }
 
 export default ChatInterface;

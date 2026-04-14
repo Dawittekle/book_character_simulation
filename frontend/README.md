@@ -1,12 +1,48 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This frontend is a React 19 + Vite workspace for the book character simulation product.
 
-Currently, two official plugins are available:
+## What It Does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- signs users in with Supabase Auth
+- lets a user upload a pasted story excerpt or PDF-backed source
+- creates a character board from the backend extraction API
+- keeps a polished logged-in library/dashboard experience
+- opens a chat studio for a selected character
 
-## Expanding the ESLint configuration
+## Environment Variables
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Create `frontend/.env` from `frontend/.env.example` and set:
+
+- `VITE_API_URL`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+## Run Locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend expects the Flask backend to already be running.
+
+## Current Frontend Architecture
+
+- `src/App.jsx`
+  Auth bootstrap and route wiring
+- `src/components/AppShell.jsx`
+  Logged-in workspace shell, sidebar, top search, and page chrome
+- `src/components/AuthScreen.jsx`
+  Sign-in / sign-up experience plus setup guidance
+- `src/components/TextUpload.jsx`
+  Dashboard, upload composer, and local library index
+- `src/components/CharacterSelection.jsx`
+  Character board for a single uploaded book
+- `src/components/ChatInterface.jsx`
+  Chat studio for a chosen character
+- `src/lib/supabase.js`
+  Frontend Supabase client
+- `src/lib/workspaceStore.js`
+  Temporary user-scoped browser storage until backend list endpoints are added
