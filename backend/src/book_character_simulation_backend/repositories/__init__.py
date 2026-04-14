@@ -3,9 +3,11 @@ from .chroma import (
     ChromaFactualMemoryRepository,
     ChromaSessionRepository,
 )
+from .relational import RelationalRepository
 
 __all__ = [
     "ChromaCharacterRepository",
     "ChromaFactualMemoryRepository",
     "ChromaSessionRepository",
+    "RelationalRepository",
 ]

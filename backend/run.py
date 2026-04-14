@@ -17,11 +17,19 @@ def _display_host(host: str) -> str:
 
 def print_startup_banner(settings: Settings) -> None:
     base_url = f"http://{_display_host(settings.host)}:{settings.port}"
+    provider_ready = (
+        settings.gemini_api_key if settings.llm_provider == "gemini" else settings.openai_api_key
+    )
     print("")
     print("Backend startup")
     print(f"API base: {base_url}/api")
     print(f"Health: {base_url}/api/health")
     print(f"Configured LLM provider: {settings.llm_provider}")
+    print(f"Configured LLM provider ready: {'yes' if provider_ready else 'no'}")
+    print(
+        "Supabase configured: "
+        f"{'yes' if settings.supabase_url and settings.supabase_anon_key else 'no'}"
+    )
     print(f"Relational database configured: {'yes' if settings.database_url else 'no'}")
     print("")
 

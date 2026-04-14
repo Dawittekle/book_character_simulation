@@ -22,6 +22,7 @@ from ..schemas.chat import (
     utc_now,
 )
 from ..utils.json import parse_json_response
+from .relational_persistence_service import RelationalPersistenceService
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +35,14 @@ class ChatService:
         character_repository: ChromaCharacterRepository,
         session_repository: ChromaSessionRepository,
         factual_memory_repository: ChromaFactualMemoryRepository,
+        relational_persistence_service: RelationalPersistenceService | None = None,
     ) -> None:
         self.settings = settings
         self.character_repository = character_repository
         self.session_repository = session_repository
         self.factual_memory_repository = factual_memory_repository
         self.provider_factory = LLMProviderFactory(settings)
+        self.relational_persistence_service = relational_persistence_service
 
     def chat(
         self,
@@ -93,6 +96,15 @@ class ChatService:
             character_response=chat_payload.reply,
         )
         self.session_repository.save(session)
+        if self.relational_persistence_service is not None:
+            self.relational_persistence_service.persist_chat_state(
+                text_id=text_id,
+                stable_character_key=character_id,
+                session_state=session,
+                memories=self.factual_memory_repository.list_for_character(
+                    character_id, text_id
+                ),
+            )
 
         return ChatTurnResult(
             session_id=session.id,

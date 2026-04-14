@@ -16,6 +16,7 @@ from .base import Base
 class DatabaseManager:
     def __init__(self, settings: Settings):
         self._database_url = settings.database_url
+        self._database_connect_timeout = settings.database_connect_timeout
         self._engine: Engine | None = None
         self._session_factory: sessionmaker[Session] | None = None
 
@@ -23,6 +24,7 @@ class DatabaseManager:
             self._engine = create_engine(
                 self._database_url,
                 pool_pre_ping=True,
+                connect_args={"connect_timeout": self._database_connect_timeout},
                 echo=settings.sqlalchemy_echo,
                 future=True,
             )

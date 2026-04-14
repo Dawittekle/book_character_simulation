@@ -10,6 +10,7 @@ from ..prompts import character_extraction_prompt
 from ..repositories.chroma import ChromaCharacterRepository
 from ..schemas.character import CharacterProfile
 from ..utils.json import parse_json_response
+from .relational_persistence_service import RelationalPersistenceService
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,12 @@ class CharacterService:
         *,
         settings: Settings,
         character_repository: ChromaCharacterRepository,
+        relational_persistence_service: RelationalPersistenceService | None = None,
     ) -> None:
         self.settings = settings
         self.character_repository = character_repository
         self.provider_factory = LLMProviderFactory(settings)
+        self.relational_persistence_service = relational_persistence_service
 
     def extract_characters(
         self,
@@ -58,4 +61,10 @@ class CharacterService:
             characters.append(CharacterProfile.model_validate(item))
 
         self.character_repository.store_characters(text_id, characters)
+        if self.relational_persistence_service is not None:
+            self.relational_persistence_service.persist_character_extraction(
+                text_id=text_id,
+                extracted_text=prepared_text,
+                characters=characters,
+            )
         return characters

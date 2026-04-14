@@ -28,7 +28,7 @@ if not settings.database_url:
         "Set it in backend/.env before running 'alembic upgrade head'."
     )
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 
