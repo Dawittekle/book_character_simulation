@@ -7,6 +7,7 @@ Create Date: 2026-04-05 00:00:00
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision = "20260405_0001"
@@ -15,14 +16,21 @@ branch_labels = None
 depends_on = None
 
 
-book_processing_status = sa.Enum(
+book_processing_status = postgresql.ENUM(
     "uploaded",
     "extracting",
     "ready",
     "failed",
     name="bookprocessingstatus",
+    create_type=False,
 )
-chat_role = sa.Enum("user", "assistant", "system", name="chatrole")
+chat_role = postgresql.ENUM(
+    "user",
+    "assistant",
+    "system",
+    name="chatrole",
+    create_type=False,
+)
 
 
 def upgrade() -> None:
