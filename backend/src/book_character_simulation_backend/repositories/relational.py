@@ -327,7 +327,12 @@ class RelationalRepository:
         character: CharacterProfileRecord,
         session_state: ChatSessionState,
     ) -> ChatSession:
-        record = session.get(ChatSession, record_id)
+        record = session.scalar(
+            select(ChatSession).where(
+                ChatSession.id == record_id,
+                ChatSession.owner_user_id == owner.id,
+            )
+        )
         if record is None:
             record = ChatSession(
                 id=record_id,

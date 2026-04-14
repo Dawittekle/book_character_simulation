@@ -13,6 +13,8 @@ from .errors import ConfigurationError, UnauthorizedError
 
 logger = logging.getLogger(__name__)
 
+_ALLOWED_JWT_ALGORITHMS = {"ES256", "RS256", "HS256"}
+
 
 @dataclass(slots=True, frozen=True)
 class AuthenticatedUser:
@@ -59,6 +61,8 @@ class SupabaseAuthService:
             raise UnauthorizedError("Invalid authorization token.") from exc
 
         algorithm = str(unverified_header.get("alg") or "").upper()
+        if algorithm not in _ALLOWED_JWT_ALGORITHMS:
+            raise UnauthorizedError("Unsupported authorization token algorithm.")
         if algorithm.startswith("HS"):
             return self._get_user_via_auth_api(token)
 
