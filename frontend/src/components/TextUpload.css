@@ -1,58 +1,208 @@
-.text-upload-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+.dashboard-page {
+  display: grid;
+  gap: 1.2rem;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.dashboard-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.form-group label {
+.overview-card {
+  padding: 1rem 1.1rem;
+}
+
+.overview-card strong {
   display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
+  margin-top: 0.95rem;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  color: var(--text-strong);
 }
 
-textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 1rem;
+.overview-card span:last-child {
+  color: var(--text-muted);
 }
 
-.file-name {
-  margin-top: 5px;
-  font-size: 0.9rem;
-  color: #2980b9;
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.75fr);
+  gap: 1rem;
 }
 
-.submit-button {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.composer-card,
+.dashboard-notes,
+.library-card {
+  padding: 1.3rem;
 }
 
-.submit-button:hover {
-  background-color: #2980b9;
+.composer-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
 }
 
-.submit-button:disabled {
-  background-color: #95a5a6;
-  cursor: not-allowed;
+.composer-mode-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.35rem;
+  border-radius: 1rem;
+  background: rgba(239, 228, 211, 0.86);
 }
 
-.error-message {
-  background-color: #f8d7da;
-  color: #721c24;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+.mode-chip {
+  min-height: 2.7rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.85rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.mode-chip.is-active {
+  background: rgba(255, 252, 246, 0.96);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.composer-fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.file-dropzone {
+  display: grid;
+}
+
+.file-dropzone input {
+  padding: 1rem;
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 252, 246, 0.92);
+}
+
+.file-dropzone-copy {
+  margin-top: 0.7rem;
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dashboard-notes h3 {
+  margin-top: 0.9rem;
+  font-size: 1.55rem;
+}
+
+.dashboard-note-list {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.dashboard-note-list li {
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 252, 246, 0.88);
+  color: var(--text-muted);
+}
+
+.library-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.library-card {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 1rem;
+}
+
+.library-card-cover {
+  min-height: 12.4rem;
+  border-radius: 1.5rem;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(160deg, rgba(30, 28, 24, 0.98), rgba(87, 70, 50, 0.92)),
+    linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.08));
+  color: #fff5e5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.library-card-cover span {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.library-card-copy {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.library-card-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.library-card-copy h3 {
+  font-size: 1.5rem;
+}
+
+.library-card-copy p {
+  color: var(--text-muted);
+}
+
+.library-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.library-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+@media (max-width: 980px) {
+  .dashboard-overview,
+  .library-grid,
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .composer-card,
+  .dashboard-notes,
+  .library-card {
+    padding: 1rem;
+  }
+
+  .library-card {
+    grid-template-columns: 1fr;
+  }
+
+  .library-card-cover {
+    min-height: 8rem;
+  }
+
+  .composer-actions,
+  .library-card-actions {
+    display: grid;
+  }
 }
