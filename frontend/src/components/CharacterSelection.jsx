@@ -1,176 +1,191 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import './CharacterSelection.css';
+import CharacterInsights from './CharacterInsights';
+import {
+  countSavedConversations,
+  formatRelativeDate,
+  getInitials,
+  truncateText,
+} from '../lib/formatters';
+import {
+  getConversationSnapshot,
+  getWorkspaceBook,
+  rememberSelectedCharacter,
+} from '../lib/workspaceStore';
 
-function CharacterSelection() {
-  const [characters, setCharacters] = useState([]);
-  const [selectedCharacter, setSelectedCharacter] = useState(null);
+function CharacterSelection({ ownerKey, workspaceVersion, onWorkspaceChanged }) {
+  const { textId } = useParams();
   const navigate = useNavigate();
+  const [book, setBook] = useState(() => getWorkspaceBook(ownerKey, textId));
+  const [selectedCharacterId, setSelectedCharacterId] = useState(
+    book?.activeCharacterId || book?.characters[0]?.id || null,
+  );
 
   useEffect(() => {
-    // Get characters from localStorage
-    const storedCharacters = localStorage.getItem('characters');
-    
-    if (storedCharacters) {
-      setCharacters(JSON.parse(storedCharacters));
-    } else {
-      // If no characters found, redirect to upload page
-      navigate('/');
-    }
-  }, [navigate]);
+    const nextBook = getWorkspaceBook(ownerKey, textId);
+    setBook(nextBook);
+    setSelectedCharacterId(
+      nextBook?.activeCharacterId || nextBook?.characters[0]?.id || null,
+    );
+  }, [ownerKey, textId, workspaceVersion]);
 
-  const handleCharacterSelect = (character) => {
-    setSelectedCharacter(character);
+  if (!book) {
+    return (
+      <div className="empty-state surface-card">
+        <h2>This workspace is not available in the browser library yet.</h2>
+        <p>
+          Return to the dashboard, upload the book again, and the character
+          board will be rebuilt locally.
+        </p>
+        <Link className="primary-button" to="/">
+          Back to library
+        </Link>
+      </div>
+    );
+  }
+
+  const selectedCharacter =
+    book.characters.find((character) => character.id === selectedCharacterId) ||
+    book.characters[0] ||
+    null;
+
+  const selectedSnapshot = selectedCharacter
+    ? getConversationSnapshot(ownerKey, textId, selectedCharacter.id)
+    : null;
+
+  const handleSelectCharacter = (characterId) => {
+    setSelectedCharacterId(characterId);
+    rememberSelectedCharacter(ownerKey, textId, characterId);
+    onWorkspaceChanged();
   };
 
-  const handleStartChat = () => {
-    if (selectedCharacter) {
-      // Store selected character and text_id in localStorage for the chat component
-      localStorage.setItem('selectedCharacter', JSON.stringify(selectedCharacter));
-      navigate(`/chat/${selectedCharacter.id}`);
+  const handleOpenChat = () => {
+    if (!selectedCharacter) {
+      return;
     }
-  };
 
-  const handleBackToUpload = () => {
-    navigate('/');
+    rememberSelectedCharacter(ownerKey, textId, selectedCharacter.id);
+    onWorkspaceChanged();
+    navigate(`/chat/${textId}/${selectedCharacter.id}`);
   };
 
   return (
-    <div className="character-selection-container">
-      <h2>Select a Character</h2>
-      <p>Choose a character to start a conversation</p>
-      
-      {characters.length === 0 ? (
-        <div className="no-characters">
-          <p>No characters found. Please upload a text or PDF file.</p>
-          <button onClick={handleBackToUpload}>Back to Upload</button>
+    <div className="character-board-page">
+      <section className="board-hero surface-card">
+        <div className="board-hero-cover">
+          <span>{getInitials(book.title)}</span>
         </div>
-      ) : (
-        <>
-          <div className="characters-grid">
-            {characters.map((character) => (
-              <div 
+
+        <div className="board-hero-copy">
+          <div className="board-hero-pills">
+            <span className="status-pill">{book.characters.length} characters</span>
+            <span className="outline-pill">
+              {countSavedConversations(book)} saved chats
+            </span>
+            <span className="outline-pill">
+              Updated {formatRelativeDate(book.updatedAt)}
+            </span>
+          </div>
+
+          <h2>{book.title}</h2>
+          <p>{truncateText(book.preview, 280)}</p>
+          <small>{book.sourceLabel}</small>
+        </div>
+      </section>
+
+      <section className="board-layout">
+        <div className="character-grid">
+          {book.characters.map((character) => {
+            const snapshot = getConversationSnapshot(ownerKey, textId, character.id);
+
+            return (
+              <button
+                className={
+                  selectedCharacter?.id === character.id
+                    ? 'character-card surface-card is-selected'
+                    : 'character-card surface-card'
+                }
                 key={character.id}
-                className={`character-card ${selectedCharacter?.id === character.id ? 'selected' : ''}`}
-                onClick={() => handleCharacterSelect(character)}
+                onClick={() => handleSelectCharacter(character.id)}
+                type="button"
               >
+                <div className="character-card-topline">
+                  <span className="character-card-avatar">
+                    {getInitials(character.name)}
+                  </span>
+                  <span className="outline-pill">
+                    {snapshot ? 'Saved chat ready' : 'New conversation'}
+                  </span>
+                </div>
                 <h3>{character.name}</h3>
-                <p className="personality"><strong>Personality:</strong> {character.personality}</p>
-                
-                <div className="emotion-state-section">
-                  <h4>Emotional State:</h4>
-                  <div className="emotion-bars">
-                    {Object.entries(character.emotion_state).map(([emotion, value]) => (
-                      <div key={emotion} className="emotion-bar-container">
-                        <span className="emotion-label">{emotion.charAt(0).toUpperCase() + emotion.slice(1)}</span>
-                        <div className="emotion-bar-bg">
-                          <div 
-                            className="emotion-bar-fill" 
-                            style={{ 
-                              width: `${value * 100}%`,
-                              backgroundColor: getEmotionColor(emotion)
-                            }}
-                          ></div>
-                        </div>
-                        <span className="emotion-value">{(value * 100).toFixed(0)}%</span>
-                      </div>
-                    ))}
-                  </div>
+                <p>{truncateText(character.personality, 160)}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <aside className="dossier-panel">
+          {selectedCharacter ? (
+            <>
+              <section className="dossier-summary surface-card">
+                <span className="section-eyebrow">Selected character</span>
+                <h3>{selectedCharacter.name}</h3>
+                <p>{selectedCharacter.personality}</p>
+
+                <div className="dossier-summary-actions">
+                  <button className="primary-button" onClick={handleOpenChat} type="button">
+                    {selectedSnapshot ? 'Resume chat' : `Chat with ${selectedCharacter.name}`}
+                  </button>
+                  <Link className="secondary-button" to="/">
+                    Back to library
+                  </Link>
                 </div>
-                
-                <div className="psi-parameters-section">
-                  <h4>Psychological Parameters:</h4>
-                  <div className="psi-parameters-grid">
-                    {Object.entries(character.psi_parameters).map(([param, value]) => (
-                      <div key={param} className="psi-parameter">
-                        <span className="psi-parameter-label">{formatParameterName(param)}</span>
-                        <div className="psi-parameter-bar-bg">
-                          <div 
-                            className="psi-parameter-bar-fill" 
-                            style={{ 
-                              width: `${value * 100}%`,
-                              backgroundColor: '#3498db'
-                            }}
-                          ></div>
-                        </div>
-                        <span className="psi-parameter-value">{(value * 100).toFixed(0)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {selectedCharacter?.id === character.id && (
-                  <div className="character-details">
-                    {character.relationships && character.relationships.length > 0 && (
-                      <div className="relationships-section">
-                        <h4>Relationships:</h4>
-                        <ul className="relationships-list">
-                          {character.relationships.map((relationship, index) => (
-                            <li key={index}>{relationship}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {character.key_events && character.key_events.length > 0 && (
-                      <div className="key-events-section">
-                        <h4>Key Events:</h4>
-                        <ul className="key-events-list">
-                          {character.key_events.map((event, index) => (
-                            <li key={index}>{event}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          <div className="character-selection-actions">
-            <button 
-              className="back-button"
-              onClick={handleBackToUpload}
-            >
-              Back to Upload
-            </button>
-            
-            <button 
-              className="start-chat-button"
-              disabled={!selectedCharacter}
-              onClick={handleStartChat}
-            >
-              {selectedCharacter 
-                ? `Start Chat with ${selectedCharacter.name}` 
-                : 'Select a Character'}
-            </button>
-          </div>
-        </>
-      )}
+              </section>
+
+              <CharacterInsights
+                emotionState={
+                  selectedSnapshot?.emotionState || selectedCharacter.emotion_state
+                }
+                psiParameters={
+                  selectedSnapshot?.psiParameters || selectedCharacter.psi_parameters
+                }
+              />
+
+              <section className="dossier-list surface-card">
+                <span className="section-eyebrow">Relationships</span>
+                <ul>
+                  {selectedCharacter.relationships.length ? (
+                    selectedCharacter.relationships.map((relationship) => (
+                      <li key={relationship}>{relationship}</li>
+                    ))
+                  ) : (
+                    <li>No relationships were extracted yet.</li>
+                  )}
+                </ul>
+              </section>
+
+              <section className="dossier-list surface-card">
+                <span className="section-eyebrow">Key events</span>
+                <ul>
+                  {selectedCharacter.key_events.length ? (
+                    selectedCharacter.key_events.map((event) => <li key={event}>{event}</li>)
+                  ) : (
+                    <li>No key events were extracted yet.</li>
+                  )}
+                </ul>
+              </section>
+            </>
+          ) : (
+            <div className="empty-state surface-card">
+              <h3>No characters were extracted for this source.</h3>
+              <p>Try a longer excerpt or a more complete PDF.</p>
+            </div>
+          )}
+        </aside>
+      </section>
     </div>
   );
-}
-
-// Helper function to format parameter names
-function formatParameterName(name) {
-  return name
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-// Helper function to get color for each emotion
-function getEmotionColor(emotion) {
-  const colors = {
-    anger: '#FF5252',
-    sadness: '#536DFE',
-    pride: '#FFD740',
-    joy: '#66BB6A',
-    bliss: '#26C6DA'
-  };
-  
-  return colors[emotion] || '#9E9E9E';
 }
 
 export default CharacterSelection;

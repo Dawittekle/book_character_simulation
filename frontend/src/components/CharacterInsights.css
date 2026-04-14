@@ -1,0 +1,67 @@
+.insight-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.insight-panel {
+  padding: 1rem;
+}
+
+.insight-meters {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.insight-meter {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.insight-meter-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.insight-meter-topline strong {
+  color: var(--text-strong);
+  font-size: 0.95rem;
+}
+
+.insight-meter-topline small {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.insight-meter-track {
+  display: block;
+  width: 100%;
+  height: 0.7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(116, 105, 93, 0.14);
+}
+
+.insight-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  animation: insight-meter-rise 420ms ease;
+}
+
+.insight-meter-fill.is-psi {
+  background: linear-gradient(135deg, #c3862b, #7f704c);
+}
+
+@keyframes insight-meter-rise {
+  from {
+    width: 0;
+    opacity: 0.35;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
