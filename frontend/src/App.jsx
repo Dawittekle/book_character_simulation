@@ -109,6 +109,7 @@ function App() {
               workspaceSearch={workspaceSearch}
               onSearchChange={setWorkspaceSearch}
               onSignOut={handleSignOut}
+              onWorkspaceChanged={handleWorkspaceChanged}
             />
           }
         >
