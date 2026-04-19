@@ -1,12 +1,10 @@
-import { useDeferredValue, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useDeferredValue } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import './TextUpload.css';
-import UploadModal from './UploadModal';
 import { formatSourceType, getInitials } from '../lib/formatters';
 
-function TextUpload({ ownerKey, session, workspace, searchQuery, onWorkspaceChanged }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
+function TextUpload({ workspace, searchQuery }) {
+  const { setIsModalOpen } = useOutletContext();
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const normalizedSearch = deferredSearchQuery.trim().toLowerCase();
   
@@ -48,7 +46,7 @@ function TextUpload({ ownerKey, session, workspace, searchQuery, onWorkspaceChan
             <div className="new-book-icon">
                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
             </div>
-            <span>New Book</span>
+            <span>New book</span>
           </button>
 
           {/* Existing Books */}
@@ -75,14 +73,6 @@ function TextUpload({ ownerKey, session, workspace, searchQuery, onWorkspaceChan
           ))}
         </div>
       </section>
-
-      <UploadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        ownerKey={ownerKey} 
-        session={session} 
-        onWorkspaceChanged={onWorkspaceChanged} 
-      />
     </div>
   );
 }

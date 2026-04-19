@@ -161,35 +161,6 @@
   color: var(--text-muted);
 }
 
-.shell-sidebar-footer {
-  padding: 1.25rem;
-  border-top: 1px solid var(--line);
-}
-
-.user-profile-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: transparent;
-  color: var(--text-base);
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0;
-}
-
-.user-avatar {
-  width: 1.8rem;
-  height: 1.8rem;
-  background: var(--surface-muted);
-  border: 1px solid var(--line-strong);
-  color: var(--text-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-size: 0.7rem;
-}
-
 .shell-workspace {
   flex: 1;
   display: flex;
@@ -233,7 +204,125 @@
 .shell-topbar-actions {
   display: flex;
   align-items: center;
+  gap: 1.5rem;
+}
+
+.shell-notification {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a5568;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.shell-notification:hover {
+  color: var(--text-strong);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ff4757;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--page-bg);
+}
+
+.shell-account-wrapper {
+  position: relative;
+}
+
+.user-avatar-btn {
+  background: transparent;
+  padding: 0;
+}
+
+.user-avatar-circle,
+.dropdown-avatar-circle {
+  width: 2.2rem;
+  height: 2.2rem;
+  background: #cbd5e1;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  width: 240px;
+  background: white;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-medium);
+  z-index: 50;
+  overflow: hidden;
+  animation: dropdownFadeIn 150ms ease;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
+  padding: 1rem;
+}
+
+.dropdown-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-user-info strong {
+  font-size: 0.95rem;
+  color: var(--text-strong);
+}
+
+.dropdown-user-info span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border-radius: 0;
+  font-size: 0.9rem;
+  color: var(--text-base);
+  border: none;
+  border-radius: 0;
+}
+
+.dropdown-item:hover {
+  background: var(--surface-muted);
+  color: var(--text-strong);
 }
 
 .shell-main {
