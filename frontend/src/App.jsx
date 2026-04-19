@@ -8,6 +8,85 @@ import ChatInterface from './components/ChatInterface';
 import TextUpload from './components/TextUpload';
 import { getWorkspaceState } from './lib/workspaceStore';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { RoleProvider, useRole } from './lib/RoleProvider';
+import UserManagement from './pages/admin/UserManagement';
+import SystemSettings from './pages/admin/SystemSettings';
+import TeamAnalytics from './pages/manager/TeamAnalytics';
+import Approvals from './pages/manager/Approvals';
+
+function RoleGuard({ allowedRoles, children }) {
+  const { activeRole } = useRole();
+  if (!allowedRoles.includes(activeRole)) {
+    return <Navigate replace to="/" />;
+  }
+  return children;
+}
+
+function MainApp({ session, workspace, workspaceSearch, setWorkspaceSearch, handleWorkspaceChanged, handleSignOut, ownerKey, workspaceVersion }) {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <AppShell
+              session={session}
+              workspace={workspace}
+              workspaceSearch={workspaceSearch}
+              onSearchChange={setWorkspaceSearch}
+              onSignOut={handleSignOut}
+              onWorkspaceChanged={handleWorkspaceChanged}
+            />
+          }
+        >
+          <Route
+            index
+            element={
+              <TextUpload
+                ownerKey={ownerKey}
+                session={session}
+                workspace={workspace}
+                searchQuery={workspaceSearch}
+                onWorkspaceChanged={handleWorkspaceChanged}
+              />
+            }
+          />
+          <Route
+            path="workspace/:textId"
+            element={
+              <CharacterSelection
+                ownerKey={ownerKey}
+                workspaceVersion={workspaceVersion}
+                onWorkspaceChanged={handleWorkspaceChanged}
+              />
+            }
+          />
+          <Route
+            path="chat/:textId/:characterId"
+            element={
+              <ChatInterface
+                ownerKey={ownerKey}
+                session={session}
+                workspaceVersion={workspaceVersion}
+                onWorkspaceChanged={handleWorkspaceChanged}
+              />
+            }
+          />
+          
+          {/* Admin Routes */}
+          <Route path="admin/users" element={<RoleGuard allowedRoles={['admin']}><UserManagement /></RoleGuard>} />
+          <Route path="admin/settings" element={<RoleGuard allowedRoles={['admin']}><SystemSettings /></RoleGuard>} />
+          
+          {/* Manager Routes */}
+          <Route path="manager/analytics" element={<RoleGuard allowedRoles={['manager']}><TeamAnalytics /></RoleGuard>} />
+          <Route path="manager/approvals" element={<RoleGuard allowedRoles={['manager']}><Approvals /></RoleGuard>} />
+
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
 function App() {
   const [session, setSession] = useState(null);
@@ -98,58 +177,18 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <AppShell
-              session={session}
-              workspace={workspace}
-              workspaceSearch={workspaceSearch}
-              onSearchChange={setWorkspaceSearch}
-              onSignOut={handleSignOut}
-              onWorkspaceChanged={handleWorkspaceChanged}
-            />
-          }
-        >
-          <Route
-            index
-            element={
-              <TextUpload
-                ownerKey={ownerKey}
-                session={session}
-                workspace={workspace}
-                searchQuery={workspaceSearch}
-                onWorkspaceChanged={handleWorkspaceChanged}
-              />
-            }
-          />
-          <Route
-            path="workspace/:textId"
-            element={
-              <CharacterSelection
-                ownerKey={ownerKey}
-                workspaceVersion={workspaceVersion}
-                onWorkspaceChanged={handleWorkspaceChanged}
-              />
-            }
-          />
-          <Route
-            path="chat/:textId/:characterId"
-            element={
-              <ChatInterface
-                ownerKey={ownerKey}
-                session={session}
-                workspaceVersion={workspaceVersion}
-                onWorkspaceChanged={handleWorkspaceChanged}
-              />
-            }
-          />
-          <Route path="*" element={<Navigate replace to="/" />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <RoleProvider>
+       <MainApp 
+          session={session} 
+          workspace={workspace} 
+          workspaceSearch={workspaceSearch} 
+          setWorkspaceSearch={setWorkspaceSearch}
+          handleWorkspaceChanged={handleWorkspaceChanged}
+          handleSignOut={handleSignOut}
+          ownerKey={ownerKey}
+          workspaceVersion={workspaceVersion}
+       />
+    </RoleProvider>
   );
 }
 
