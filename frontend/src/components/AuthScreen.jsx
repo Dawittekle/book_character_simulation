@@ -66,7 +66,7 @@ function AuthScreen({ setupMode = false }) {
 
   return (
     <div className="auth-screen">
-      <section className="auth-preview surface-card">
+      <section className="auth-preview">
         <div className="auth-preview-topline">Private reading workspace</div>
         <h1>Character Studio keeps every book, character, and conversation together.</h1>
         <p>
@@ -76,7 +76,7 @@ function AuthScreen({ setupMode = false }) {
 
         <div className="auth-preview-canvas">
           <div className="preview-rail">
-            <span className="preview-brand-mark">C</span>
+            <span className="preview-brand-mark">L</span>
             <span className="preview-dot" />
             <span className="preview-dot" />
           </div>
@@ -126,7 +126,7 @@ function AuthScreen({ setupMode = false }) {
         </div>
       </section>
 
-      <section className="auth-panel surface-card">
+      <section className="auth-panel">
         <div className="section-eyebrow">
           {setupMode ? 'Environment setup' : 'Sign in to continue'}
         </div>
@@ -213,7 +213,7 @@ function AuthScreen({ setupMode = false }) {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="teklebrahandawit309@gmail.com"
                 />
               </label>
 
@@ -225,7 +225,7 @@ function AuthScreen({ setupMode = false }) {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder=".........."
                 />
               </label>
 
