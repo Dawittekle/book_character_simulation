@@ -1,9 +1,10 @@
 .env/
-docs/
+doc/
 __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
 node_modules/
-.agents
-doc/
+.agents/
+.vscode/
+.codex
