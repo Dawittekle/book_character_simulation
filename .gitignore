@@ -5,6 +5,5 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 node_modules/
-.agents/
-.vscode/
-.codex
+.agents
+skills-lock.json
