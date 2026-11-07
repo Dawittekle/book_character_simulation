@@ -1,9 +1,31 @@
+# Environments and secrets
+.env
+.env.*
 .env/
-docs/
+!.env.example
+backend/.env
+frontend/.env
+
+# Python
 __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
+.venv/
+venv/
+
+# Node
 node_modules/
+dist/
+
+# Storage / Database caches
+chroma_db/
+backend/chroma_db/
+qdrant_storage/
+backend/qdrant_storage/
+
+# Editor and Tooling
 .agents
+.vscode/
+.codex
 skills-lock.json

@@ -150,5 +150,5 @@ class Settings:
             openai_api_key=_clean_value(os.getenv("OPENAI_API_KEY")),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
             gemini_api_key=_clean_value(os.getenv("GEMINI_API_KEY")),
-            gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+            gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
         )
