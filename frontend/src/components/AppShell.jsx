@@ -1,25 +1,21 @@
-import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import AddBookModal from './AddBookModal';
 import './AppShell.css';
-import UploadModal from './UploadModal';
-import { getInitials } from '../lib/formatters';
-import { useRole } from '../lib/RoleProvider';
 
-function AppShell({ session, workspace, workspaceSearch, onSearchChange, onSignOut, onWorkspaceChanged }) {
+export default function AppShell({ session, onSignOut, onBookAdded }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { activeRole, setActiveRole } = useRole();
+  const [isAddBookOpen, setIsAddBookOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
-  const location = useLocation();
-  
-  const activeTextId =
-    matchPath('/workspace/:textId', location.pathname)?.params.textId ||
-    matchPath('/chat/:textId/:characterId', location.pathname)?.params.textId ||
-    null;
+  const navigate = useNavigate();
 
-  const books = workspace.books || [];
-  const latestBook = books[0] || null;
-  const currentBook = books.find((book) => book.textId === activeTextId) || latestBook;
+  const accessToken = session?.access_token;
+  const user = session?.user;
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    (user?.email ? user.email.split('@')[0] : 'Reader');
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -27,193 +23,173 @@ function AppShell({ session, workspace, workspaceSearch, onSearchChange, onSignO
         setIsDropdownOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getNavigationItems = () => {
-    if (activeRole === 'admin') {
-      return [
-        { label: 'System Logs', to: '/' },
-        { label: 'User Management', to: '/admin/users' },
-        { label: 'Global Settings', to: '/admin/settings' },
-      ];
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/library?q=${encodeURIComponent(searchQuery.trim())}`);
     }
-    
-    if (activeRole === 'manager') {
-      return [
-        { label: 'Library', to: '/' },
-        { label: 'Team Analytics', to: '/manager/analytics' },
-        { label: 'Approvals', to: '/manager/approvals' },
-        { label: 'Settings', to: '#' }
-      ];
-    }
-    
-    return [
-      { label: 'Library', to: '/' },
-      { label: 'Characters', to: currentBook ? `/workspace/${currentBook.textId}` : '/' },
-      { 
-        label: 'Conversations', 
-        to: currentBook && currentBook.activeCharacterId
-            ? `/chat/${currentBook.textId}/${currentBook.activeCharacterId}`
-            : currentBook ? `/workspace/${currentBook.textId}` : '/' 
-      },
-      { label: 'Settings', to: '#' }
-    ];
   };
 
-  const navigationItems = getNavigationItems();
-
-  const displayName =
-    session.user.user_metadata?.full_name ||
-    session.user.user_metadata?.name ||
-    session.user.email ||
-    'Reader';
-    
   return (
-    <div className="shell-page">
-      <div className="shell-banner">
-        <span>Experience the magic of Lorely without the chaos</span>
-        <button className="shell-banner-link" type="button">See Plans</button>
-      </div>
+    <div className="lorely-app-layout" data-testid="app-shell">
+      {/* Left Persistent Dark-Green Sidebar */}
+      <aside className="lorely-sidebar">
+        <div className="lorely-sidebar-brand" onClick={() => navigate('/')} role="button" tabIndex={0}>
+          <div className="lorely-logo-badge">
+            <span className="logo-sparkle">✦</span>
+            <span className="logo-book-icon">📖</span>
+          </div>
+          <span className="lorely-brand-title">Lorely</span>
+        </div>
 
-      <div className="shell-layout">
-        <aside className="shell-sidebar">
-          <div className="shell-sidebar-brand-area">
-            <div className="brand-logo-box">
-              <span>L</span>
-            </div>
-            <div className="brand-dropdown">
-              <strong>Dawit Teklebrhan Team</strong>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        <nav className="lorely-sidebar-nav">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-item-icon">🏛</span>
+            <span className="sidebar-item-label">Home</span>
+          </NavLink>
+
+          <NavLink
+            to="/library"
+            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-item-icon">📚</span>
+            <span className="sidebar-item-label">My Library</span>
+          </NavLink>
+
+          <NavLink
+            to="/characters"
+            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-item-icon">👥</span>
+            <span className="sidebar-item-label">Characters</span>
+          </NavLink>
+
+          <NavLink
+            to="/conversations"
+            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-item-icon">💬</span>
+            <span className="sidebar-item-label">Conversations</span>
+          </NavLink>
+
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-item-icon">⚙️</span>
+            <span className="sidebar-item-label">Settings</span>
+          </NavLink>
+        </nav>
+
+        <div className="lorely-sidebar-footer">
+          {/* Pro Access Badge */}
+          <div className="premium-plan-card">
+            <div className="premium-plan-icon">👑</div>
+            <div className="premium-plan-info">
+              <span className="premium-plan-title">Premium Plan</span>
+              <span className="premium-plan-sub">✦ Pro Access</span>
             </div>
           </div>
 
-          <nav className="shell-nav">
-            {navigationItems.map((item) => (
-              <NavLink
-                key={item.label}
-                className={({ isActive }) =>
-                  item.to === '#' ? 'shell-nav-link dummy' : isActive ? 'shell-nav-link is-active' : 'shell-nav-link'
-                }
-                to={item.to}
-              >
-                <div className="nav-icon-placeholder">
-                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-                   </svg>
-                </div>
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-          
-          {activeRole !== 'admin' && (
-            <section className="shell-recent">
-              <div className="shell-recent-heading">
-                <span className="section-eyebrow">Projects</span>
-              </div>
-              {books.length ? (
-                <div className="shell-recent-list">
-                  {books.slice(0, 4).map((book) => (
-                    <Link
-                      key={book.textId}
-                      className="shell-recent-card"
-                      to={`/workspace/${book.textId}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="project-icon"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                      <span className="shell-recent-copy">
-                        <strong>{book.title}</strong>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="shell-recent-empty">
-                  Create a project to start.
-                </div>
-              )}
-            </section>
-          )}
-        </aside>
+          {/* User Profile Row */}
+          <div className="sidebar-user-row" ref={dropdownRef}>
+            <button
+              type="button"
+              className="sidebar-user-button"
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              aria-label="User account menu"
+            >
+              <img
+                src="/avatars/user_avatar.svg"
+                alt={displayName}
+                className="sidebar-user-avatar"
+              />
+              <span className="sidebar-user-name">{displayName}</span>
+              <span className="sidebar-caret">▾</span>
+            </button>
 
-        <div className="shell-workspace">
-          <header className="shell-topbar">
-            {activeRole !== 'admin' ? (
-              <label className="shell-search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                <input
-                  aria-label="Search workspace"
-                  placeholder="Search workspace"
-                  value={workspaceSearch}
-                  onChange={(event) => onSearchChange(event.target.value)}
-                />
-              </label>
-            ) : (
-               <div style={{ flex: 1 }} />
+            {isDropdownOpen && (
+              <div className="sidebar-user-dropdown">
+                <div className="dropdown-user-header">
+                  <span className="dropdown-user-name">{displayName}</span>
+                  <span className="dropdown-user-email">{user?.email}</span>
+                </div>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    navigate('/settings');
+                  }}
+                >
+                  ⚙️ Preferences
+                </button>
+                <div className="dropdown-divider" />
+                <button
+                  type="button"
+                  className="dropdown-item dropdown-item-danger"
+                  onClick={onSignOut}
+                >
+                  Sign Out
+                </button>
+              </div>
             )}
-
-            <div className="shell-topbar-actions">
-              <div className="shell-notification">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                <span className="notification-badge">1</span>
-              </div>
-
-              <div className="shell-account-wrapper" ref={dropdownRef}>
-                <button className="user-avatar-btn" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                  <div className="user-avatar-circle">{getInitials(displayName)}</div>
-                </button>
-                
-                {isDropdownOpen && (
-                  <div className="account-dropdown">
-                     <div className="dropdown-header">
-                       <div className="dropdown-avatar-circle">{getInitials(displayName)}</div>
-                       <div className="dropdown-user-info">
-                         <strong>{displayName}</strong>
-                         <span style={{ textTransform: 'capitalize' }}>{activeRole}</span>
-                       </div>
-                     </div>
-                     <div className="dropdown-divider"></div>
-                     <div style={{ padding: '0.5rem 1rem', background: 'var(--surface-muted)' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>DEV: SWITCH ROLE</span>
-                     </div>
-                     <button className="dropdown-item" style={{ paddingLeft: '1.5rem', fontWeight: activeRole === 'admin' ? 600 : 400 }} onClick={() => { setActiveRole('admin'); setIsDropdownOpen(false); }}>Admin</button>
-                     <button className="dropdown-item" style={{ paddingLeft: '1.5rem', fontWeight: activeRole === 'manager' ? 600 : 400 }} onClick={() => { setActiveRole('manager'); setIsDropdownOpen(false); }}>Manager</button>
-                     <button className="dropdown-item" style={{ paddingLeft: '1.5rem', fontWeight: activeRole === 'user' ? 600 : 400 }} onClick={() => { setActiveRole('user'); setIsDropdownOpen(false); }}>User</button>
-                     <div className="dropdown-divider"></div>
-                     <button className="dropdown-item">Account Setting</button>
-                     <button className="dropdown-item">Help and support</button>
-                     <button className="dropdown-item" onClick={onSignOut}>Log Out</button>
-                  </div>
-                )}
-              </div>
-
-              {activeRole !== 'admin' && (
-                <button className="primary-button" onClick={() => setIsModalOpen(true)}>
-                  + New
-                </button>
-              )}
-            </div>
-          </header>
-
-          <main className="shell-main">
-            <Outlet context={{ setIsModalOpen, activeRole }} />
-          </main>
+          </div>
         </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="lorely-main-container">
+        {/* Top Header with Search and Notifications */}
+        <header className="lorely-top-header">
+          <form className="lorely-search-form" onSubmit={handleSearchSubmit}>
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              className="lorely-search-input"
+              placeholder="Search books, characters..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </form>
+
+          <div className="top-header-right">
+            <button type="button" className="notification-bell-btn" aria-label="Notifications">
+              🔔
+            </button>
+            <img
+              src="/avatars/user_avatar.svg"
+              alt={displayName}
+              className="header-avatar"
+              onClick={() => navigate('/settings')}
+            />
+          </div>
+        </header>
+
+        {/* Child Page Outlet */}
+        <main className="lorely-page-outlet">
+          <Outlet context={{ openAddBookModal: () => setIsAddBookOpen(true), accessToken }} />
+        </main>
       </div>
-      
-      <UploadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        ownerKey={session.user.id} 
-        session={session} 
-        onWorkspaceChanged={onWorkspaceChanged} 
+
+      {/* Ingestion & Document Inspection Modal */}
+      <AddBookModal
+        isOpen={isAddBookOpen}
+        onClose={() => setIsAddBookOpen(false)}
+        onBookAdded={(book) => {
+          if (onBookAdded) onBookAdded(book);
+          navigate(`/books/${book.id}`);
+        }}
+        accessToken={accessToken}
       />
     </div>
   );
 }
-
-export default AppShell;

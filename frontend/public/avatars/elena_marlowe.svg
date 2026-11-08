@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="100%" height="100%">
+  <defs>
+    <linearGradient id="elena-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8DFD3"/>
+      <stop offset="100%" stop-color="#CBBCA8"/>
+    </linearGradient>
+    <radialGradient id="portrait-glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#FFFDF7"/>
+      <stop offset="100%" stop-color="#D9CCBA"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="240" rx="12" fill="url(#elena-bg)"/>
+  <!-- Portrait Base -->
+  <circle cx="100" cy="95" r="48" fill="#FCEBD9"/>
+  <!-- Hair (Wavy Brunette) -->
+  <path d="M52 95 C50 45 150 45 148 95 C148 135 138 150 134 165 C130 145 125 125 125 105 C115 110 85 110 75 105 C75 125 70 145 66 165 C62 150 52 135 52 95 Z" fill="#422517"/>
+  <!-- Face features -->
+  <ellipse cx="86" cy="95" rx="4" ry="5" fill="#2E5339"/>
+  <ellipse cx="114" cy="95" rx="4" ry="5" fill="#2E5339"/>
+  <path d="M82 85 C86 83 91 84 94 86" stroke="#2B160C" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M106 86 C109 84 114 83 118 85" stroke="#2B160C" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 95 L98 107 L102 107" stroke="#D19C79" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M92 118 C96 122 104 122 108 118" stroke="#B85D56" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Delicate antique blouse collar -->
+  <path d="M60 210 C70 155 130 155 140 210 Z" fill="#3D5A45"/>
+  <path d="M85 155 L100 178 L115 155 Z" fill="#FFFDF8"/>
+  <circle cx="100" cy="170" r="3" fill="#D4AF37"/>
+</svg>

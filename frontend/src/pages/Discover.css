@@ -1,0 +1,327 @@
+.lorely-discover-page {
+  padding: 24px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Banner Editorial Header */
+.banner-editorial-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.banner-main-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 38px;
+  font-weight: 700;
+  color: #1C2E24;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.banner-divider {
+  width: 1px;
+  height: 42px;
+  background: #D4AF37;
+  opacity: 0.6;
+}
+
+.banner-taglines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.banner-headline {
+  font-family: var(--font-serif-narrative, 'Playfair Display', Georgia, serif);
+  font-size: 20px;
+  font-weight: 600;
+  font-style: italic;
+  color: #38312B;
+  margin: 0;
+}
+
+.banner-subtext {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 13px;
+  color: #7A7065;
+  margin: 0;
+}
+
+/* Hero Feature Card */
+.hero-feature-card {
+  background: linear-gradient(135deg, #182C22 0%, #294637 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 12px 32px rgba(28, 46, 36, 0.15);
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-feature-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 440px;
+  z-index: 2;
+}
+
+.hero-feature-badge {
+  align-self: flex-start;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #EBD494;
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.hero-feature-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.hero-feature-desc {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 13px;
+  color: #CFDDD4;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.hero-feature-btn {
+  align-self: flex-start;
+  margin-top: 6px;
+  background: #E6C875;
+  color: #1A2E22;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hero-feature-btn:hover {
+  background: #F4DDA2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hero-feature-art {
+  width: 140px;
+  height: 180px;
+  border-radius: 8px;
+  box-shadow: -8px 8px 24px rgba(0, 0, 0, 0.35);
+  transform: rotate(4deg);
+  overflow: hidden;
+}
+
+.hero-feature-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Your Library Section */
+.discover-library-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-heading {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C2E24;
+  margin: 0;
+}
+
+.view-all-link {
+  background: none;
+  border: none;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: #8C8276;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.view-all-link:hover {
+  color: #1C2E24;
+  text-decoration: underline;
+}
+
+.books-shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .books-shelf-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Utility Row: Add a Book + Quote */
+.library-utility-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.add-book-cta-card {
+  background: #FFFFFF;
+  border: 2px dashed #D5CAB9;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 110px;
+}
+
+.add-book-cta-card:hover {
+  border-color: #C89D5C;
+  background: #FAF6EF;
+  transform: translateY(-2px);
+}
+
+.add-book-plus {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1C2E24;
+}
+
+.add-book-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: #1C2E24;
+}
+
+.add-book-sub {
+  font-size: 11px;
+  color: #8C8276;
+}
+
+.literary-quote-card {
+  background: #FAF6EF;
+  border: 1px solid #EAE3D6;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.quote-quill-icon {
+  font-size: 24px;
+}
+
+.quote-text {
+  font-family: var(--font-serif-narrative, 'Playfair Display', Georgia, serif);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4A4238;
+  margin: 0;
+}
+
+/* Bottom Feature Strip */
+.discover-feature-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FAF6EF;
+  border: 1px solid #E8E0D2;
+  border-radius: 14px;
+  padding: 16px 24px;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.feature-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.strip-item-icon {
+  font-size: 20px;
+}
+
+.strip-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.strip-item-text strong {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 12px;
+  color: #1C2E24;
+}
+
+.strip-item-text span {
+  font-size: 11px;
+  color: #7A7065;
+}
+
+.strip-item-divider {
+  width: 1px;
+  height: 28px;
+  background: #E0D7C7;
+}
+
+.start-exploring-btn {
+  background: #1C2E24;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.start-exploring-btn:hover {
+  background: #263D31;
+  transform: translateY(-2px);
+}

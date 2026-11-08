@@ -1,0 +1,164 @@
+.emotion-state-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #FAF6EF;
+  border: 1px solid #E8E0D2;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.emotion-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.emotion-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emotion-heading {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: #1C2E24;
+}
+
+.emotion-info-icon {
+  font-size: 12px;
+  color: #8C8276;
+  cursor: help;
+}
+
+.emotion-view-details-btn {
+  background: none;
+  border: none;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: #8C8276;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.emotion-view-details-btn:hover {
+  color: #1C2E24;
+  text-decoration: underline;
+}
+
+.emotion-gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.emotion-circular-gauge {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+}
+
+.emotion-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: #EAE3D6;
+}
+
+.gauge-progress-hope {
+  fill: none;
+  stroke: #2E8B57;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gauge-center-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-percent {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C2E24;
+}
+
+.emotion-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hope-dot {
+  background: #2E8B57;
+}
+
+.anxiety-dot {
+  background: #3B82F6;
+}
+
+.sadness-dot {
+  background: #F59E0B;
+}
+
+.legend-label {
+  color: #4A4238;
+  font-weight: 500;
+  flex: 1;
+}
+
+.legend-value {
+  color: #1C2E24;
+  font-weight: 700;
+}
+
+.emotion-insight-pill {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #EDF5EE;
+  border: 1px solid #D5E8D6;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.emotion-insight-icon {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.emotion-insight-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: #265935;
+  line-height: 1.35;
+}

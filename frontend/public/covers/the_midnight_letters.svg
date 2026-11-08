@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="100%" height="100%">
+  <defs>
+    <linearGradient id="midnight-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E1726"/>
+      <stop offset="60%" stop-color="#1B2A47"/>
+      <stop offset="100%" stop-color="#2D4059"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="50%" cy="30%" r="25%">
+      <stop offset="0%" stop-color="#FFFDF0" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#E2D9B7" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#1B2A47" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="300" height="420" rx="8" fill="url(#midnight-bg)"/>
+  <rect x="12" y="12" width="276" height="396" rx="6" fill="none" stroke="#C89D5C" stroke-width="1.5" stroke-opacity="0.6"/>
+  <circle cx="150" cy="130" r="45" fill="url(#moon)"/>
+  <circle cx="150" cy="130" r="28" fill="#F4EED4"/>
+  <!-- Silhouette of person writing with lantern -->
+  <path d="M120 310 C130 270 170 270 180 310 Z" fill="#0A0F1A"/>
+  <circle cx="150" cy="255" r="14" fill="#0A0F1A"/>
+  <rect x="80" y="310" width="140" height="8" rx="2" fill="#C89D5C" opacity="0.8"/>
+  <!-- Gold stars -->
+  <circle cx="60" cy="70" r="1.5" fill="#D4AF37"/>
+  <circle cx="95" cy="110" r="1.2" fill="#D4AF37"/>
+  <circle cx="230" cy="65" r="1.5" fill="#D4AF37"/>
+  <circle cx="210" cy="120" r="1.2" fill="#D4AF37"/>
+  <circle cx="80" cy="190" r="1.2" fill="#D4AF37"/>
+  <circle cx="235" cy="195" r="1.5" fill="#D4AF37"/>
+  <!-- Spine details -->
+  <line x1="30" y1="350" x2="270" y2="350" stroke="#C89D5C" stroke-width="0.8" stroke-opacity="0.5"/>
+  <text x="150" y="375" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-size="16" font-weight="700" fill="#FFF8E7" letter-spacing="1.5">THE MIDNIGHT LETTERS</text>
+  <text x="150" y="392" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="9" font-weight="500" fill="#C89D5C" letter-spacing="1">ELENA MARLOWE</text>
+</svg>

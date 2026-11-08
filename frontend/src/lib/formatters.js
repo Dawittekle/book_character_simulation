@@ -94,3 +94,57 @@ export function formatSourceType(sourceType) {
 export function countSavedConversations(book) {
   return Object.keys(book.characterSessions || {}).length;
 }
+
+export function getCharacterAvatarUrl(name = '', avatarId = null) {
+  if (avatarId && avatarId.startsWith('/')) {
+    return avatarId;
+  }
+  const clean = (name || '').toLowerCase();
+  if (clean.includes('elena') || avatarId === 'portrait-elena-01') {
+    return '/avatars/elena_marlowe.svg';
+  }
+  if (clean.includes('daniel')) {
+    return '/avatars/daniel_hayes.svg';
+  }
+  if (clean.includes('margaret')) {
+    return '/avatars/margaret_ellison.svg';
+  }
+  if (clean.includes('victor')) {
+    return '/avatars/victor_kane.svg';
+  }
+  return '/avatars/elena_marlowe.svg';
+}
+
+export function getBookCoverUrl(title = '', coverUrl = null) {
+  if (coverUrl && coverUrl.startsWith('/')) {
+    return coverUrl;
+  }
+  const clean = (title || '').toLowerCase();
+  if (clean.includes('midnight')) {
+    return '/covers/the_midnight_letters.svg';
+  }
+  if (clean.includes('hidden') || clean.includes('garden')) {
+    return '/covers/the_hidden_garden.svg';
+  }
+  if (clean.includes('echoes') || clean.includes('tomorrow')) {
+    return '/covers/echoes_of_tomorrow.svg';
+  }
+  if (clean.includes('voyage') || clean.includes('last')) {
+    return '/covers/the_last_voyage.svg';
+  }
+  return '/covers/the_midnight_letters.svg';
+}
+
+export function getEmotionInsight(emotionState = {}) {
+  const hope = (emotionState.hope ?? emotionState.joy ?? 0.7) * 100;
+  const anxiety = (emotionState.anxiety ?? emotionState.sadness ?? 0.15) * 100;
+
+  if (hope >= 70) {
+    return 'Her optimism has increased after your last conversation.';
+  }
+  if (anxiety >= 50) {
+    return 'She appears cautious and deeply introspective.';
+  }
+  return 'She feels balanced and attuned to your words.';
+}
+

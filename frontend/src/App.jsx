@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import './App.css';
 import AppShell from './components/AppShell';
 import AuthScreen from './components/AuthScreen';
-import CharacterSelection from './components/CharacterSelection';
-import ChatInterface from './components/ChatInterface';
-import TextUpload from './components/TextUpload';
-import { getWorkspaceState } from './lib/workspaceStore';
+import Discover from './pages/Discover';
+import MyLibrary from './pages/MyLibrary';
+import CharacterGallery from './pages/CharacterGallery';
+import ChatScreen from './pages/ChatScreen';
+import Conversations from './pages/Conversations';
+import Settings from './pages/Settings';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
-import { RoleProvider, useRole } from './lib/RoleProvider';
-import UserManagement from './pages/admin/UserManagement';
-import SystemSettings from './pages/admin/SystemSettings';
-import TeamAnalytics from './pages/manager/TeamAnalytics';
-import Approvals from './pages/manager/Approvals';
+import { RoleProvider } from './lib/RoleProvider';
 
-function RoleGuard({ allowedRoles, children }) {
-  const { activeRole } = useRole();
-  if (!allowedRoles.includes(activeRole)) {
-    return <Navigate replace to="/" />;
-  }
-  return children;
+function LegacyWorkspaceRedirect() {
+  const { textId } = useParams();
+  return <Navigate replace to={`/books/${textId}`} />;
 }
 
-function MainApp({ session, workspace, workspaceSearch, setWorkspaceSearch, handleWorkspaceChanged, handleSignOut, ownerKey, workspaceVersion }) {
+function LegacyChatRedirect() {
+  const { characterId } = useParams();
+  return <Navigate replace to={`/chat/${characterId}`} />;
+}
+
+function MainApp({ session, handleSignOut }) {
   return (
     <BrowserRouter>
       <Routes>
@@ -31,55 +31,22 @@ function MainApp({ session, workspace, workspaceSearch, setWorkspaceSearch, hand
           element={
             <AppShell
               session={session}
-              workspace={workspace}
-              workspaceSearch={workspaceSearch}
-              onSearchChange={setWorkspaceSearch}
               onSignOut={handleSignOut}
-              onWorkspaceChanged={handleWorkspaceChanged}
             />
           }
         >
-          <Route
-            index
-            element={
-              <TextUpload
-                ownerKey={ownerKey}
-                session={session}
-                workspace={workspace}
-                searchQuery={workspaceSearch}
-                onWorkspaceChanged={handleWorkspaceChanged}
-              />
-            }
-          />
-          <Route
-            path="workspace/:textId"
-            element={
-              <CharacterSelection
-                ownerKey={ownerKey}
-                workspaceVersion={workspaceVersion}
-                onWorkspaceChanged={handleWorkspaceChanged}
-              />
-            }
-          />
-          <Route
-            path="chat/:textId/:characterId"
-            element={
-              <ChatInterface
-                ownerKey={ownerKey}
-                session={session}
-                workspaceVersion={workspaceVersion}
-                onWorkspaceChanged={handleWorkspaceChanged}
-              />
-            }
-          />
-          
-          {/* Admin Routes */}
-          <Route path="admin/users" element={<RoleGuard allowedRoles={['admin']}><UserManagement /></RoleGuard>} />
-          <Route path="admin/settings" element={<RoleGuard allowedRoles={['admin']}><SystemSettings /></RoleGuard>} />
-          
-          {/* Manager Routes */}
-          <Route path="manager/analytics" element={<RoleGuard allowedRoles={['manager']}><TeamAnalytics /></RoleGuard>} />
-          <Route path="manager/approvals" element={<RoleGuard allowedRoles={['manager']}><Approvals /></RoleGuard>} />
+          <Route index element={<Discover />} />
+          <Route path="library" element={<MyLibrary />} />
+          <Route path="books/:bookId" element={<CharacterGallery />} />
+          <Route path="characters" element={<CharacterGallery />} />
+          <Route path="chat/:characterId" element={<ChatScreen />} />
+          <Route path="chat/:characterId/:sessionId" element={<ChatScreen />} />
+          <Route path="conversations" element={<Conversations />} />
+          <Route path="settings" element={<Settings />} />
+
+          {/* Backward compatibility redirects */}
+          <Route path="workspace/:textId" element={<LegacyWorkspaceRedirect />} />
+          <Route path="chat/:textId/:characterId" element={<LegacyChatRedirect />} />
 
           <Route path="*" element={<Navigate replace to="/" />} />
         </Route>
@@ -91,8 +58,6 @@ function MainApp({ session, workspace, workspaceSearch, setWorkspaceSearch, hand
 function App() {
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
-  const [workspaceSearch, setWorkspaceSearch] = useState('');
-  const [workspaceVersion, setWorkspaceVersion] = useState(0);
 
   useEffect(() => {
     if (supabase === null) {
@@ -141,11 +106,10 @@ function App() {
     return (
       <div className="app-loading-screen">
         <div className="app-loading-card">
-          <span className="app-loading-badge">Preparing workspace</span>
-          <h1>Loading your reading studio</h1>
+          <span className="app-loading-badge">Preparing Lorely</span>
+          <h1>Entering the Stories</h1>
           <p>
-            Restoring your session, reconnecting the library, and getting the
-            dashboard ready.
+            Restoring your reader session and preparing the literary salon.
           </p>
         </div>
       </div>
@@ -160,17 +124,9 @@ function App() {
     return <AuthScreen />;
   }
 
-  const ownerKey = session.user.id;
-  const workspace = getWorkspaceState(ownerKey);
-
-  const handleWorkspaceChanged = () => {
-    setWorkspaceVersion((currentValue) => currentValue + 1);
-  };
-
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      setWorkspaceSearch('');
     } catch (error) {
       console.error('Failed to sign out:', error);
     }
@@ -178,16 +134,7 @@ function App() {
 
   return (
     <RoleProvider>
-       <MainApp 
-          session={session} 
-          workspace={workspace} 
-          workspaceSearch={workspaceSearch} 
-          setWorkspaceSearch={setWorkspaceSearch}
-          handleWorkspaceChanged={handleWorkspaceChanged}
-          handleSignOut={handleSignOut}
-          ownerKey={ownerKey}
-          workspaceVersion={workspaceVersion}
-       />
+      <MainApp session={session} handleSignOut={handleSignOut} />
     </RoleProvider>
   );
 }

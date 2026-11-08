@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="100%" height="100%">
+  <defs>
+    <linearGradient id="garden-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#142B1A"/>
+      <stop offset="60%" stop-color="#1E3E26"/>
+      <stop offset="100%" stop-color="#2D5A37"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="420" rx="8" fill="url(#garden-bg)"/>
+  <rect x="12" y="12" width="276" height="396" rx="6" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-opacity="0.6"/>
+  <!-- Archway & Ivy -->
+  <path d="M70 260 C70 120 230 120 230 260" fill="none" stroke="#D4AF37" stroke-width="2.5" stroke-opacity="0.7"/>
+  <path d="M85 260 C85 140 215 140 215 260" fill="none" stroke="#C89D5C" stroke-width="1" stroke-opacity="0.5"/>
+  <circle cx="150" cy="190" r="30" fill="#E8B4B8" opacity="0.6"/>
+  <!-- Decorative floral details -->
+  <circle cx="150" cy="100" r="12" fill="#E8B4B8" opacity="0.9"/>
+  <circle cx="110" cy="140" r="8" fill="#E8B4B8" opacity="0.8"/>
+  <circle cx="190" cy="140" r="8" fill="#E8B4B8" opacity="0.8"/>
+  <circle cx="95" cy="200" r="9" fill="#E8B4B8" opacity="0.8"/>
+  <circle cx="205" cy="200" r="9" fill="#E8B4B8" opacity="0.8"/>
+  <line x1="30" y1="350" x2="270" y2="350" stroke="#D4AF37" stroke-width="0.8" stroke-opacity="0.5"/>
+  <text x="150" y="375" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-size="16" font-weight="700" fill="#FFF8E7" letter-spacing="1.5">THE HIDDEN GARDEN</text>
+  <text x="150" y="392" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="9" font-weight="500" fill="#D4AF37" letter-spacing="1">FRANCES HODGSON</text>
+</svg>
