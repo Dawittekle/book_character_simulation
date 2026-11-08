@@ -329,3 +329,22 @@ class MembershipPlan(IdentifierMixin, TimestampMixin, Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
+class PaymentTransaction(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "payment_transactions"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    plan_slug: Mapped[str] = mapped_column(String(50), nullable=False)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="USD", nullable=False)
+    payment_method: Mapped[str] = mapped_column(String(50), default="credit_card", nullable=False)
+    payment_details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    chosen_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)  # pending | verified | rejected
+    verified_by_admin_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["UserAccount"] = relationship(foreign_keys=[user_id])
+
+
+

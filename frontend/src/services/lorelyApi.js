@@ -422,6 +422,14 @@ export const lorelyApi = {
     return request('/plans', { accessToken });
   },
 
+  submitPayment: async (payload, accessToken) => {
+    return request('/payments/submit', {
+      method: 'POST',
+      body: payload,
+      accessToken,
+    });
+  },
+
   adminGetPlans: async (accessToken) => {
     const token = accessToken || lorelyApi.getStoredAdminToken();
     return request('/admin/plans', { accessToken: token });

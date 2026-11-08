@@ -28,6 +28,7 @@ from ..db.models import (
     ChatSession,
     MembershipPlan,
     NotificationRecord,
+    PaymentTransaction,
     ProcessingJob,
     UserAccount,
     UserCharacterState,
@@ -1729,6 +1730,77 @@ class LorelyService:
             plan.updated_at = utc_now()
             session.flush()
             return {"plan": self._serialize_plan(plan)}
+
+    def submit_payment(
+        self, auth_user: AuthenticatedUser | None, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            plan_slug = str(payload.get("plan_slug") or payload.get("plan_id") or "scholar").strip()
+
+            plan = session.scalar(
+                select(MembershipPlan).where(
+                    or_(MembershipPlan.slug == plan_slug, MembershipPlan.id == plan_slug)
+                )
+            )
+            if plan is None:
+                raise NotFoundError(f"Plan '{plan_slug}' not found.")
+
+            # Sanitize payment details
+            raw_details = payload.get("payment_details") or {}
+            card_number = str(raw_details.get("card_number") or "").replace(" ", "").replace("-", "")
+            masked_last4 = card_number[-4:] if len(card_number) >= 4 else "4242"
+            sanitized_details = {
+                "cardholder_name": str(raw_details.get("cardholder_name") or user.display_name).strip(),
+                "last4": masked_last4,
+                "card_brand": str(raw_details.get("card_brand") or "Visa"),
+                "billing_reference": str(raw_details.get("billing_reference") or raw_details.get("notes") or "").strip(),
+                "submitted_at": utc_now().isoformat(),
+            }
+
+            amount = float(payload.get("amount") or plan.price_monthly)
+            chosen_model = str(payload.get("chosen_model") or "gemini-3.5-flash").strip()
+
+            payment = PaymentTransaction(
+                user_id=user.id,
+                plan_slug=plan.slug,
+                amount=amount,
+                currency="USD",
+                payment_method=str(payload.get("payment_method") or "credit_card"),
+                payment_details=sanitized_details,
+                chosen_model=chosen_model,
+                status="pending",
+            )
+            session.add(payment)
+            session.flush()
+
+            # Create notification for user
+            session.add(
+                NotificationRecord(
+                    user_id=user.id,
+                    title="Subscription Payment Submitted",
+                    message=(
+                        f"Your payment of ${amount:.2f} for {plan.name} has been submitted for review. "
+                        "An administrator will verify your transaction shortly."
+                    ),
+                    category="system",
+                    link_url="/settings",
+                    is_read=False,
+                )
+            )
+            session.flush()
+
+            return {
+                "id": payment.id,
+                "plan_slug": plan.slug,
+                "plan_name": plan.name,
+                "amount": payment.amount,
+                "currency": payment.currency,
+                "status": payment.status,
+                "chosen_model": payment.chosen_model,
+                "created_at": payment.created_at.isoformat() if payment.created_at else None,
+                "message": "Payment submitted successfully. Awaiting administrator verification.",
+            }
 
     def admin_update_user_plan(
         self, auth_user: AuthenticatedUser | None, target_user_id: str, new_plan: str

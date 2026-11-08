@@ -98,3 +98,30 @@ def test_switch_role_and_plan_endpoints(db_client: FlaskClient, plan_test_env: d
     users = res.get_json()["users"]
     reader_record = next(u for u in users if u["id"] == plan_test_env["reader_id"])
     assert reader_record["plan_tier"] == "institution"
+
+
+def test_submit_payment_flow(db_client: FlaskClient, plan_test_env: dict[str, str]):
+    # Reader submits a payment for 'scholar' tier with chosen AI model
+    pay_res = db_client.post(
+        "/api/v1/payments/submit",
+        headers={"X-Test-User-Id": "reader-plan-test"},
+        json={
+            "plan_slug": "scholar",
+            "amount": 20.0,
+            "currency": "USD",
+            "payment_method": "credit_card",
+            "payment_details": {
+                "cardholder_name": "Reader Test",
+                "card_number": "4242 4242 4242 4242",
+                "brand": "Visa",
+            },
+            "chosen_model": "gemini-2.5-pro",
+        },
+    )
+    assert pay_res.status_code == 201
+    payload = pay_res.get_json()
+    assert payload["plan_slug"] == "scholar"
+    assert payload["chosen_model"] == "gemini-2.5-pro"
+    assert payload["status"] == "pending"
+    assert payload["amount"] == 20.0
+

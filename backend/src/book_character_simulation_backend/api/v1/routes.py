@@ -471,6 +471,14 @@ def get_public_plans():
     return jsonify(service.get_public_plans()), 200
 
 
+@v1_blueprint.route("/payments/submit", methods=["POST"])
+def submit_payment():
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    return jsonify(service.submit_payment(user, body)), 201
+
+
 @v1_blueprint.route("/admin/plans", methods=["GET"])
 def admin_get_plans():
     user = _authenticated_user()

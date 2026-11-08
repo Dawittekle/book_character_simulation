@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import AddBookModal from './AddBookModal';
 import NotificationsDropdown from './NotificationsDropdown';
+import PricingModal from './PricingModal';
 import { lorelyApi } from '../services/lorelyApi';
 import './AppShell.css';
 
 export default function AppShell({ session, onSignOut, onBookAdded }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,14 +118,19 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
         </nav>
 
         <div className="lorely-sidebar-footer">
-          {/* Pro Access Badge */}
-          <div className="premium-plan-card">
+          {/* Pro Access Badge / Pricing Trigger */}
+          <button
+            type="button"
+            className="premium-plan-card"
+            onClick={() => setIsPricingModalOpen(true)}
+            aria-label="View pricing plans"
+          >
             <div className="premium-plan-icon">👑</div>
             <div className="premium-plan-info">
               <span className="premium-plan-title">Premium Plan</span>
               <span className="premium-plan-sub">✦ Pro Access</span>
             </div>
-          </div>
+          </button>
 
           {/* User Profile Row */}
           <div className="sidebar-user-row" ref={dropdownRef}>
@@ -216,7 +223,13 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
 
         {/* Child Page Outlet */}
         <main className="lorely-page-outlet">
-          <Outlet context={{ openAddBookModal: () => setIsAddBookOpen(true), accessToken }} />
+          <Outlet
+            context={{
+              openAddBookModal: () => setIsAddBookOpen(true),
+              openPricingModal: () => setIsPricingModalOpen(true),
+              accessToken,
+            }}
+          />
         </main>
       </div>
 
@@ -229,6 +242,15 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
           navigate(`/books/${book.id}`);
         }}
         accessToken={accessToken}
+      />
+
+      {/* Membership & Pricing Plans Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        accessToken={accessToken}
+        userPlan={profile?.preferences?.plan_tier || profile?.plan_tier || 'free'}
+        userEmail={user?.email}
       />
     </div>
   );
