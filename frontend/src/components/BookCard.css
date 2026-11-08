@@ -92,3 +92,47 @@
   padding: 2px 7px;
   border-radius: 12px;
 }
+
+/* Skeleton State for Book Card */
+.lorely-book-card.skeleton {
+  pointer-events: none;
+}
+
+.lorely-book-card.skeleton .lorely-book-cover-container {
+  background: linear-gradient(90deg, #EBE3D7 25%, #DECFC0 50%, #EBE3D7 75%);
+  background-size: 200% 100%;
+  animation: book-skeleton-shimmer 1.5s infinite linear;
+}
+
+.book-skeleton-line {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #F0EAE0 25%, #E3D9CC 50%, #F0EAE0 75%);
+  background-size: 200% 100%;
+  animation: book-skeleton-shimmer 1.5s infinite linear;
+}
+
+.book-skeleton-line.title {
+  width: 80%;
+  margin-bottom: 4px;
+}
+
+.book-skeleton-line.author {
+  width: 50%;
+  margin-bottom: 6px;
+}
+
+.book-skeleton-line.pill {
+  width: 35%;
+  height: 16px;
+  border-radius: 10px;
+}
+
+@keyframes book-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

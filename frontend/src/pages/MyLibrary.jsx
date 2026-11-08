@@ -4,7 +4,8 @@ import BookCard from '../components/BookCard';
 import { lorelyApi } from '../services/lorelyApi';
 import './MyLibrary.css';
 
-const FALLBACK_BOOKS = [
+// Canonical fallback matching backend database seed order
+const CANONICAL_BOOKS = [
   {
     id: 'book-dostoevsky-white-nights',
     title: 'White Nights',
@@ -34,11 +35,15 @@ const FALLBACK_BOOKS = [
   },
 ];
 
+// Memory cache to prevent order rearranging or flickering on page re-entry
+let cachedLibraryBooks = null;
+
 export default function MyLibrary() {
   const { openAddBookModal, accessToken } = useOutletContext();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const [books, setBooks] = useState(FALLBACK_BOOKS);
+  const [books, setBooks] = useState(cachedLibraryBooks || CANONICAL_BOOKS);
+  const [loading, setLoading] = useState(!cachedLibraryBooks);
   const [filter, setFilter] = useState('all'); // 'all' | 'mine' | 'featured'
   const navigate = useNavigate();
 
@@ -48,10 +53,15 @@ export default function MyLibrary() {
       try {
         const list = await lorelyApi.listBooks(accessToken);
         if (mounted && list && list.length > 0) {
+          cachedLibraryBooks = list;
           setBooks(list);
         }
       } catch (err) {
-        // Fall back to library smoothly
+        // Retain canonical shelf gracefully
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
     fetchBooks();
@@ -107,7 +117,7 @@ export default function MyLibrary() {
             className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            All Works ({books.length})
+            All Works ({loading && !books.length ? '...' : books.length})
           </button>
           <button
             type="button"
@@ -134,13 +144,26 @@ export default function MyLibrary() {
 
       {/* Book Grid */}
       <div className="library-books-grid">
-        {filteredBooks.map((book) => (
-          <BookCard
-            key={book.id}
-            book={book}
-            onClick={() => navigate(`/books/${book.id}`)}
-          />
-        ))}
+        {loading && books.length === 0 ? (
+          [1, 2, 3, 4].map((n) => (
+            <article key={`book-skeleton-${n}`} className="lorely-book-card skeleton" aria-hidden="true">
+              <div className="lorely-book-cover-container" />
+              <div className="lorely-book-info">
+                <div className="book-skeleton-line title" />
+                <div className="book-skeleton-line author" />
+                <div className="book-skeleton-line pill" />
+              </div>
+            </article>
+          ))
+        ) : (
+          filteredBooks.map((book) => (
+            <BookCard
+              key={book.id}
+              book={book}
+              onClick={() => navigate(`/books/${book.id}`)}
+            />
+          ))
+        )}
       </div>
     </div>
   );

@@ -32,10 +32,13 @@ const DEFAULT_FEATURED_BOOKS = [
   },
 ];
 
+// Module-level cache to ensure zero order rearranging or layout shift across tab transitions
+let cachedDiscoverBooks = null;
+
 export default function Discover() {
   const { openAddBookModal, accessToken } = useOutletContext();
-  const [books, setBooks] = useState(DEFAULT_FEATURED_BOOKS);
-  const [loading, setLoading] = useState(true);
+  const [books, setBooks] = useState(cachedDiscoverBooks || DEFAULT_FEATURED_BOOKS);
+  const [loading, setLoading] = useState(!cachedDiscoverBooks);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function Discover() {
       try {
         const fetched = await lorelyApi.listBooks(accessToken);
         if (mounted && fetched && fetched.length > 0) {
+          cachedDiscoverBooks = fetched;
           setBooks(fetched);
         }
       } catch (err) {

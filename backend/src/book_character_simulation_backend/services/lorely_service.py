@@ -11,7 +11,7 @@ from typing import Any
 
 import jwt
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import case, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..auth import AuthenticatedUser
@@ -223,7 +223,10 @@ class LorelyService:
             books = session.scalars(
                 select(Book)
                 .where(or_(Book.owner_user_id == user.id, Book.visibility == "featured"))
-                .order_by(Book.updated_at.desc())
+                .order_by(
+                    case((Book.visibility == "featured", 0), else_=1),
+                    Book.created_at.asc(),
+                )
             ).all()
 
             results = []
