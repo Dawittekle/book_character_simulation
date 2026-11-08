@@ -16,6 +16,7 @@ from ..models import (
     ChatMessage,
     ChatSession,
     ProcessingJob,
+    MembershipPlan,
     UserAccount,
     UserCharacterState,
     UserRole,
@@ -559,3 +560,124 @@ def purge_demo_and_test_data(db: DatabaseManager, settings: Any) -> dict[str, in
 
     logger.info("Database cleanup completed: %s", deleted_counts)
     return deleted_counts
+
+
+DEFAULT_MEMBERSHIP_PLANS = [
+    {
+        "id": "plan-free",
+        "slug": "free",
+        "name": "Free Reader",
+        "category": "personal",
+        "price_monthly": 0.0,
+        "book_quota": "3",
+        "daily_messages": "20",
+        "voice_access": False,
+        "description": "Exploration tier with access to standard classics and introductory character dialogues.",
+        "features": [
+            "Unlimited everyday text chats",
+            "Access to standard classics",
+            "Limited memory and storage",
+            "Community support",
+        ],
+        "badge": "Your current plan",
+        "sort_order": 1,
+    },
+    {
+        "id": "plan-go",
+        "slug": "go",
+        "name": "Explorer (Go)",
+        "category": "personal",
+        "price_monthly": 5.0,
+        "book_quota": "10",
+        "daily_messages": "100",
+        "voice_access": True,
+        "description": "Expanded reading capacity, faster responses, and extended character conversational memory.",
+        "features": [
+            "10 personal shelf imports",
+            "100 daily dialogue turns",
+            "Expanded character memory",
+            "Standard voice interactions",
+            "Priority classification",
+        ],
+        "badge": None,
+        "sort_order": 2,
+    },
+    {
+        "id": "plan-scholar",
+        "slug": "scholar",
+        "name": "Literary Scholar (Plus)",
+        "category": "personal",
+        "price_monthly": 20.0,
+        "book_quota": "unlimited",
+        "daily_messages": "unlimited",
+        "voice_access": True,
+        "description": "Advanced cognitive simulations, unlimited shelf imports, HD speech synthesis, and full emotional telemetry.",
+        "features": [
+            "Unlimited book shelf imports",
+            "Unlimited daily dialogue turns",
+            "HD Voice mode simulation",
+            "Dynamic emotional drift telemetry",
+            "Spoiler-gated RAG indexing",
+            "Character memory sync across devices",
+        ],
+        "badge": "✦ Most Popular",
+        "sort_order": 3,
+    },
+    {
+        "id": "plan-institution",
+        "slug": "institution",
+        "name": "Institutional Archive (Pro)",
+        "category": "business",
+        "price_monthly": 100.0,
+        "book_quota": "unlimited",
+        "daily_messages": "unlimited",
+        "voice_access": True,
+        "description": "Dedicated vector search namespace, multi-seat classroom access, and custom persona prompt fine-tuning.",
+        "features": [
+            "Isolated Chroma vector namespace",
+            "Multi-seat classroom & research access",
+            "Custom persona & directive fine-tuning",
+            "LMS & export integration",
+            "24/7 dedicated support & SLA",
+        ],
+        "badge": "Frontier Intelligence",
+        "sort_order": 4,
+    },
+]
+
+
+def seed_membership_plans(db: DatabaseManager) -> list[MembershipPlan]:
+    """
+    Seeds the default membership plans idempotently.
+    Existing plans are preserved so admin edits are not overwritten.
+    """
+    seeded: list[MembershipPlan] = []
+    with db.session_scope() as session:
+        for pdata in DEFAULT_MEMBERSHIP_PLANS:
+            existing = session.scalar(
+                select(MembershipPlan).where(MembershipPlan.slug == pdata["slug"])
+            )
+            if existing is None:
+                plan = MembershipPlan(
+                    id=pdata["id"],
+                    slug=pdata["slug"],
+                    name=pdata["name"],
+                    category=pdata["category"],
+                    price_monthly=pdata["price_monthly"],
+                    book_quota=pdata["book_quota"],
+                    daily_messages=pdata["daily_messages"],
+                    voice_access=pdata["voice_access"],
+                    description=pdata["description"],
+                    features=pdata["features"],
+                    badge=pdata["badge"],
+                    sort_order=pdata["sort_order"],
+                    is_active=True,
+                )
+                session.add(plan)
+                seeded.append(plan)
+            else:
+                seeded.append(existing)
+        session.flush()
+    logger.info("Membership plans seed complete. Total plans: %d", len(seeded))
+    return seeded
+

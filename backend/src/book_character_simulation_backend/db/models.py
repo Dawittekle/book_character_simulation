@@ -311,3 +311,21 @@ class NotificationRecord(IdentifierMixin, TimestampMixin, Base):
     link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+
+class MembershipPlan(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "membership_plans"
+
+    slug: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), default="personal", nullable=False)  # "personal" | "business"
+    price_monthly: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    book_quota: Mapped[str] = mapped_column(String(50), default="3", nullable=False)
+    daily_messages: Mapped[str] = mapped_column(String(50), default="20", nullable=False)
+    voice_access: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    features: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    badge: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+

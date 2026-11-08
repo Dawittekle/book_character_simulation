@@ -26,6 +26,7 @@ from ..db.models import (
     ChatMessage,
     ChatRole,
     ChatSession,
+    MembershipPlan,
     NotificationRecord,
     ProcessingJob,
     UserAccount,
@@ -1638,41 +1639,96 @@ class LorelyService:
             session.flush()
             return {"user_id": user.id, "email": user.email, "role": role_rec.role}
 
+    def _serialize_plan(self, plan: MembershipPlan) -> dict[str, Any]:
+        return {
+            "id": plan.slug,
+            "slug": plan.slug,
+            "db_id": plan.id,
+            "name": plan.name,
+            "category": plan.category,
+            "price_monthly": plan.price_monthly,
+            "book_quota": plan.book_quota,
+            "daily_messages": plan.daily_messages,
+            "voice_access": plan.voice_access,
+            "description": plan.description,
+            "features": plan.features or [],
+            "badge": plan.badge,
+            "is_active": plan.is_active,
+            "sort_order": plan.sort_order,
+            "created_at": plan.created_at.isoformat() if plan.created_at else None,
+            "updated_at": plan.updated_at.isoformat() if plan.updated_at else None,
+        }
+
+    def get_public_plans(self) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            plans = session.scalars(
+                select(MembershipPlan)
+                .where(MembershipPlan.is_active.is_(True))
+                .order_by(MembershipPlan.sort_order.asc(), MembershipPlan.price_monthly.asc())
+            ).all()
+            return {"plans": [self._serialize_plan(p) for p in plans]}
+
     def admin_get_plans(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
-            plans = [
-                {
-                    "id": "free",
-                    "name": "Free Reader",
-                    "price_monthly": 0,
-                    "book_quota": 3,
-                    "daily_messages": 20,
-                    "voice_access": False,
-                    "description": "Exploration tier with access to standard classics and introductory character dialogues.",
-                },
-                {
-                    "id": "scholar",
-                    "name": "Literary Scholar",
-                    "price_monthly": 9.99,
-                    "book_quota": "unlimited",
-                    "daily_messages": "unlimited",
-                    "voice_access": True,
-                    "description": "Unlimited shelf imports, interactive speech synthesis, and full cognitive memory evolution.",
-                },
-                {
-                    "id": "institution",
-                    "name": "Institutional Archive",
-                    "price_monthly": 49.00,
-                    "book_quota": "unlimited",
-                    "daily_messages": "unlimited",
-                    "voice_access": True,
-                    "description": "Dedicated vector search namespace, multi-seat classroom access, and custom prompt fine-tuning.",
-                },
-            ]
-            return {"plans": plans}
+            plans = session.scalars(
+                select(MembershipPlan)
+                .order_by(MembershipPlan.sort_order.asc(), MembershipPlan.price_monthly.asc())
+            ).all()
+            return {"plans": [self._serialize_plan(p) for p in plans]}
+
+    def admin_update_plan(
+        self,
+        auth_user: AuthenticatedUser | None,
+        plan_id: str,
+        update_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, user)
+
+            plan = session.scalar(
+                select(MembershipPlan).where(
+                    or_(MembershipPlan.id == plan_id, MembershipPlan.slug == plan_id)
+                )
+            )
+            if plan is None:
+                raise NotFoundError(f"Membership plan '{plan_id}' not found.")
+
+            if "name" in update_data and update_data["name"]:
+                plan.name = str(update_data["name"]).strip()
+            if "category" in update_data and update_data["category"]:
+                plan.category = str(update_data["category"]).strip().lower()
+            if "price_monthly" in update_data:
+                try:
+                    plan.price_monthly = float(update_data["price_monthly"])
+                except (ValueError, TypeError):
+                    raise BadRequestError("price_monthly must be a numeric value.")
+            if "book_quota" in update_data:
+                plan.book_quota = str(update_data["book_quota"]).strip()
+            if "daily_messages" in update_data:
+                plan.daily_messages = str(update_data["daily_messages"]).strip()
+            if "voice_access" in update_data:
+                plan.voice_access = bool(update_data["voice_access"])
+            if "description" in update_data:
+                plan.description = str(update_data["description"]).strip()
+            if "features" in update_data and isinstance(update_data["features"], list):
+                plan.features = [str(f).strip() for f in update_data["features"] if str(f).strip()]
+            if "badge" in update_data:
+                plan.badge = str(update_data["badge"]).strip() if update_data["badge"] else None
+            if "is_active" in update_data:
+                plan.is_active = bool(update_data["is_active"])
+            if "sort_order" in update_data:
+                try:
+                    plan.sort_order = int(update_data["sort_order"])
+                except (ValueError, TypeError):
+                    pass
+
+            plan.updated_at = utc_now()
+            session.flush()
+            return {"plan": self._serialize_plan(plan)}
 
     def admin_update_user_plan(
         self, auth_user: AuthenticatedUser | None, target_user_id: str, new_plan: str

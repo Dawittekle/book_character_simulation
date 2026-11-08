@@ -57,11 +57,28 @@ def test_switch_role_and_plan_endpoints(db_client: FlaskClient, plan_test_env: d
     )
     assert res.status_code == 200
     plans = res.get_json()["plans"]
-    assert len(plans) == 3
+    assert len(plans) >= 3
     plan_ids = [p["id"] for p in plans]
     assert "free" in plan_ids
     assert "scholar" in plan_ids
     assert "institution" in plan_ids
+
+    # Test public plans endpoint
+    pub_res = db_client.get("/api/v1/plans")
+    assert pub_res.status_code == 200
+    pub_plans = pub_res.get_json()["plans"]
+    assert len(pub_plans) >= 3
+
+    # Test admin updating a plan
+    edit_res = db_client.put(
+        "/api/v1/admin/plans/scholar",
+        headers={"X-Test-User-Id": "reader-plan-test"},
+        json={"price_monthly": 19.99, "description": "Custom updated scholar tier."},
+    )
+    assert edit_res.status_code == 200
+    updated_plan = edit_res.get_json()["plan"]
+    assert updated_plan["price_monthly"] == 19.99
+    assert updated_plan["description"] == "Custom updated scholar tier."
 
     # 3. Update user plan
     res = db_client.patch(

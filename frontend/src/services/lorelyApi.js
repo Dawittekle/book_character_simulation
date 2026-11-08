@@ -418,9 +418,22 @@ export const lorelyApi = {
     });
   },
 
+  getPlans: async (accessToken) => {
+    return request('/plans', { accessToken });
+  },
+
   adminGetPlans: async (accessToken) => {
     const token = accessToken || lorelyApi.getStoredAdminToken();
     return request('/admin/plans', { accessToken: token });
+  },
+
+  adminUpdatePlan: async (planId, payload, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request(`/admin/plans/${encodeURIComponent(planId)}`, {
+      method: 'PUT',
+      body: payload,
+      accessToken: token,
+    });
   },
 
   adminUpdateUserPlan: async (userId, planTier, accessToken) => {

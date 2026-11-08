@@ -465,11 +465,25 @@ def switch_my_role():
     return jsonify(service.switch_my_role(user, target_role)), 200
 
 
+@v1_blueprint.route("/plans", methods=["GET"])
+def get_public_plans():
+    service = _lorely_service()
+    return jsonify(service.get_public_plans()), 200
+
+
 @v1_blueprint.route("/admin/plans", methods=["GET"])
 def admin_get_plans():
     user = _authenticated_user()
     service = _lorely_service()
     return jsonify(service.admin_get_plans(user)), 200
+
+
+@v1_blueprint.route("/admin/plans/<plan_id>", methods=["PUT", "PATCH"])
+def admin_update_plan(plan_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    return jsonify(service.admin_update_plan(user, plan_id, body)), 200
 
 
 @v1_blueprint.route("/admin/users/<user_id>/plan", methods=["PATCH"])
