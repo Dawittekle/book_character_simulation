@@ -14,21 +14,20 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('ChatScreen Component', () => {
-  it('renders character header, message thread, and composer', () => {
+  it('renders character header, empty welcome banner, and composer', () => {
     render(
       <BrowserRouter>
         <ChatScreen />
       </BrowserRouter>,
     );
 
-    expect(screen.getAllByText('Elena Marlowe').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Literary Character').length).toBeGreaterThan(0);
     expect(screen.getByText('Online')).toBeInTheDocument();
     expect(
-      screen.getByText(/Hello there! It's wonderful to meet you/i),
+      screen.getByText(/Begin your dialogue with/i),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('waveform-player')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/Talk to Elena or type a message/i),
+      screen.getByPlaceholderText(/Talk to Literary or type a message/i),
     ).toBeInTheDocument();
   });
 
@@ -55,7 +54,7 @@ describe('ChatScreen Component', () => {
     expect(screen.getByTestId('character-details-drawer')).toBeInTheDocument();
   });
 
-  it('renders emotion state radial breakdown and insight summary', () => {
+  it('renders emotion state widget and radial breakdown', () => {
     render(
       <BrowserRouter>
         <ChatScreen />
@@ -63,27 +62,26 @@ describe('ChatScreen Component', () => {
     );
 
     expect(screen.getByTestId('emotion-state-widget')).toBeInTheDocument();
-    expect(screen.getAllByText('78%').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Her optimism has increased after your last conversation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Emotion State/i)).toBeInTheDocument();
   });
 
-  it('allows user to type a message and appends to stream', async () => {
+  it('allows user to type a message and submit to composer', async () => {
     render(
       <BrowserRouter>
         <ChatScreen />
       </BrowserRouter>,
     );
 
-    const input = screen.getByPlaceholderText(/Talk to Elena or type a message/i);
+    const input = screen.getByPlaceholderText(/Talk to Literary or type a message/i);
     const sendBtn = screen.getByRole('button', { name: /Send message/i });
 
-    fireEvent.change(input, { target: { value: 'What are your thoughts on second chances?' } });
-    expect(input.value).toBe('What are your thoughts on second chances?');
+    fireEvent.change(input, { target: { value: 'What troubles your soul in Petersburg?' } });
+    expect(input.value).toBe('What troubles your soul in Petersburg?');
 
     fireEvent.click(sendBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('What are your thoughts on second chances?')).toBeInTheDocument();
+      expect(screen.getByText('What troubles your soul in Petersburg?')).toBeInTheDocument();
     });
   });
 });

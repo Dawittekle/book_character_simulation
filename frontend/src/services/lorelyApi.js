@@ -111,6 +111,14 @@ export const lorelyApi = {
     return res.characters || [];
   },
 
+  listCharacters: async (bookIdOrAccessToken, maybeAccessToken) => {
+    let bookId = typeof bookIdOrAccessToken === 'string' && !bookIdOrAccessToken.startsWith('eyJ') ? bookIdOrAccessToken : undefined;
+    let token = bookId ? maybeAccessToken : bookIdOrAccessToken;
+    const url = bookId ? `/characters?book_id=${encodeURIComponent(bookId)}` : '/characters';
+    const res = await request(url, { accessToken: token });
+    return res.characters || [];
+  },
+
   // Characters
   getCharacterDossier: async (characterId, accessToken) => {
     return request(`/characters/${characterId}`, { accessToken });
@@ -142,11 +150,28 @@ export const lorelyApi = {
     return res.conversations || [];
   },
 
-  createConversation: async (characterId, { title, spoilerPolicy = 'cautious' } = {}, accessToken) => {
-    return request(`/characters/${characterId}/conversations`, {
+  createConversation: async (characterIdOrParams, optionsOrToken, maybeToken) => {
+    let charId;
+    let title;
+    let spoilerPolicy = 'cautious';
+    let token;
+
+    if (typeof characterIdOrParams === 'object' && characterIdOrParams !== null) {
+      charId = characterIdOrParams.characterId || characterIdOrParams.character_id;
+      title = characterIdOrParams.title;
+      spoilerPolicy = characterIdOrParams.spoilerPolicy || characterIdOrParams.spoiler_policy || 'cautious';
+      token = optionsOrToken;
+    } else {
+      charId = characterIdOrParams;
+      title = optionsOrToken?.title;
+      spoilerPolicy = optionsOrToken?.spoilerPolicy || optionsOrToken?.spoiler_policy || 'cautious';
+      token = maybeToken;
+    }
+
+    return request(`/characters/${charId}/conversations`, {
       method: 'POST',
       body: { title, spoiler_policy: spoilerPolicy },
-      accessToken,
+      accessToken: token,
     });
   },
 
@@ -279,46 +304,85 @@ export const lorelyApi = {
   },
 
   // Authoritative Administrator Operations
+  adminLogin: async ({ email, password }) => {
+    const res = await request('/admin/login', {
+      method: 'POST',
+      body: { email, password },
+    });
+    if (res.token) {
+      localStorage.setItem('lorely_admin_token', res.token);
+      if (res.user) {
+        localStorage.setItem('lorely_admin_user', JSON.stringify(res.user));
+      }
+    }
+    return res;
+  },
+
+  getStoredAdminToken: () => {
+    return localStorage.getItem('lorely_admin_token');
+  },
+
+  getStoredAdminUser: () => {
+    try {
+      const u = localStorage.getItem('lorely_admin_user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  adminLogout: () => {
+    localStorage.removeItem('lorely_admin_token');
+    localStorage.removeItem('lorely_admin_user');
+  },
+
   getAdminOverview: async (accessToken) => {
-    return request('/admin/overview', { accessToken });
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request('/admin/overview', { accessToken: token });
   },
 
   adminListJobs: async (status = null, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await request(`/admin/jobs${query}`, { accessToken });
+    const res = await request(`/admin/jobs${query}`, { accessToken: token });
     return res.jobs || [];
   },
 
   adminRetryJob: async (jobId, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
     return request(`/admin/jobs/${jobId}/retry`, {
       method: 'POST',
-      accessToken,
+      accessToken: token,
     });
   },
 
   adminListBooks: async (accessToken) => {
-    const res = await request('/admin/books', { accessToken });
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    const res = await request('/admin/books', { accessToken: token });
     return res.books || [];
   },
 
   adminUpdateBook: async (bookId, updates, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
     return request(`/admin/books/${bookId}`, {
       method: 'PATCH',
       body: updates,
-      accessToken,
+      accessToken: token,
     });
   },
 
   adminListUsers: async (accessToken) => {
-    const res = await request('/admin/users', { accessToken });
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    const res = await request('/admin/users', { accessToken: token });
     return res.users || [];
   },
 
   adminUpdateUserRole: async (userId, role, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
     return request(`/admin/users/${userId}/role`, {
       method: 'PATCH',
       body: { role },
-      accessToken,
+      accessToken: token,
     });
   },
 
@@ -331,14 +395,16 @@ export const lorelyApi = {
   },
 
   adminGetPlans: async (accessToken) => {
-    return request('/admin/plans', { accessToken });
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request('/admin/plans', { accessToken: token });
   },
 
   adminUpdateUserPlan: async (userId, planTier, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
     return request(`/admin/users/${userId}/plan`, {
       method: 'PATCH',
       body: { plan_tier: planTier },
-      accessToken,
+      accessToken: token,
     });
   },
 
@@ -362,10 +428,11 @@ export const lorelyApi = {
   },
 
   adminBroadcastNotification: async (data, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
     return request('/admin/notifications/broadcast', {
       method: 'POST',
       body: data,
-      accessToken,
+      accessToken: token,
     });
   },
 };

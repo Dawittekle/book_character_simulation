@@ -10,6 +10,7 @@ import ChatScreen from './pages/ChatScreen';
 import Conversations from './pages/Conversations';
 import Settings from './pages/Settings';
 import AdminRouteGuard from './pages/admin/AdminRouteGuard';
+import AdminLogin from './pages/admin/AdminLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminCatalog from './pages/admin/AdminCatalog';
@@ -60,7 +61,8 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
         </Route>
 
         {/* Dedicated Authoritative Admin Portal */}
-        <Route element={<AdminRouteGuard userRole={userRole} loading={loadingRole} onPromoteToAdmin={onPromoteToAdmin} />}>
+        <Route path="admin/login" element={<AdminLogin />} />
+        <Route element={<AdminRouteGuard userRole={userRole} loading={loadingRole} />}>
           <Route path="admin" element={<AdminLayout accessToken={accessToken} />}>
             <Route index element={<AdminOverview />} />
             <Route path="catalog" element={<AdminCatalog />} />

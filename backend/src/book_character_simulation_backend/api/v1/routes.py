@@ -217,6 +217,14 @@ def list_book_characters(book_id: str):
 
 # --- Characters ---
 
+@v1_blueprint.route("/characters", methods=["GET"])
+def list_characters():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    book_id = request.args.get("book_id")
+    return jsonify({"characters": service.list_characters(user, book_id=book_id)})
+
+
 @v1_blueprint.route("/characters/<character_id>", methods=["GET"])
 def get_character_dossier(character_id: str):
     user = _optional_authenticated_user()
@@ -226,28 +234,28 @@ def get_character_dossier(character_id: str):
 
 @v1_blueprint.route("/characters/<character_id>/state", methods=["GET"])
 def get_character_state(character_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify(service.get_character_state(user, character_id))
 
 
 @v1_blueprint.route("/characters/<character_id>/reset-state", methods=["POST"])
 def reset_character_state(character_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify(service.reset_character_state(user, character_id))
 
 
 @v1_blueprint.route("/characters/<character_id>/memories", methods=["GET"])
 def get_character_memories(character_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify({"memories": service.get_character_memories(user, character_id)})
 
 
 @v1_blueprint.route("/characters/<character_id>/conversations", methods=["POST"])
 def create_character_conversation(character_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
     session_data = service.create_conversation(
@@ -263,7 +271,7 @@ def create_character_conversation(character_id: str):
 
 @v1_blueprint.route("/conversations", methods=["GET"])
 def list_conversations():
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     book_id = request.args.get("book_id")
     character_id = request.args.get("character_id")
@@ -278,14 +286,14 @@ def list_conversations():
 
 @v1_blueprint.route("/conversations/<session_id>/messages", methods=["GET"])
 def get_conversation_messages(session_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify({"messages": service.get_conversation_messages(user, session_id)})
 
 
 @v1_blueprint.route("/conversations/<session_id>/messages", methods=["POST"])
 def send_conversation_message(session_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
     content = body.get("content") or body.get("message")
@@ -304,7 +312,7 @@ def send_conversation_message(session_id: str):
 
 @v1_blueprint.route("/conversations/<session_id>/messages/<message_id>/audio", methods=["GET"])
 def get_message_audio(session_id: str, message_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     audio_bytes, mime_type, _ = service.synthesize_message_audio(user, session_id, message_id)
     return send_file(
@@ -317,7 +325,7 @@ def get_message_audio(session_id: str, message_id: str):
 
 @v1_blueprint.route("/conversations/<session_id>/voice-turn", methods=["POST"])
 def conversation_voice_turn(session_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
 
     speech_text = None
@@ -359,13 +367,24 @@ def conversation_voice_turn(session_id: str):
 
 @v1_blueprint.route("/conversations/<session_id>", methods=["DELETE"])
 def delete_conversation(session_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     service.delete_conversation(user, session_id)
     return jsonify({"message": "Conversation deleted successfully."}), 200
 
 
 # --- Admin Routes ---
+
+# --- Dedicated Authoritative Admin Portal ---
+
+@v1_blueprint.route("/admin/login", methods=["POST"])
+def admin_login():
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    email = str(body.get("email") or "").strip()
+    password = str(body.get("password") or "").strip()
+    return jsonify(service.admin_login(email=email, password=password)), 200
+
 
 @v1_blueprint.route("/admin/overview", methods=["GET"])
 def get_admin_overview():
@@ -434,14 +453,14 @@ def switch_my_role():
 
 @v1_blueprint.route("/admin/plans", methods=["GET"])
 def admin_get_plans():
-    user = _optional_authenticated_user()
+    user = _authenticated_user()
     service = _lorely_service()
     return jsonify(service.admin_get_plans(user)), 200
 
 
 @v1_blueprint.route("/admin/users/<user_id>/plan", methods=["PATCH"])
 def admin_update_user_plan(user_id: str):
-    user = _optional_authenticated_user()
+    user = _authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
     new_plan = body.get("plan_tier") or body.get("plan")
@@ -475,7 +494,7 @@ def mark_all_notifications_read():
 
 @v1_blueprint.route("/admin/notifications/broadcast", methods=["POST"])
 def admin_broadcast_notification():
-    user = _optional_authenticated_user()
+    user = _authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
     title = body.get("title")

@@ -113,14 +113,6 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             <span className="sidebar-item-icon">⚙️</span>
             <span className="sidebar-item-label">Settings</span>
           </NavLink>
-
-          <NavLink
-            to="/admin"
-            className={({ isActive }) => `sidebar-nav-item admin-portal-link ${isActive ? 'active' : ''}`}
-          >
-            <span className="sidebar-item-icon">🛡️</span>
-            <span className="sidebar-item-label">Admin Console</span>
-          </NavLink>
         </nav>
 
         <div className="lorely-sidebar-footer">
@@ -155,20 +147,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
                 <div className="dropdown-user-header">
                   <span className="dropdown-user-name">{displayName}</span>
                   <span className="dropdown-user-email">{user?.email || 'reader@lorely.app'}</span>
-                  <span className="dropdown-user-role" style={{ fontSize: '11px', color: '#C89D5C', fontWeight: 600 }}>
-                    {isAdmin ? '🛡️ Administrator' : '📖 Reader'}
-                  </span>
                 </div>
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    navigate('/admin');
-                  }}
-                >
-                  🛡️ Admin Console
-                </button>
                 <button
                   type="button"
                   className="dropdown-item"

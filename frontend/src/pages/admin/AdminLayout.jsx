@@ -1,9 +1,16 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { lorelyApi } from '../../services/lorelyApi';
 import './AdminLayout.css';
 
 export default function AdminLayout({ accessToken }) {
   const navigate = useNavigate();
+  const effectiveToken = accessToken || lorelyApi.getStoredAdminToken();
+
+  const handleAdminLogout = () => {
+    lorelyApi.adminLogout();
+    navigate('/admin/login');
+  };
 
   return (
     <div className="lorely-admin-layout" data-testid="admin-layout">
@@ -54,16 +61,34 @@ export default function AdminLayout({ accessToken }) {
         <div className="admin-header-right">
           <button
             type="button"
+            className="admin-logout-btn"
+            onClick={handleAdminLogout}
+            style={{
+              background: 'transparent',
+              color: '#C89D5C',
+              border: '1px solid #C89D5C',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginRight: '8px',
+            }}
+          >
+            Sign Out Admin
+          </button>
+          <button
+            type="button"
             className="admin-return-btn"
             onClick={() => navigate('/')}
           >
-            ← Back to Reading
+            ← Reader App
           </button>
         </div>
       </header>
 
       <main className="admin-main-container">
-        <Outlet context={{ accessToken }} />
+        <Outlet context={{ accessToken: effectiveToken }} />
       </main>
     </div>
   );

@@ -66,3 +66,5 @@ export function getFriendlyErrorMessage(err, context = {}) {
   // 7. Fallback clean message
   return raw.replace(/^Error:\s*/i, '') || 'The request could not be completed. Please try again.';
 }
+
+export const translateErrorMessage = getFriendlyErrorMessage;

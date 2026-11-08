@@ -10,8 +10,14 @@ from ..models import (
     Book,
     BookChunk,
     BookProcessingStatus,
+    BookSource,
+    CharacterMemory,
     CharacterProfileRecord,
+    ChatMessage,
+    ChatSession,
+    ProcessingJob,
     UserAccount,
+    UserCharacterState,
     UserRole,
 )
 from ..session import DatabaseManager
@@ -453,3 +459,91 @@ def seed_dostoevsky_books(db: DatabaseManager, settings: Any) -> list[Book]:
 
     logger.info("Dostoevsky catalog seed complete. Total books: %d", len(seeded_books))
     return seeded_books
+
+
+def purge_demo_and_test_data(db: DatabaseManager, settings: Any) -> dict[str, int]:
+    """
+    Purges demo and temporary test artifacts from the relational database,
+    leaving the authentic Fyodor Dostoevsky literary catalog and legitimate accounts intact.
+    """
+    featured_ids = {b["id"] for b in DOSTOEVSKY_BOOKS_DATA}
+    deleted_counts = {"books": 0, "messages": 0, "sessions": 0}
+
+    with db.session_scope() as session:
+        # 1. Identify all demo/test books
+        demo_books = session.scalars(
+            select(Book).where(Book.id.not_in(featured_ids))
+        ).all()
+        demo_book_ids = [b.id for b in demo_books]
+
+        if demo_book_ids:
+            # Find all demo characters
+            demo_char_ids = session.scalars(
+                select(CharacterProfileRecord.id).where(CharacterProfileRecord.book_id.in_(demo_book_ids))
+            ).all()
+
+            # Find all demo sessions
+            demo_sessions = session.scalars(
+                select(ChatSession).where(
+                    (ChatSession.book_id.in_(demo_book_ids)) | (ChatSession.character_id.in_(demo_char_ids))
+                )
+            ).all()
+            demo_session_ids = [s.id for s in demo_sessions]
+
+            # Delete in strict dependency order:
+            if demo_session_ids:
+                msgs = session.query(ChatMessage).filter(ChatMessage.session_id.in_(demo_session_ids)).delete(synchronize_session=False)
+                deleted_counts["messages"] += msgs
+                session.query(CharacterMemory).filter(CharacterMemory.session_id.in_(demo_session_ids)).delete(synchronize_session=False)
+                sess_cnt = session.query(ChatSession).filter(ChatSession.id.in_(demo_session_ids)).delete(synchronize_session=False)
+                deleted_counts["sessions"] += sess_cnt
+
+            if demo_char_ids:
+                session.query(CharacterMemory).filter(CharacterMemory.character_id.in_(demo_char_ids)).delete(synchronize_session=False)
+                session.query(UserCharacterState).filter(UserCharacterState.character_id.in_(demo_char_ids)).delete(synchronize_session=False)
+                session.query(CharacterProfileRecord).filter(CharacterProfileRecord.id.in_(demo_char_ids)).delete(synchronize_session=False)
+
+            session.query(BookChunk).filter(BookChunk.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
+            session.query(ProcessingJob).filter(ProcessingJob.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
+            session.query(BookSource).filter(BookSource.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
+
+            for b in demo_books:
+                session.delete(b)
+                deleted_counts["books"] += 1
+
+        # 2. Also clean up any orphan sessions not tied to valid books
+        orphan_sessions = session.scalars(
+            select(ChatSession).where(ChatSession.book_id.not_in(featured_ids))
+        ).all()
+        orphan_ids = [s.id for s in orphan_sessions]
+        if orphan_ids:
+            session.query(ChatMessage).filter(ChatMessage.session_id.in_(orphan_ids)).delete(synchronize_session=False)
+            session.query(CharacterMemory).filter(CharacterMemory.session_id.in_(orphan_ids)).delete(synchronize_session=False)
+            session.query(ChatSession).filter(ChatSession.id.in_(orphan_ids)).delete(synchronize_session=False)
+
+        # 3. Ensure the designated Admin user exists
+        admin_email = getattr(settings, "admin_email", "admin@lorely.app")
+        admin_user = session.scalar(
+            select(UserAccount).where(UserAccount.email == admin_email)
+        )
+        if admin_user is None:
+            admin_user = UserAccount(
+                supabase_user_id="admin-curator-user",
+                email=admin_email,
+                display_name="System Administrator",
+            )
+            session.add(admin_user)
+            session.flush()
+
+        role_rec = session.scalar(
+            select(UserRole).where(UserRole.user_id == admin_user.id)
+        )
+        if role_rec is None:
+            session.add(UserRole(user_id=admin_user.id, role="admin"))
+        else:
+            role_rec.role = "admin"
+
+        session.flush()
+
+    logger.info("Database cleanup completed: %s", deleted_counts)
+    return deleted_counts

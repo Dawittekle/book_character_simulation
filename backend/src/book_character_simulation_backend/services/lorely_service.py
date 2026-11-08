@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
 import json
 import logging
 import re
+import time
 from typing import Any
+
+import jwt
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
@@ -658,40 +663,54 @@ class LorelyService:
     # --- Characters ---
 
     def list_characters(
-        self, auth_user: AuthenticatedUser | None, book_id: str
+        self, auth_user: AuthenticatedUser | None, book_id: str | None = None
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
-            book = session.get(Book, book_id)
-            if book is None:
-                raise NotFoundError("Book not found.")
 
-            if book.owner_user_id != user.id and book.visibility != "featured":
-                raise ForbiddenError("You do not have permission to view characters in this book.")
+            if book_id:
+                book = session.get(Book, book_id)
+                if book is None:
+                    raise NotFoundError("Book not found.")
 
-            records = session.scalars(
-                select(CharacterProfileRecord)
-                .where(CharacterProfileRecord.book_id == book_id)
-                .order_by(CharacterProfileRecord.name.asc())
-            ).all()
+                if book.owner_user_id != user.id and book.visibility != "featured":
+                    raise ForbiddenError("You do not have permission to view characters in this book.")
 
-            return [
-                {
+                records = session.scalars(
+                    select(CharacterProfileRecord)
+                    .where(CharacterProfileRecord.book_id == book_id)
+                    .order_by(CharacterProfileRecord.name.asc())
+                ).all()
+            else:
+                stmt = (
+                    select(CharacterProfileRecord)
+                    .join(Book, CharacterProfileRecord.book_id == Book.id)
+                    .where(or_(Book.visibility == "featured", Book.owner_user_id == user.id))
+                    .order_by(CharacterProfileRecord.name.asc())
+                )
+                records = session.scalars(stmt).all()
+
+            results = []
+            for r in records:
+                book_rec = session.get(Book, r.book_id)
+                results.append({
                     "id": r.id,
                     "stable_character_key": r.stable_character_key or r.id,
                     "book_id": r.book_id,
+                    "book_title": book_rec.title if book_rec else "Literary Work",
                     "name": r.name,
                     "role": r.role,
                     "personality": r.personality,
+                    "occupation": getattr(r, "occupation", None) or "Protagonist",
+                    "affiliation": getattr(r, "affiliation", None) or (book_rec.title if book_rec else None),
                     "appearance_description": r.appearance_description,
                     "avatar_asset_id": r.avatar_asset_id,
                     "key_events": r.key_events or [],
                     "relationships": r.relationships or [],
                     "emotion_state": r.emotion_state or {},
                     "psi_parameters": r.psi_parameters or {},
-                }
-                for r in records
-            ]
+                })
+            return results
 
     def get_character_dossier(
         self, auth_user: AuthenticatedUser | None, character_id: str
@@ -835,7 +854,7 @@ class LorelyService:
         character_id: str | None = None,
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             query = select(ChatSession).where(ChatSession.owner_user_id == user.id)
 
             if book_id:
@@ -878,7 +897,7 @@ class LorelyService:
         spoiler_policy: str = "cautious",
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             char = session.get(CharacterProfileRecord, character_id)
             if char is None:
                 char = session.scalar(
@@ -931,7 +950,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, session_id: str
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             s = session.get(ChatSession, session_id)
             if s is None:
                 raise NotFoundError("Conversation session not found.")
@@ -973,7 +992,7 @@ class LorelyService:
             raise BadRequestError("Message content cannot be empty.")
 
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             chat_session = session.get(ChatSession, session_id)
             if chat_session is None:
                 raise NotFoundError("Conversation not found.")
@@ -1243,7 +1262,7 @@ class LorelyService:
 
     def delete_conversation(self, auth_user: AuthenticatedUser | None, session_id: str) -> None:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             s = session.get(ChatSession, session_id)
             if s is None:
                 raise NotFoundError("Conversation not found.")
@@ -1256,6 +1275,66 @@ class LorelyService:
 
     # --- Administrator Operations ---
 
+    def admin_login(self, email: str, password: str) -> dict[str, Any]:
+        if not email or not password:
+            raise BadRequestError("Administrator email and password are required.")
+
+        configured_email = getattr(self.settings, "admin_email", "admin@lorely.app").strip().lower()
+        configured_password = getattr(self.settings, "admin_password", "LorelyAdmin2026!Secure").strip()
+
+        # Constant-time comparison to prevent timing attacks
+        valid_email = hmac.compare_digest(email.strip().lower(), configured_email)
+        valid_password = hmac.compare_digest(password.strip(), configured_password)
+
+        if not (valid_email and valid_password):
+            raise UnauthorizedError("Invalid administrator credentials.")
+
+        with self.db.session_scope() as session:
+            admin_user = session.scalar(
+                select(UserAccount).where(UserAccount.email == configured_email)
+            )
+            if admin_user is None:
+                admin_user = UserAccount(
+                    supabase_user_id="admin-curator",
+                    email=configured_email,
+                    display_name="System Administrator",
+                )
+                session.add(admin_user)
+                session.flush()
+
+            role_rec = session.scalar(
+                select(UserRole).where(UserRole.user_id == admin_user.id)
+            )
+            if role_rec is None:
+                session.add(UserRole(user_id=admin_user.id, role="admin"))
+            else:
+                role_rec.role = "admin"
+            session.flush()
+
+            user_id = admin_user.id
+
+        # Generate signed admin JWT
+        payload = {
+            "sub": "admin-curator",
+            "email": configured_email,
+            "role": "admin",
+            "iss": "lorely-admin-portal",
+            "exp": int(time.time()) + (7 * 24 * 3600),
+        }
+        signing_key = hashlib.sha256((configured_password + "-lorely-admin-salt-32bytes").encode("utf-8")).digest()
+        token = jwt.encode(payload, signing_key, algorithm="HS256")
+
+        return {
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": configured_email,
+                "display_name": "System Administrator",
+                "role": "admin",
+            },
+            "message": "Administrator authenticated successfully.",
+        }
+
     def require_admin(self, session: Session, user: UserAccount) -> None:
         role_record = session.scalar(
             select(UserRole).where(UserRole.user_id == user.id)
@@ -1265,7 +1344,7 @@ class LorelyService:
 
     def get_admin_overview(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             total_users = session.scalar(select(func.count(UserAccount.id))) or 0
@@ -1314,7 +1393,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, status: str | None = None
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             stmt = select(ProcessingJob).order_by(ProcessingJob.created_at.desc())
@@ -1342,7 +1421,7 @@ class LorelyService:
 
     def admin_retry_job(self, auth_user: AuthenticatedUser | None, job_id: str) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             job = session.get(ProcessingJob, job_id)
@@ -1363,7 +1442,7 @@ class LorelyService:
 
     def admin_list_books(self, auth_user: AuthenticatedUser | None) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             books = session.scalars(select(Book).order_by(Book.created_at.desc())).all()
@@ -1390,7 +1469,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, book_id: str, updates: dict[str, Any]
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             book = session.get(Book, book_id)
@@ -1417,7 +1496,7 @@ class LorelyService:
 
     def admin_list_users(self, auth_user: AuthenticatedUser | None) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             users = session.scalars(select(UserAccount).order_by(UserAccount.created_at.desc())).all()
@@ -1461,7 +1540,7 @@ class LorelyService:
 
     def admin_get_plans(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user, allow_guest=True)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             plans = [
@@ -1499,7 +1578,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, target_user_id: str, new_plan: str
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user, allow_guest=True)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             target_user = session.get(UserAccount, target_user_id)
@@ -1521,7 +1600,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, target_user_id: str, new_role: str
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             if new_role not in ("admin", "user"):
@@ -1631,7 +1710,7 @@ class LorelyService:
         link_url: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user, allow_guest=True)
+            user = self.resolve_user(session, auth_user, allow_guest=False)
             self.require_admin(session, user)
 
             notification = NotificationRecord(

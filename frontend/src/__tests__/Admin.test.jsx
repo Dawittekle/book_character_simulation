@@ -20,6 +20,10 @@ vi.mock('../services/lorelyApi', () => ({
     adminUpdateUserRole: vi.fn(),
     adminGetPlans: vi.fn(),
     adminUpdateUserPlan: vi.fn(),
+    getStoredAdminToken: vi.fn(() => null),
+    getStoredAdminUser: vi.fn(() => null),
+    adminLogin: vi.fn(),
+    adminLogout: vi.fn(),
   },
 }));
 

@@ -60,7 +60,7 @@ class GeminiProvider(LLMProvider):
                             current_model,
                         )
                     return getattr(response, "text", "") or "{}"
-                except genai_errors.APIError as exc:
+                except Exception as exc:
                     status_code = getattr(exc, "code", getattr(exc, "status_code", None))
                     message = getattr(exc, "message", "") or str(exc)
                     error_text = f"{message} {exc}".lower()

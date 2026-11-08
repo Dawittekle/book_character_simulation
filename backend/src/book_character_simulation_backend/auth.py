@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -43,10 +44,55 @@ class SupabaseAuthService:
     def is_configured(self) -> bool:
         return bool(self.settings.supabase_url and self.settings.supabase_anon_key)
 
+    def _get_admin_signing_key(self) -> bytes:
+        import hashlib
+        raw = (self.settings.admin_password or "LorelyAdmin2026!Secure") + "-lorely-admin-salt-32bytes"
+        return hashlib.sha256(raw.encode("utf-8")).digest()
+
+    def create_admin_token(self, email: str) -> str:
+        payload = {
+            "sub": "admin-curator",
+            "email": email,
+            "role": "admin",
+            "iss": "lorely-admin-portal",
+            "exp": int(time.time()) + (7 * 24 * 3600),
+        }
+        secret = self._get_admin_signing_key()
+        return jwt.encode(payload, secret, algorithm="HS256")
+
+    def _verify_admin_token(self, token: str) -> AuthenticatedUser | None:
+        try:
+            secret = self._get_admin_signing_key()
+            payload = jwt.decode(
+                token,
+                secret,
+                algorithms=["HS256"],
+                options={"verify_exp": True},
+            )
+            if payload.get("role") == "admin":
+                return AuthenticatedUser(
+                    subject=payload.get("sub", "admin-curator"),
+                    email=payload.get("email", self.settings.admin_email),
+                    display_name="System Administrator",
+                    avatar_url="/avatars/admin_avatar.svg",
+                    role="admin",
+                    claims=payload,
+                )
+        except Exception as exc:
+            logger.warning("Admin token verification failed: %s", exc)
+            return None
+        return None
+
     def authenticate_request(self, authorization_header: str | None) -> AuthenticatedUser | None:
         token = self._extract_bearer_token(authorization_header)
         if token is None:
             return None
+
+        # Authoritative Admin Portal Token Check
+        admin_user = self._verify_admin_token(token)
+        if admin_user is not None:
+            return admin_user
+
         if not self.is_configured:
             raise ConfigurationError(
                 "Supabase auth is not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY."

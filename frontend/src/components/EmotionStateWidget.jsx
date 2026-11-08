@@ -3,12 +3,22 @@ import { getEmotionInsight } from '../lib/formatters';
 import './EmotionStateWidget.css';
 
 export default function EmotionStateWidget({ emotionState = {}, onViewDetails }) {
-  // Normalize values (default to Elena Marlowe's reference states if not present)
-  const hopeVal = Math.round((emotionState.hope ?? emotionState.joy ?? 0.78) * 100);
-  const anxietyVal = Math.round((emotionState.anxiety ?? emotionState.sadness ?? 0.12) * 100);
-  const sadnessVal = Math.round((emotionState.sadness ?? emotionState.anger ?? 0.10) * 100);
+  const entries = Object.entries(emotionState || {}).filter(
+    ([_, v]) => typeof v === 'number' && !isNaN(v)
+  );
 
-  const primaryScore = hopeVal;
+  let topThree = [];
+  if (entries.length >= 1) {
+    topThree = entries.sort((a, b) => b[1] - a[1]).slice(0, 3);
+  } else {
+    topThree = [
+      ['hope', 0.5],
+      ['calm', 0.5],
+      ['curiosity', 0.5],
+    ];
+  }
+
+  const primaryScore = Math.round((topThree[0]?.[1] ?? 0.5) * 100);
   const insightText = getEmotionInsight(emotionState);
 
   // SVG circular arc calculation
@@ -65,21 +75,17 @@ export default function EmotionStateWidget({ emotionState = {}, onViewDetails })
         </div>
 
         <div className="emotion-legend">
-          <div className="legend-item">
-            <span className="legend-dot hope-dot" />
-            <span className="legend-label">Hope</span>
-            <span className="legend-value">{hopeVal}%</span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-dot anxiety-dot" />
-            <span className="legend-label">Anxiety</span>
-            <span className="legend-value">{anxietyVal}%</span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-dot sadness-dot" />
-            <span className="legend-label">Sadness</span>
-            <span className="legend-value">{sadnessVal}%</span>
-          </div>
+          {topThree.map(([name, val], idx) => {
+            const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
+            const dotClasses = ['hope-dot', 'anxiety-dot', 'sadness-dot'];
+            return (
+              <div key={name} className="legend-item">
+                <span className={`legend-dot ${dotClasses[idx % 3]}`} />
+                <span className="legend-label">{capitalized}</span>
+                <span className="legend-value">{Math.round(val * 100)}%</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

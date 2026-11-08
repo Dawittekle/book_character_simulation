@@ -109,6 +109,8 @@ class Settings:
     openai_model: str
     gemini_api_key: str | None
     gemini_model: str
+    admin_email: str = "admin@lorely.app"
+    admin_password: str = "LorelyAdmin2026!Secure"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -151,4 +153,6 @@ class Settings:
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
             gemini_api_key=_clean_value(os.getenv("GEMINI_API_KEY")),
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
+            admin_email=os.getenv("ADMIN_EMAIL", "admin@lorely.app").strip(),
+            admin_password=os.getenv("ADMIN_PASSWORD", "LorelyAdmin2026!Secure").strip(),
         )

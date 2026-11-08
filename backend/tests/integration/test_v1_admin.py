@@ -153,3 +153,33 @@ def test_admin_user_can_access_overview_and_operations(
     )
     assert promote_res.status_code == 200
     assert promote_res.get_json()["role"] == "admin"
+
+
+def test_admin_login_endpoint(db_client: FlaskClient):
+    # Invalid password
+    bad_res = db_client.post(
+        "/api/v1/admin/login",
+        data=json.dumps({"email": "admin@lorely.app", "password": "wrong_password"}),
+        content_type="application/json",
+    )
+    assert bad_res.status_code == 401
+
+    # Valid credentials
+    good_res = db_client.post(
+        "/api/v1/admin/login",
+        data=json.dumps({"email": "admin@lorely.app", "password": "LorelyAdmin2026!Secure"}),
+        content_type="application/json",
+    )
+    assert good_res.status_code == 200
+    payload = good_res.get_json()
+    assert "token" in payload
+    assert payload["user"]["role"] == "admin"
+    admin_token = payload["token"]
+
+    # Use the token to access admin overview
+    auth_res = db_client.get(
+        "/api/v1/admin/overview",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert auth_res.status_code == 200
+    assert auth_res.get_json()["health"] == "healthy"

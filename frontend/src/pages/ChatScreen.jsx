@@ -6,73 +6,34 @@ import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl } from '../lib/formatters';
 import './ChatScreen.css';
 
-// Elena Marlowe fallback character for seamless immediate rendering matching visual reference
-const DEFAULT_FALLBACK_CHARACTER = {
-  id: 'c-elena-marlowe',
-  name: 'Elena Marlowe',
-  book_title: 'The Midnight Letters',
-  role: 'Protagonist',
-  personality: 'A thoughtful writer with a curious mind and a hopeful heart.',
-  occupation: 'Writer',
-  affiliation: 'The Literary Circle',
-  key_events: [
-    'Believes in the power of second chances',
-    'Wrote her first novel at age 17',
-    'Has a mysterious past connected to the coast',
-  ],
-  relationships: [
-    { name: 'Daniel Hayes', role: 'Companion', avatar: '/avatars/daniel_hayes.svg' },
-    { name: 'Margaret Ellison', role: 'Mentor', avatar: '/avatars/margaret_ellison.svg' },
-    { name: 'Victor Kane', role: 'Rival', avatar: '/avatars/victor_kane.svg' },
-  ],
-  emotion_state: { hope: 0.78, anxiety: 0.12, sadness: 0.10 },
+// Fallback template before live dossier loads
+const INITIAL_EMPTY_CHARACTER = {
+  id: '',
+  name: 'Literary Character',
+  book_title: 'Literary Work',
+  role: 'Character',
+  personality: '',
+  occupation: '',
+  affiliation: '',
+  key_events: [],
+  relationships: [],
+  emotion_state: { hope: 0.5, curiosity: 0.5 },
 };
-
-const DEFAULT_SEED_MESSAGES = [
-  {
-    id: 'seed-1',
-    role: 'assistant',
-    content: "Hello there! It's wonderful to meet you. I'm Elena Marlowe — a dreamer, a writer, and a woman who believes in second chances.",
-    created_at: new Date(Date.now() - 60000).toISOString(),
-    citations: [],
-  },
-  {
-    id: 'seed-2',
-    role: 'user',
-    content: 'What inspired you to become a writer?',
-    created_at: new Date(Date.now() - 30000).toISOString(),
-  },
-  {
-    id: 'seed-3',
-    role: 'assistant',
-    content: 'Ah, that’s a beautiful question. Perhaps it was the stories I found in old books, or the people I met along the way... or maybe the hope that words can change the world.',
-    created_at: new Date().toISOString(),
-    showAudio: true,
-    citations: [
-      {
-        chapter_order: 1,
-        chapter_title: 'Chapter 1: The Midnight Call',
-        snippet: 'Elena sat by the flickering candle, watching ink soak into parchment.',
-        similarity: 0.88,
-      },
-    ],
-  },
-];
 
 export default function ChatScreen() {
   const { characterId, sessionId: paramSessionId } = useParams();
   const { accessToken } = useOutletContext();
   const navigate = useNavigate();
 
-  const [character, setCharacter] = useState(DEFAULT_FALLBACK_CHARACTER);
+  const [character, setCharacter] = useState(INITIAL_EMPTY_CHARACTER);
   const [sessionId, setSessionId] = useState(paramSessionId || null);
-  const [messages, setMessages] = useState(DEFAULT_SEED_MESSAGES);
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [expandedCitationId, setExpandedCitationId] = useState(null);
-  const [emotionState, setEmotionState] = useState(DEFAULT_FALLBACK_CHARACTER.emotion_state);
+  const [emotionState, setEmotionState] = useState(INITIAL_EMPTY_CHARACTER.emotion_state);
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -98,8 +59,9 @@ export default function ChatScreen() {
         const dossier = await lorelyApi.getCharacterDossier(characterId, accessToken);
         if (mounted && dossier) {
           setCharacter(dossier);
-          if (dossier.emotion_state) {
-            setEmotionState(dossier.emotion_state);
+          const initialEmotions = dossier.current_user_emotion_state || dossier.canonical_emotion_state || dossier.emotion_state;
+          if (initialEmotions) {
+            setEmotionState(initialEmotions);
           }
         }
 
@@ -107,7 +69,7 @@ export default function ChatScreen() {
         let activeSessionId = paramSessionId;
         if (!activeSessionId) {
           const conv = await lorelyApi.createConversation(
-            { characterId, title: `Conversation with ${dossier?.name || 'Character'}` },
+            { characterId, title: `Dialogue with ${dossier?.name || 'Character'}` },
             accessToken,
           );
           activeSessionId = conv.id;
@@ -116,12 +78,12 @@ export default function ChatScreen() {
 
         if (activeSessionId) {
           const fetchedMessages = await lorelyApi.getConversationMessages(activeSessionId, accessToken);
-          if (mounted && fetchedMessages && fetchedMessages.length > 0) {
-            setMessages(fetchedMessages);
+          if (mounted) {
+            setMessages(fetchedMessages || []);
           }
         }
       } catch (err) {
-        // Retain fallback character and default messages gracefully
+        console.error('Failed to initialize conversation session:', err);
       }
     }
     initConversation();
@@ -211,56 +173,53 @@ export default function ChatScreen() {
     setMessages((prev) => [...prev, userMessageObj]);
 
     try {
-      if (sessionId) {
-        let responseData;
-        // If user was using voice mode or has audio, invoke voice-turn
-        if (isRecording) {
-          responseData = await lorelyApi.sendVoiceTurn(
-            sessionId,
-            { speechText: clean },
-            accessToken,
-          );
-        } else {
-          responseData = await lorelyApi.sendConversationMessage(
-            sessionId,
-            { content: clean },
-            accessToken,
-          );
-        }
+      let activeSessionId = sessionId;
+      if (!activeSessionId && characterId) {
+        const conv = await lorelyApi.createConversation(
+          { characterId, title: `Dialogue with ${character.name}` },
+          accessToken,
+        );
+        activeSessionId = conv.id;
+        setSessionId(conv.id);
+      }
 
-        const audioSrc = responseData.audio?.base64_data
-          ? `data:${responseData.audio.mime_type};base64,${responseData.audio.base64_data}`
-          : lorelyApi.getMessageAudioUrl(sessionId, responseData.assistant_message_id);
+      if (!activeSessionId) {
+        throw new Error('Unable to establish conversation session.');
+      }
 
-        const assistantMessageObj = {
-          id: responseData.assistant_message_id || `asst-${Date.now()}`,
-          role: 'assistant',
-          content: responseData.response,
-          citations: responseData.citations || [],
-          created_at: new Date().toISOString(),
-          showAudio: true,
-          audioSrc,
-        };
-
-        setMessages((prev) => [...prev, assistantMessageObj]);
-        if (responseData.updated_state?.emotion_state) {
-          setEmotionState(responseData.updated_state.emotion_state);
-        }
+      let responseData;
+      // If user was using voice mode or has audio, invoke voice-turn
+      if (isRecording) {
+        responseData = await lorelyApi.sendVoiceTurn(
+          activeSessionId,
+          { speechText: clean },
+          accessToken,
+        );
       } else {
-        // Local simulation fallback
-        setTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `asst-${Date.now()}`,
-              role: 'assistant',
-              content: `Every time we speak, I feel as though another chapter opens between us. You asked: "${clean}". In truth, the written word has always been my compass.`,
-              citations: [],
-              created_at: new Date().toISOString(),
-              showAudio: true,
-            },
-          ]);
-        }, 700);
+        responseData = await lorelyApi.sendConversationMessage(
+          activeSessionId,
+          { content: clean },
+          accessToken,
+        );
+      }
+
+      const audioSrc = responseData.audio?.base64_data
+        ? `data:${responseData.audio.mime_type};base64,${responseData.audio.base64_data}`
+        : lorelyApi.getMessageAudioUrl(activeSessionId, responseData.assistant_message_id);
+
+      const assistantMessageObj = {
+        id: responseData.assistant_message_id || `asst-${Date.now()}`,
+        role: 'assistant',
+        content: responseData.response,
+        citations: responseData.citations || [],
+        created_at: new Date().toISOString(),
+        showAudio: true,
+        audioSrc,
+      };
+
+      setMessages((prev) => [...prev, assistantMessageObj]);
+      if (responseData.updated_state?.emotion_state) {
+        setEmotionState(responseData.updated_state.emotion_state);
       }
     } catch (err) {
       setMessages((prev) => [
@@ -268,7 +227,7 @@ export default function ChatScreen() {
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          content: 'My apologies, my thoughts were briefly interrupted. Could you share that with me once more?',
+          content: 'My apologies, I could not respond at this moment. Please check your connection or try again.',
           created_at: new Date().toISOString(),
         },
       ]);
@@ -333,88 +292,128 @@ export default function ChatScreen() {
 
         {/* Message Thread */}
         <div className="chat-message-stream" data-testid="chat-message-stream">
-          {messages.map((msg) => {
-            const isCharacter = msg.role === 'assistant';
+          {messages.length === 0 ? (
+            <div className="chat-welcome-banner" data-testid="chat-welcome-banner">
+              <div className="chat-welcome-avatar-wrap">
+                <img src={characterAvatar} alt={character.name} className="chat-welcome-avatar" />
+              </div>
+              <h2 className="chat-welcome-name">{character.name}</h2>
+              <p className="chat-welcome-book">{character.book_title || 'Fyodor Dostoevsky Collection'}</p>
+              {character.personality && (
+                <p className="chat-welcome-bio">{character.personality}</p>
+              )}
+              <div className="chat-welcome-prompt">
+                <span>Begin your dialogue with {character.name}. Ask about their story in St. Petersburg, their convictions, or their memories.</span>
+              </div>
+            </div>
+          ) : (
+            messages.map((msg) => {
+              const isCharacter = msg.role === 'assistant';
 
-            return (
-              <div
-                key={msg.id}
-                className={`chat-message-row ${isCharacter ? 'character-row' : 'user-row'}`}
-              >
-                {isCharacter && (
-                  <img
-                    src={characterAvatar}
-                    alt={character.name}
-                    className="message-avatar"
-                  />
-                )}
-
-                <div className="message-content-wrapper">
-                  <div className={`message-bubble ${isCharacter ? 'character-bubble' : 'user-bubble'}`}>
-                    <p className="message-text">{msg.content}</p>
-
-                    <div className="message-meta-row">
-                      <span className="message-timestamp">
-                        {formatMessageTime(msg.created_at)}
-                      </span>
-                      {!isCharacter && <span className="message-checkmarks">✓✓</span>}
-                    </div>
-                  </div>
-
-                  {/* Audio Waveform Embedded in Character speech */}
-                  {isCharacter && msg.showAudio && (
-                    <WaveformPlayer
-                      audioSrc={
-                        msg.audioSrc ||
-                        (sessionId && msg.id && !msg.id.startsWith('seed')
-                          ? lorelyApi.getMessageAudioUrl(sessionId, msg.id)
-                          : undefined)
-                      }
+              return (
+                <div
+                  key={msg.id}
+                  className={`chat-message-row ${isCharacter ? 'character-row' : 'user-row'}`}
+                >
+                  {isCharacter && (
+                    <img
+                      src={characterAvatar}
+                      alt={character.name}
+                      className="message-avatar"
                     />
                   )}
 
-                  {/* Citations Pill / Grounding Excerpt */}
-                  {isCharacter && msg.citations && msg.citations.length > 0 && (
-                    <div className="message-citations-block">
-                      <button
-                        type="button"
-                        className="citation-toggle-pill"
-                        onClick={() =>
-                          setExpandedCitationId(
-                            expandedCitationId === msg.id ? null : msg.id,
-                          )
-                        }
-                      >
-                        <span className="citation-pill-icon">✦</span>
-                        <span>Source passage: {msg.citations[0].chapter_title}</span>
-                        <span className="citation-pill-arrow">
-                          {expandedCitationId === msg.id ? '▴' : '▾'}
-                        </span>
-                      </button>
+                  <div className="message-content-wrapper">
+                    <div className={`message-bubble ${isCharacter ? 'character-bubble' : 'user-bubble'}`}>
+                      <p className="message-text">{msg.content}</p>
 
-                      {expandedCitationId === msg.id && (
-                        <div className="citation-expanded-box">
-                          <p className="citation-snippet">“{msg.citations[0].snippet}”</p>
-                          <div className="citation-footer">
-                            <span>Chapter {msg.citations[0].chapter_order}</span>
-                            <span>Match: {Math.round(msg.citations[0].similarity * 100)}%</span>
-                          </div>
-                        </div>
-                      )}
+                      <div className="message-meta-row">
+                        <span className="message-timestamp">
+                          {formatMessageTime(msg.created_at)}
+                        </span>
+                        {!isCharacter && <span className="message-checkmarks">✓✓</span>}
+                      </div>
                     </div>
+
+                    {/* Audio Waveform Embedded in Character speech */}
+                    {isCharacter && msg.showAudio && (
+                      <WaveformPlayer
+                        audioSrc={
+                          msg.audioSrc ||
+                          (sessionId && msg.id && !msg.id.startsWith('seed')
+                            ? lorelyApi.getMessageAudioUrl(sessionId, msg.id)
+                            : undefined)
+                        }
+                      />
+                    )}
+
+                    {/* Citations Pill / Grounding Excerpt */}
+                    {isCharacter && msg.citations && msg.citations.length > 0 && (
+                      <div className="message-citations-block">
+                        <button
+                          type="button"
+                          className="citation-toggle-pill"
+                          onClick={() =>
+                            setExpandedCitationId(
+                              expandedCitationId === msg.id ? null : msg.id,
+                            )
+                          }
+                        >
+                          <span className="citation-pill-icon">✦</span>
+                          <span>Source passage: {msg.citations[0].chapter_title}</span>
+                          <span className="citation-pill-arrow">
+                            {expandedCitationId === msg.id ? '▴' : '▾'}
+                          </span>
+                        </button>
+
+                        {expandedCitationId === msg.id && (
+                          <div className="citation-expanded-box">
+                            <p className="citation-snippet">“{msg.citations[0].snippet}”</p>
+                            <div className="citation-footer">
+                              <span>Chapter {msg.citations[0].chapter_order}</span>
+                              <span>Match: {Math.round(msg.citations[0].similarity * 100)}%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {!isCharacter && (
+                    <img
+                      src="/avatars/user_avatar.svg"
+                      alt="Reader"
+                      className="message-avatar"
+                    />
                   )}
                 </div>
+              );
+            })
+          )}
 
-                {!isCharacter && (
-                  <img
-                    src="/avatars/user_avatar.svg"
-                    alt="Reader"
-                    className="message-avatar"
-                  />
-                )}
+          {/* Real-time typing / thinking loading animation */}
+          {sending && (
+            <div className="chat-message-row character-row typing-row" data-testid="chat-loading-animation">
+              <img
+                src={characterAvatar}
+                alt={character.name}
+                className="message-avatar"
+              />
+              <div className="message-content-wrapper">
+                <div className="message-bubble character-bubble typing-bubble">
+                  <div className="typing-dots">
+                    <span className="dot dot-1" />
+                    <span className="dot dot-2" />
+                    <span className="dot dot-3" />
+                  </div>
+                  <span className="typing-status-text">
+                    {character.name} is composing...
+                  </span>
+                </div>
               </div>
-            );
-          })}
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 

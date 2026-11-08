@@ -7,7 +7,7 @@ from .api.routes import api_blueprint
 from .api.v1.routes import v1_blueprint
 from .auth import SupabaseAuthService
 from .config import Settings
-from .db.seeds import seed_dostoevsky_books
+from .db.seeds import purge_demo_and_test_data, seed_dostoevsky_books
 from .db.session import DatabaseManager
 from .repositories.chroma import (
     ChromaCharacterRepository,
@@ -47,9 +47,10 @@ def create_app(settings: Settings | None = None) -> Flask:
 
     if database_manager.is_configured:
         try:
+            purge_demo_and_test_data(database_manager, resolved_settings)
             seed_dostoevsky_books(database_manager, resolved_settings)
         except Exception as exc:
-            logging.getLogger(__name__).warning("Dostoevsky catalog auto-seed skipped or deferred: %s", exc)
+            logging.getLogger(__name__).warning("Dostoevsky catalog sync skipped or deferred: %s", exc)
 
     character_repository = ChromaCharacterRepository(resolved_settings.chroma_db_path)
     session_repository = ChromaSessionRepository(resolved_settings.chroma_db_path)

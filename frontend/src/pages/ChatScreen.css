@@ -475,3 +475,124 @@
 .stop-recording-btn:hover {
   background: #B91C1C;
 }
+
+/* Authentic Welcome Starting State */
+.chat-welcome-banner {
+  max-width: 480px;
+  margin: 40px auto;
+  text-align: center;
+  padding: 32px 24px;
+  background: #FFFFFF;
+  border: 1px solid #EAE3D6;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.chat-welcome-avatar-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 2px solid #C89D5C;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(200, 157, 92, 0.2);
+}
+
+.chat-welcome-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-welcome-name {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: #14241B;
+  margin: 0 0 6px;
+}
+
+.chat-welcome-book {
+  font-family: var(--font-serif-narrative, Georgia, serif);
+  font-style: italic;
+  font-size: 13px;
+  color: #8C7B6B;
+  margin: 0 0 14px;
+}
+
+.chat-welcome-bio {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #554D43;
+  margin: 0 0 20px;
+}
+
+.chat-welcome-prompt {
+  background: #FAF6EF;
+  border: 1px dashed #D5CAB9;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #7A7065;
+  line-height: 1.5;
+}
+
+/* Chat Typing / Loading Animation */
+.typing-row {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.typing-bubble {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E8E0D2 !important;
+}
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.typing-dots .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #C89D5C;
+  display: inline-block;
+  animation: bounce-dot 1.4s infinite ease-in-out both;
+}
+
+.typing-dots .dot-1 {
+  animation-delay: -0.32s;
+}
+
+.typing-dots .dot-2 {
+  animation-delay: -0.16s;
+}
+
+.typing-dots .dot-3 {
+  animation-delay: 0s;
+}
+
+@keyframes bounce-dot {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.typing-status-text {
+  font-size: 12px;
+  font-style: italic;
+  color: #8C7B6B;
+  font-family: var(--font-serif-narrative, Georgia, serif);
+}
