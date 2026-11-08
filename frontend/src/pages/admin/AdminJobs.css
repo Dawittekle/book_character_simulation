@@ -1,0 +1,93 @@
+.admin-jobs-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.jobs-header-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #233B2E;
+  padding-bottom: 18px;
+}
+
+.jobs-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 6px;
+}
+
+.jobs-sub {
+  font-size: 13px;
+  color: #8CA898;
+  margin: 0;
+}
+
+.jobs-filter-group {
+  display: flex;
+  background: #14241B;
+  border: 1px solid #233B2E;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.job-filter-btn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8CA898;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.job-filter-btn:hover {
+  color: #FFFFFF;
+}
+
+.job-filter-btn.active {
+  background: #233B2E;
+  color: #FFFFFF;
+}
+
+.error-cell {
+  max-width: 220px;
+}
+
+.error-text {
+  color: #F87171;
+  font-size: 11px;
+}
+
+.job-retry-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #FCA5A5;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.job-retry-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  color: #FFFFFF;
+}
+
+.job-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-subtext {
+  color: #8CA898;
+  font-size: 13px;
+}

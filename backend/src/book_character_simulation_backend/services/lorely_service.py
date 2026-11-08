@@ -1150,3 +1150,215 @@ class LorelyService:
 
             session.delete(s)
             session.flush()
+
+    # --- Administrator Operations ---
+
+    def require_admin(self, session: Session, user: UserAccount) -> None:
+        role_record = session.scalar(
+            select(UserRole).where(UserRole.user_id == user.id)
+        )
+        if not role_record or role_record.role != "admin":
+            raise ForbiddenError("Administrator privileges required.")
+
+    def get_admin_overview(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            total_users = session.scalar(select(func.count(UserAccount.id))) or 0
+            total_books = session.scalar(select(func.count(Book.id))) or 0
+            total_characters = session.scalar(select(func.count(CharacterProfileRecord.id))) or 0
+            total_conversations = session.scalar(select(func.count(ChatSession.id))) or 0
+            total_messages = session.scalar(select(func.count(ChatMessage.id))) or 0
+            active_jobs = session.scalar(
+                select(func.count(ProcessingJob.id)).where(ProcessingJob.status.in_(["queued", "processing"]))
+            ) or 0
+            failed_jobs = session.scalar(
+                select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "failed")
+            ) or 0
+
+            recent_jobs = session.scalars(
+                select(ProcessingJob).order_by(ProcessingJob.created_at.desc()).limit(5)
+            ).all()
+
+            return {
+                "health": "healthy",
+                "counts": {
+                    "users": total_users,
+                    "books": total_books,
+                    "characters": total_characters,
+                    "conversations": total_conversations,
+                    "messages": total_messages,
+                    "active_jobs": active_jobs,
+                    "failed_jobs": failed_jobs,
+                },
+                "recent_jobs": [
+                    {
+                        "id": j.id,
+                        "status": j.status,
+                        "stage": j.stage,
+                        "progress": j.progress,
+                        "document_type": j.document_type,
+                        "inferred_title": j.inferred_title,
+                        "error_message": j.error_message,
+                        "created_at": j.created_at.isoformat() if j.created_at else None,
+                    }
+                    for j in recent_jobs
+                ],
+            }
+
+    def admin_list_jobs(
+        self, auth_user: AuthenticatedUser | None, status: str | None = None
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            stmt = select(ProcessingJob).order_by(ProcessingJob.created_at.desc())
+            if status:
+                stmt = stmt.where(ProcessingJob.status == status)
+            jobs = session.scalars(stmt.limit(50)).all()
+
+            return [
+                {
+                    "id": j.id,
+                    "status": j.status,
+                    "stage": j.stage,
+                    "progress": j.progress,
+                    "document_type": j.document_type,
+                    "confidence": j.confidence,
+                    "inferred_title": j.inferred_title,
+                    "inferred_author": j.inferred_author,
+                    "book_id": j.book_id,
+                    "error_message": j.error_message,
+                    "created_at": j.created_at.isoformat() if j.created_at else None,
+                    "updated_at": j.updated_at.isoformat() if j.updated_at else None,
+                }
+                for j in jobs
+            ]
+
+    def admin_retry_job(self, auth_user: AuthenticatedUser | None, job_id: str) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            job = session.get(ProcessingJob, job_id)
+            if job is None:
+                raise NotFoundError("Processing job not found.")
+
+            job.status = "queued"
+            job.stage = "retrying"
+            job.progress = 10
+            job.error_message = None
+            session.flush()
+
+            return {
+                "id": job.id,
+                "status": job.status,
+                "message": "Job queued for retry.",
+            }
+
+    def admin_list_books(self, auth_user: AuthenticatedUser | None) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            books = session.scalars(select(Book).order_by(Book.created_at.desc())).all()
+            results = []
+            for b in books:
+                owner = session.get(UserAccount, b.owner_user_id)
+                char_count = session.scalar(
+                    select(func.count(CharacterProfileRecord.id)).where(CharacterProfileRecord.book_id == b.id)
+                ) or 0
+                results.append({
+                    "id": b.id,
+                    "title": b.title,
+                    "author": b.author,
+                    "visibility": b.visibility,
+                    "source_type": b.source_type,
+                    "processing_status": b.processing_status.value,
+                    "owner_email": owner.email if owner else "Unknown",
+                    "character_count": char_count,
+                    "created_at": b.created_at.isoformat() if b.created_at else None,
+                })
+            return results
+
+    def admin_update_book(
+        self, auth_user: AuthenticatedUser | None, book_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            if "visibility" in updates:
+                new_vis = str(updates["visibility"]).lower()
+                if new_vis in ("public", "private", "featured"):
+                    book.visibility = new_vis
+            if "title" in updates and updates["title"]:
+                book.title = str(updates["title"]).strip()
+            if "author" in updates:
+                book.author = str(updates["author"]).strip() or None
+
+            session.flush()
+            return {
+                "id": book.id,
+                "title": book.title,
+                "author": book.author,
+                "visibility": book.visibility,
+                "processing_status": book.processing_status.value,
+            }
+
+    def admin_list_users(self, auth_user: AuthenticatedUser | None) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            users = session.scalars(select(UserAccount).order_by(UserAccount.created_at.desc())).all()
+            results = []
+            for u in users:
+                role_rec = session.scalar(select(UserRole).where(UserRole.user_id == u.id))
+                role = role_rec.role if role_rec else "user"
+                book_count = session.scalar(
+                    select(func.count(Book.id)).where(Book.owner_user_id == u.id)
+                ) or 0
+                results.append({
+                    "id": u.id,
+                    "email": u.email,
+                    "display_name": u.display_name,
+                    "role": role,
+                    "book_count": book_count,
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                })
+            return results
+
+    def admin_update_user_role(
+        self, auth_user: AuthenticatedUser | None, target_user_id: str, new_role: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            if new_role not in ("admin", "user"):
+                raise BadRequestError("Role must be 'admin' or 'user'.")
+
+            target_user = session.get(UserAccount, target_user_id)
+            if target_user is None:
+                raise NotFoundError("Target user not found.")
+
+            role_rec = session.scalar(select(UserRole).where(UserRole.user_id == target_user.id))
+            if role_rec is None:
+                role_rec = UserRole(user_id=target_user.id, role=new_role)
+                session.add(role_rec)
+            else:
+                role_rec.role = new_role
+
+            session.flush()
+            return {
+                "user_id": target_user.id,
+                "email": target_user.email,
+                "role": role_rec.role,
+            }

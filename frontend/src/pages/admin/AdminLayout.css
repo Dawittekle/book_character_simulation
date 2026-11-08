@@ -1,0 +1,115 @@
+.lorely-admin-layout {
+  min-height: 100vh;
+  width: 100%;
+  background: #0E1712;
+  color: #E2ECE5;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+}
+
+.admin-console-header {
+  height: 64px;
+  background: #14241B;
+  border-bottom: 1px solid #233B2E;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  flex-shrink: 0;
+}
+
+.admin-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.admin-badge-icon {
+  font-size: 14px;
+}
+
+.admin-badge-text {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #E6C875;
+}
+
+.admin-header-sep {
+  color: #436351;
+  font-size: 14px;
+}
+
+.admin-header-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+}
+
+.admin-nav-tabs {
+  display: flex;
+  gap: 8px;
+  background: #0E1712;
+  border: 1px solid #233B2E;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.admin-nav-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8CA898;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.admin-nav-tab:hover {
+  color: #FFFFFF;
+}
+
+.admin-nav-tab.active {
+  background: #233B2E;
+  color: #FFFFFF;
+}
+
+.admin-return-btn {
+  background: none;
+  border: 1px solid #325240;
+  color: #C0D6CA;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-return-btn:hover {
+  background: #233B2E;
+  color: #FFFFFF;
+}
+
+.admin-main-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}

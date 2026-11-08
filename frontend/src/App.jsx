@@ -9,8 +9,14 @@ import CharacterGallery from './pages/CharacterGallery';
 import ChatScreen from './pages/ChatScreen';
 import Conversations from './pages/Conversations';
 import Settings from './pages/Settings';
+import AdminRouteGuard from './pages/admin/AdminRouteGuard';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminOverview from './pages/admin/AdminOverview';
+import AdminCatalog from './pages/admin/AdminCatalog';
+import AdminJobs from './pages/admin/AdminJobs';
+import AdminUsers from './pages/admin/AdminUsers';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
-import { RoleProvider } from './lib/RoleProvider';
+import { lorelyApi } from './services/lorelyApi';
 
 function LegacyWorkspaceRedirect() {
   const { textId } = useParams();
@@ -22,10 +28,13 @@ function LegacyChatRedirect() {
   return <Navigate replace to={`/chat/${characterId}`} />;
 }
 
-function MainApp({ session, handleSignOut }) {
+function MainApp({ session, userRole, loadingRole, handleSignOut }) {
+  const accessToken = session?.access_token;
+
   return (
     <BrowserRouter>
       <Routes>
+        {/* Reader Application Layout */}
         <Route
           path="/"
           element={
@@ -47,9 +56,19 @@ function MainApp({ session, handleSignOut }) {
           {/* Backward compatibility redirects */}
           <Route path="workspace/:textId" element={<LegacyWorkspaceRedirect />} />
           <Route path="chat/:textId/:characterId" element={<LegacyChatRedirect />} />
-
-          <Route path="*" element={<Navigate replace to="/" />} />
         </Route>
+
+        {/* Dedicated Authoritative Admin Portal */}
+        <Route element={<AdminRouteGuard userRole={userRole} loading={loadingRole} />}>
+          <Route path="admin" element={<AdminLayout accessToken={accessToken} />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="catalog" element={<AdminCatalog />} />
+            <Route path="jobs" element={<AdminJobs />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate replace to="/" />} />
       </Routes>
     </BrowserRouter>
   );
@@ -58,6 +77,8 @@ function MainApp({ session, handleSignOut }) {
 function App() {
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const [userRole, setUserRole] = useState('user');
+  const [loadingRole, setLoadingRole] = useState(true);
 
   useEffect(() => {
     if (supabase === null) {
@@ -102,6 +123,35 @@ function App() {
     };
   }, []);
 
+  // Fetch authoritative user role
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRole() {
+      if (!session?.access_token) {
+        setUserRole('user');
+        setLoadingRole(false);
+        return;
+      }
+
+      try {
+        setLoadingRole(true);
+        const me = await lorelyApi.getMe(session.access_token);
+        if (isMounted && me) {
+          setUserRole(me.role || 'user');
+        }
+      } catch (err) {
+        if (isMounted) setUserRole('user');
+      } finally {
+        if (isMounted) setLoadingRole(false);
+      }
+    }
+
+    fetchRole();
+    return () => {
+      isMounted = false;
+    };
+  }, [session]);
+
   if (!authReady) {
     return (
       <div className="app-loading-screen">
@@ -133,9 +183,12 @@ function App() {
   };
 
   return (
-    <RoleProvider>
-      <MainApp session={session} handleSignOut={handleSignOut} />
-    </RoleProvider>
+    <MainApp
+      session={session}
+      userRole={userRole}
+      loadingRole={loadingRole}
+      handleSignOut={handleSignOut}
+    />
   );
 }
 

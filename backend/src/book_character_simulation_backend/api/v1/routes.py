@@ -299,3 +299,61 @@ def delete_conversation(session_id: str):
     service = _lorely_service()
     service.delete_conversation(user, session_id)
     return jsonify({"message": "Conversation deleted successfully."}), 200
+
+
+# --- Admin Routes ---
+
+@v1_blueprint.route("/admin/overview", methods=["GET"])
+def get_admin_overview():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.get_admin_overview(user)), 200
+
+
+@v1_blueprint.route("/admin/jobs", methods=["GET"])
+def admin_list_jobs():
+    user = _authenticated_user()
+    service = _lorely_service()
+    status = request.args.get("status")
+    return jsonify({"jobs": service.admin_list_jobs(user, status=status)}), 200
+
+
+@v1_blueprint.route("/admin/jobs/<job_id>/retry", methods=["POST"])
+def admin_retry_job(job_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.admin_retry_job(user, job_id)), 200
+
+
+@v1_blueprint.route("/admin/books", methods=["GET"])
+def admin_list_books():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify({"books": service.admin_list_books(user)}), 200
+
+
+@v1_blueprint.route("/admin/books/<book_id>", methods=["PATCH"])
+def admin_update_book(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    return jsonify(service.admin_update_book(user, book_id, body)), 200
+
+
+@v1_blueprint.route("/admin/users", methods=["GET"])
+def admin_list_users():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify({"users": service.admin_list_users(user)}), 200
+
+
+@v1_blueprint.route("/admin/users/<user_id>/role", methods=["PATCH"])
+def admin_update_user_role(user_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    new_role = body.get("role")
+    if not new_role:
+        raise BadRequestError("Role parameter is required.")
+    return jsonify(service.admin_update_user_role(user, user_id, new_role)), 200
+

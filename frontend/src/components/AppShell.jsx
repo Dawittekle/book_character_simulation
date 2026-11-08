@@ -1,21 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import AddBookModal from './AddBookModal';
+import { lorelyApi } from '../services/lorelyApi';
 import './AppShell.css';
 
 export default function AppShell({ session, onSignOut, onBookAdded }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [profile, setProfile] = useState(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
   const accessToken = session?.access_token;
   const user = session?.user;
   const displayName =
+    profile?.display_name ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     (user?.email ? user.email.split('@')[0] : 'Reader');
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadProfile() {
+      try {
+        const me = await lorelyApi.getMe(accessToken);
+        if (mounted) setProfile(me);
+      } catch (err) {
+        // Fall back gracefully
+      }
+    }
+    if (accessToken) {
+      loadProfile();
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [accessToken]);
+
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -87,6 +110,16 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             <span className="sidebar-item-icon">⚙️</span>
             <span className="sidebar-item-label">Settings</span>
           </NavLink>
+
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) => `sidebar-nav-item admin-portal-link ${isActive ? 'active' : ''}`}
+            >
+              <span className="sidebar-item-icon">🛡️</span>
+              <span className="sidebar-item-label">Admin Console</span>
+            </NavLink>
+          )}
         </nav>
 
         <div className="lorely-sidebar-footer">
@@ -122,6 +155,18 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
                   <span className="dropdown-user-name">{displayName}</span>
                   <span className="dropdown-user-email">{user?.email}</span>
                 </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      navigate('/admin');
+                    }}
+                  >
+                    🛡️ Admin Console
+                  </button>
+                )}
                 <button
                   type="button"
                   className="dropdown-item"

@@ -221,6 +221,50 @@ export const lorelyApi = {
   getJobStatus: async (jobId, accessToken) => {
     return request(`/jobs/${jobId}`, { accessToken });
   },
+
+  // Authoritative Administrator Operations
+  getAdminOverview: async (accessToken) => {
+    return request('/admin/overview', { accessToken });
+  },
+
+  adminListJobs: async (status = null, accessToken) => {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    const res = await request(`/admin/jobs${query}`, { accessToken });
+    return res.jobs || [];
+  },
+
+  adminRetryJob: async (jobId, accessToken) => {
+    return request(`/admin/jobs/${jobId}/retry`, {
+      method: 'POST',
+      accessToken,
+    });
+  },
+
+  adminListBooks: async (accessToken) => {
+    const res = await request('/admin/books', { accessToken });
+    return res.books || [];
+  },
+
+  adminUpdateBook: async (bookId, updates, accessToken) => {
+    return request(`/admin/books/${bookId}`, {
+      method: 'PATCH',
+      body: updates,
+      accessToken,
+    });
+  },
+
+  adminListUsers: async (accessToken) => {
+    const res = await request('/admin/users', { accessToken });
+    return res.users || [];
+  },
+
+  adminUpdateUserRole: async (userId, role, accessToken) => {
+    return request(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: { role },
+      accessToken,
+    });
+  },
 };
 
 export default lorelyApi;
