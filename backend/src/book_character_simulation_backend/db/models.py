@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import DateTime, Enum as SqlEnum, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, IdentifierMixin, TimestampMixin, utc_now
@@ -22,6 +22,67 @@ class ChatRole(str, Enum):
     system = "system"
 
 
+class PlatformRole(str, Enum):
+    user = "user"
+    admin = "admin"
+
+
+class UserRole(IdentifierMixin, Base):
+    __tablename__ = "user_roles"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    role: Mapped[str] = mapped_column(String(20), default="user", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+    )
+
+    user: Mapped["UserAccount"] = relationship(back_populates="role_assignment")
+
+
+class UserSettings(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "user_settings"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    reading_theme: Mapped[str] = mapped_column(String(50), default="parchment", nullable=False)
+    spoiler_policy: Mapped[str] = mapped_column(String(50), default="cautious", nullable=False)
+    enter_to_send: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+    user: Mapped["UserAccount"] = relationship(back_populates="settings")
+
+
+class UserCharacterState(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "user_character_states"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    character_id: Mapped[str] = mapped_column(
+        ForeignKey("characters.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+    user: Mapped["UserAccount"] = relationship(back_populates="character_states")
+    character: Mapped["CharacterProfileRecord"] = relationship(back_populates="user_states")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "character_id", name="uq_user_character_states_user_character"),
+    )
+
+
 class UserAccount(IdentifierMixin, TimestampMixin, Base):
     __tablename__ = "users"
 
@@ -31,10 +92,26 @@ class UserAccount(IdentifierMixin, TimestampMixin, Base):
     avatar_url: Mapped[str | None] = mapped_column(Text)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    books: Mapped[list["Book"]] = relationship(back_populates="owner")
-    chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="owner")
+    role_assignment: Mapped[UserRole | None] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+    settings: Mapped[UserSettings | None] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+    character_states: Mapped[list[UserCharacterState]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    books: Mapped[list["Book"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    chat_sessions: Mapped[list["ChatSession"]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
-        back_populates="owner"
+        back_populates="owner", cascade="all, delete-orphan"
     )
 
 
@@ -50,13 +127,20 @@ class Book(IdentifierMixin, TimestampMixin, Base):
         default=BookProcessingStatus.uploaded,
         nullable=False,
     )
+    visibility: Mapped[str] = mapped_column(String(50), default="private", nullable=False)
+    source_type: Mapped[str] = mapped_column(String(50), default="book", nullable=False)
+    cover_url: Mapped[str | None] = mapped_column(Text)
 
     owner: Mapped["UserAccount"] = relationship(back_populates="books")
-    sources: Mapped[list["BookSource"]] = relationship(back_populates="book")
-    characters: Mapped[list["CharacterProfileRecord"]] = relationship(back_populates="book")
-    chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="book")
+    sources: Mapped[list["BookSource"]] = relationship(back_populates="book", cascade="all, delete-orphan")
+    characters: Mapped[list["CharacterProfileRecord"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
+    chat_sessions: Mapped[list["ChatSession"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
-        back_populates="book"
+        back_populates="book", cascade="all, delete-orphan"
     )
 
 
@@ -83,15 +167,23 @@ class CharacterProfileRecord(IdentifierMixin, TimestampMixin, Base):
     stable_character_key: Mapped[str | None] = mapped_column(String(64), index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     personality: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str | None] = mapped_column(String(100))
+    appearance_description: Mapped[str | None] = mapped_column(Text)
+    avatar_asset_id: Mapped[str | None] = mapped_column(String(100))
     key_events: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     relationships: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     book: Mapped["Book"] = relationship(back_populates="characters")
-    chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="character")
+    chat_sessions: Mapped[list["ChatSession"]] = relationship(
+        back_populates="character", cascade="all, delete-orphan"
+    )
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
-        back_populates="character"
+        back_populates="character", cascade="all, delete-orphan"
+    )
+    user_states: Mapped[list[UserCharacterState]] = relationship(
+        back_populates="character", cascade="all, delete-orphan"
     )
 
 
@@ -102,6 +194,7 @@ class ChatSession(IdentifierMixin, TimestampMixin, Base):
     book_id: Mapped[str] = mapped_column(ForeignKey("books.id"), nullable=False)
     character_id: Mapped[str] = mapped_column(ForeignKey("characters.id"), nullable=False)
     title: Mapped[str | None] = mapped_column(String(255))
+    spoiler_policy: Mapped[str] = mapped_column(String(50), default="cautious", nullable=False)
     latest_psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     latest_emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     last_message_at: Mapped[datetime | None] = mapped_column(
@@ -112,9 +205,11 @@ class ChatSession(IdentifierMixin, TimestampMixin, Base):
     owner: Mapped["UserAccount"] = relationship(back_populates="chat_sessions")
     book: Mapped["Book"] = relationship(back_populates="chat_sessions")
     character: Mapped["CharacterProfileRecord"] = relationship(back_populates="chat_sessions")
-    messages: Mapped[list["ChatMessage"]] = relationship(back_populates="session")
+    messages: Mapped[list["ChatMessage"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
-        back_populates="session"
+        back_populates="session", cascade="all, delete-orphan"
     )
 
 
@@ -125,6 +220,7 @@ class ChatMessage(IdentifierMixin, Base):
     role: Mapped[ChatRole] = mapped_column(SqlEnum(ChatRole), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_modality: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,

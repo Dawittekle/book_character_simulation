@@ -37,3 +37,7 @@ class LLMProviderFactory:
             )
 
         raise ConfigurationError("Unsupported LLM provider. Use 'openai' or 'gemini'.")
+
+
+def get_llm_provider(settings: Settings, provider_name: str | None = None) -> LLMProvider:
+    return LLMProviderFactory(settings).get_provider(provider_name)

@@ -21,10 +21,16 @@ class DatabaseManager:
         self._session_factory: sessionmaker[Session] | None = None
 
         if self._database_url:
+            connect_args = {}
+            if "postgresql" in self._database_url:
+                connect_args["connect_timeout"] = self._database_connect_timeout
+            elif "sqlite" in self._database_url:
+                connect_args["timeout"] = 30
+
             self._engine = create_engine(
                 self._database_url,
                 pool_pre_ping=True,
-                connect_args={"connect_timeout": self._database_connect_timeout},
+                connect_args=connect_args,
                 echo=settings.sqlalchemy_echo,
                 future=True,
             )

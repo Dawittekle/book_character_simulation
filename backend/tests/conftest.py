@@ -51,3 +51,37 @@ def app(test_settings: Settings) -> Flask:
 @pytest.fixture
 def client(app: Flask) -> FlaskClient:
     return app.test_client()
+
+
+@pytest.fixture
+def db_app(tmp_path: Path) -> Flask:
+    db_file = tmp_path / "test_lorely.db"
+    settings = Settings(
+        app_env="testing",
+        debug=True,
+        host="127.0.0.1",
+        port=5000,
+        cors_origins=["http://localhost:5173"],
+        chroma_db_path=tmp_path / "chroma",
+        database_url=f"sqlite:///{db_file}",
+        database_connect_timeout=2,
+        sqlalchemy_echo=False,
+        auto_create_relational_schema=True,
+        supabase_url=None,
+        supabase_anon_key=None,
+        supabase_service_role_key=None,
+        supabase_jwt_secret=None,
+        llm_provider="gemini",
+        llm_temperature=0.7,
+        max_source_characters=50000,
+        openai_api_key="mock-openai-key",
+        openai_model="gpt-4.1-mini",
+        gemini_api_key="mock-gemini-key",
+        gemini_model="gemini-3.5-flash",
+    )
+    return create_app(settings)
+
+
+@pytest.fixture
+def db_client(db_app: Flask) -> FlaskClient:
+    return db_app.test_client()
