@@ -3,12 +3,20 @@ import { lorelyApi } from '../services/lorelyApi';
 import { getFriendlyErrorMessage } from '../lib/errorUtils';
 import './AddBookModal.css';
 
-export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken }) {
+export default function AddBookModal({
+  isOpen,
+  onClose,
+  onBookAdded,
+  accessToken,
+  defaultVisibility = 'private',
+  isSharedCatalog = false,
+}) {
   const [tab, setTab] = useState('upload'); // 'upload' | 'paste'
   const [file, setFile] = useState(null);
   const [pastedText, setPastedText] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [customAuthor, setCustomAuthor] = useState('');
+  const [visibility, setVisibility] = useState(defaultVisibility);
   const [forceExtraction, setForceExtraction] = useState(false);
 
   // Inspection & ingestion state
@@ -69,6 +77,7 @@ export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken
           tempSourceId: inspectionResult.job_id,
           title: customTitle,
           author: customAuthor,
+          visibility,
           forceExtraction,
         },
         accessToken,
@@ -101,8 +110,10 @@ export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken
       <div className="add-book-modal">
         <div className="modal-header">
           <div className="modal-title-group">
-            <span className="modal-icon">📖</span>
-            <h2 className="modal-title">Add a Book to Your Library</h2>
+            <span className="modal-icon">{isSharedCatalog ? '🏛️' : '📖'}</span>
+            <h2 className="modal-title">
+              {isSharedCatalog ? 'Add Book to Shared Catalog (Featured & Vector Indexed)' : 'Add a Book to Your Library'}
+            </h2>
           </div>
           <button type="button" className="modal-close-btn" onClick={resetForm} aria-label="Close modal">
             ✕
@@ -223,6 +234,18 @@ export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken
                     placeholder="Author Name"
                     className="summary-input"
                   />
+                </div>
+                <div className="summary-field">
+                  <label>Catalog Visibility</label>
+                  <select
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value)}
+                    className="summary-input"
+                  >
+                    <option value="featured">Featured Masterpiece (Shared with all readers & Home)</option>
+                    <option value="public">Public (Shared across all library readers)</option>
+                    <option value="private">Private (Restricted to my personal shelf)</option>
+                  </select>
                 </div>
                 <div className="summary-pills-row">
                   <span className="summary-pill">Format: {inspectionResult.format?.toUpperCase()}</span>

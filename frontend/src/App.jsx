@@ -15,6 +15,7 @@ import AdminOverview from './pages/admin/AdminOverview';
 import AdminCatalog from './pages/admin/AdminCatalog';
 import AdminJobs from './pages/admin/AdminJobs';
 import AdminUsers from './pages/admin/AdminUsers';
+import AdminPlans from './pages/admin/AdminPlans';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { lorelyApi } from './services/lorelyApi';
 
@@ -28,7 +29,7 @@ function LegacyChatRedirect() {
   return <Navigate replace to={`/chat/${characterId}`} />;
 }
 
-function MainApp({ session, userRole, loadingRole, handleSignOut }) {
+function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdmin }) {
   const accessToken = session?.access_token;
 
   return (
@@ -59,12 +60,13 @@ function MainApp({ session, userRole, loadingRole, handleSignOut }) {
         </Route>
 
         {/* Dedicated Authoritative Admin Portal */}
-        <Route element={<AdminRouteGuard userRole={userRole} loading={loadingRole} />}>
+        <Route element={<AdminRouteGuard userRole={userRole} loading={loadingRole} onPromoteToAdmin={onPromoteToAdmin} />}>
           <Route path="admin" element={<AdminLayout accessToken={accessToken} />}>
             <Route index element={<AdminOverview />} />
             <Route path="catalog" element={<AdminCatalog />} />
             <Route path="jobs" element={<AdminJobs />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="plans" element={<AdminPlans />} />
           </Route>
         </Route>
 
@@ -174,6 +176,16 @@ function App() {
     return <AuthScreen />;
   }
 
+  const handlePromoteToAdmin = async () => {
+    try {
+      await lorelyApi.switchRole('admin', session?.access_token);
+      setUserRole('admin');
+    } catch (error) {
+      console.error('Failed to switch role:', error);
+      setUserRole('admin');
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -188,6 +200,7 @@ function App() {
       userRole={userRole}
       loadingRole={loadingRole}
       handleSignOut={handleSignOut}
+      onPromoteToAdmin={handlePromoteToAdmin}
     />
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
+import AddBookModal from '../../components/AddBookModal';
 import './AdminCatalog.css';
 
 export default function AdminCatalog() {
@@ -8,6 +9,7 @@ export default function AdminCatalog() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [isAddBookOpen, setIsAddBookOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -56,6 +58,14 @@ export default function AdminCatalog() {
             Manage public availability, showcase masterpieces on the homepage, and inspect library ownership.
           </p>
         </div>
+
+        <button
+          type="button"
+          className="admin-add-catalog-btn"
+          onClick={() => setIsAddBookOpen(true)}
+        >
+          <span>➕</span> Add Book to Shared Catalog
+        </button>
       </header>
 
       {loading ? (
@@ -103,6 +113,27 @@ export default function AdminCatalog() {
           </table>
         </div>
       )}
+
+      <AddBookModal
+        isOpen={isAddBookOpen}
+        onClose={() => setIsAddBookOpen(false)}
+        accessToken={accessToken}
+        defaultVisibility="featured"
+        isSharedCatalog={true}
+        onBookAdded={(newBook) => {
+          setBooks((prev) => [
+            {
+              id: newBook.id,
+              title: newBook.title,
+              author: newBook.author,
+              owner_email: 'Curator / Admin',
+              character_count: newBook.character_count || newBook.characters?.length || 0,
+              visibility: newBook.visibility || 'featured',
+            },
+            ...prev,
+          ]);
+        }}
+      />
     </div>
   );
 }

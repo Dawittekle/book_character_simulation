@@ -76,7 +76,7 @@ class LorelyService:
                 session.add(guest)
                 session.flush()
                 session.add_all([
-                    UserRole(user_id=guest.id, role="user"),
+                    UserRole(user_id=guest.id, role="admin"),
                     UserSettings(user_id=guest.id),
                 ])
                 session.flush()
@@ -105,7 +105,7 @@ class LorelyService:
 
             # Create default settings and role
             role = UserRole(user_id=user.id, role="user")
-            settings = UserSettings(user_id=user.id)
+            settings = UserSettings(user_id=user.id, preferences={"plan_tier": "scholar"})
             session.add_all([role, settings])
             session.flush()
             return user
@@ -1413,6 +1413,12 @@ class LorelyService:
             for u in users:
                 role_rec = session.scalar(select(UserRole).where(UserRole.user_id == u.id))
                 role = role_rec.role if role_rec else "user"
+                settings_rec = session.scalar(select(UserSettings).where(UserSettings.user_id == u.id))
+                plan_tier = (
+                    settings_rec.preferences.get("plan_tier")
+                    if settings_rec and isinstance(settings_rec.preferences, dict)
+                    else "scholar"
+                ) or "scholar"
                 book_count = session.scalar(
                     select(func.count(Book.id)).where(Book.owner_user_id == u.id)
                 ) or 0
@@ -1421,10 +1427,83 @@ class LorelyService:
                     "email": u.email,
                     "display_name": u.display_name,
                     "role": role,
+                    "plan_tier": plan_tier,
                     "book_count": book_count,
                     "created_at": u.created_at.isoformat() if u.created_at else None,
                 })
             return results
+
+    def switch_my_role(self, auth_user: AuthenticatedUser | None, target_role: str) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            if target_role not in ("admin", "user"):
+                raise BadRequestError("Role must be 'admin' or 'user'.")
+            role_rec = session.scalar(select(UserRole).where(UserRole.user_id == user.id))
+            if role_rec is None:
+                role_rec = UserRole(user_id=user.id, role=target_role)
+                session.add(role_rec)
+            else:
+                role_rec.role = target_role
+            session.flush()
+            return {"user_id": user.id, "email": user.email, "role": role_rec.role}
+
+    def admin_get_plans(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            self.require_admin(session, user)
+
+            plans = [
+                {
+                    "id": "free",
+                    "name": "Free Reader",
+                    "price_monthly": 0,
+                    "book_quota": 3,
+                    "daily_messages": 20,
+                    "voice_access": False,
+                    "description": "Exploration tier with access to standard classics and introductory character dialogues.",
+                },
+                {
+                    "id": "scholar",
+                    "name": "Literary Scholar",
+                    "price_monthly": 9.99,
+                    "book_quota": "unlimited",
+                    "daily_messages": "unlimited",
+                    "voice_access": True,
+                    "description": "Unlimited shelf imports, interactive speech synthesis, and full cognitive memory evolution.",
+                },
+                {
+                    "id": "institution",
+                    "name": "Institutional Archive",
+                    "price_monthly": 49.00,
+                    "book_quota": "unlimited",
+                    "daily_messages": "unlimited",
+                    "voice_access": True,
+                    "description": "Dedicated vector search namespace, multi-seat classroom access, and custom prompt fine-tuning.",
+                },
+            ]
+            return {"plans": plans}
+
+    def admin_update_user_plan(
+        self, auth_user: AuthenticatedUser | None, target_user_id: str, new_plan: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            self.require_admin(session, user)
+
+            target_user = session.get(UserAccount, target_user_id)
+            if target_user is None:
+                raise NotFoundError("Target user not found.")
+
+            settings_rec = session.scalar(select(UserSettings).where(UserSettings.user_id == target_user.id))
+            if settings_rec is None:
+                settings_rec = UserSettings(user_id=target_user.id, preferences={"plan_tier": new_plan})
+                session.add(settings_rec)
+            else:
+                prefs = dict(settings_rec.preferences or {})
+                prefs["plan_tier"] = new_plan
+                settings_rec.preferences = prefs
+            session.flush()
+            return {"user_id": target_user.id, "plan_tier": new_plan}
 
     def admin_update_user_role(
         self, auth_user: AuthenticatedUser | None, target_user_id: str, new_role: str

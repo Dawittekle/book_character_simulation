@@ -43,6 +43,12 @@ export default function AdminLayout({ accessToken }) {
           >
             User Roles
           </NavLink>
+          <NavLink
+            to="/admin/plans"
+            className={({ isActive }) => `admin-nav-tab ${isActive ? 'active' : ''}`}
+          >
+            Plans & Quotas
+          </NavLink>
         </nav>
 
         <div className="admin-header-right">

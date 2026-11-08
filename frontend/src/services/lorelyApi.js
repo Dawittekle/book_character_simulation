@@ -321,6 +321,26 @@ export const lorelyApi = {
       accessToken,
     });
   },
+
+  switchRole: async (role, accessToken) => {
+    return request('/auth/switch-role', {
+      method: 'POST',
+      body: { role },
+      accessToken,
+    });
+  },
+
+  adminGetPlans: async (accessToken) => {
+    return request('/admin/plans', { accessToken });
+  },
+
+  adminUpdateUserPlan: async (userId, planTier, accessToken) => {
+    return request(`/admin/users/${userId}/plan`, {
+      method: 'PATCH',
+      body: { plan_tier: planTier },
+      accessToken,
+    });
+  },
 };
 
 export default lorelyApi;

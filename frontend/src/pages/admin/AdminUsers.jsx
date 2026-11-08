@@ -64,6 +64,7 @@ export default function AdminUsers() {
                 <th>User ID</th>
                 <th>Display Name</th>
                 <th>Email</th>
+                <th>Plan Tier</th>
                 <th>Books Owned</th>
                 <th>Role</th>
                 <th>Actions</th>
@@ -77,6 +78,11 @@ export default function AdminUsers() {
                     <strong>{u.display_name}</strong>
                   </td>
                   <td>{u.email}</td>
+                  <td>
+                    <span className="type-badge">
+                      {u.plan_tier || 'scholar'}
+                    </span>
+                  </td>
                   <td>{u.book_count}</td>
                   <td>
                     <span className={`role-pill pill-${u.role}`}>

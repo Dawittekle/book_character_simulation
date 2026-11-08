@@ -1,0 +1,206 @@
+.admin-plans-view {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.plans-header-line {
+  border-bottom: 1px solid #233B2E;
+  padding-bottom: 18px;
+}
+
+.plans-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 6px;
+}
+
+.plans-sub {
+  font-size: 13px;
+  color: #8CA898;
+  margin: 0;
+}
+
+.plans-status-toast {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #86EFAC;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Tier Grid */
+.plans-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.plan-card {
+  background: #14241B;
+  border: 1px solid #233B2E;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.plan-card:hover {
+  border-color: #385E48;
+  transform: translateY(-2px);
+}
+
+.plan-card.featured-plan {
+  border-color: #C89D5C;
+  background: linear-gradient(180deg, #182C21 0%, #111F17 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.plan-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #C89D5C;
+  color: #14241B;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.plan-card-name {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 18px;
+  color: #FAF7F2;
+  margin: 0 0 10px;
+}
+
+.plan-pricing {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.price-amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: #FAF7F2;
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+}
+
+.price-period {
+  font-size: 13px;
+  color: #8CA898;
+}
+
+.plan-card-desc {
+  font-size: 12px;
+  color: #B2C4B8;
+  line-height: 1.5;
+  margin: 0 0 18px;
+  min-height: 48px;
+}
+
+.plan-quotas-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quota-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8CA898;
+}
+
+.quota-row strong {
+  color: #FAF7F2;
+}
+
+.plan-feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #D3DFD7;
+}
+
+/* User Allocations Section */
+.plans-user-section {
+  background: #14241B;
+  border: 1px solid #233B2E;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.plans-section-heading {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 18px;
+  color: #FFFFFF;
+  margin: 0 0 6px;
+}
+
+.plans-section-sub {
+  font-size: 12px;
+  color: #8CA898;
+  margin: 0 0 20px;
+}
+
+.plan-tier-pill {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.tier-institution {
+  background: rgba(168, 85, 247, 0.2);
+  color: #D8B4FE;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.tier-scholar {
+  background: rgba(212, 175, 55, 0.2);
+  color: #FDE047;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.tier-free {
+  background: rgba(148, 163, 184, 0.15);
+  color: #CBD5E1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.plan-select-dropdown {
+  background: #0D1912;
+  border: 1px solid #325240;
+  color: #FAF7F2;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.plan-select-dropdown:focus {
+  border-color: #C89D5C;
+}

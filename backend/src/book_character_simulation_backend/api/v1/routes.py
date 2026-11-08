@@ -421,3 +421,32 @@ def admin_update_user_role(user_id: str):
         raise BadRequestError("Role parameter is required.")
     return jsonify(service.admin_update_user_role(user, user_id, new_role)), 200
 
+
+@v1_blueprint.route("/auth/switch-role", methods=["POST"])
+@v1_blueprint.route("/users/me/role", methods=["PATCH"])
+def switch_my_role():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    target_role = body.get("role", "admin")
+    return jsonify(service.switch_my_role(user, target_role)), 200
+
+
+@v1_blueprint.route("/admin/plans", methods=["GET"])
+def admin_get_plans():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.admin_get_plans(user)), 200
+
+
+@v1_blueprint.route("/admin/users/<user_id>/plan", methods=["PATCH"])
+def admin_update_user_plan(user_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    new_plan = body.get("plan_tier") or body.get("plan")
+    if not new_plan:
+        raise BadRequestError("plan_tier parameter is required.")
+    return jsonify(service.admin_update_user_plan(user, user_id, new_plan)), 200
+
+

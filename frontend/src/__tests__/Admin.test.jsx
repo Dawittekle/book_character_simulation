@@ -6,6 +6,7 @@ import AdminRouteGuard from '../pages/admin/AdminRouteGuard';
 import AdminOverview from '../pages/admin/AdminOverview';
 import AdminCatalog from '../pages/admin/AdminCatalog';
 import AdminJobs from '../pages/admin/AdminJobs';
+import AdminPlans from '../pages/admin/AdminPlans';
 import { lorelyApi } from '../services/lorelyApi';
 
 vi.mock('../services/lorelyApi', () => ({
@@ -17,6 +18,8 @@ vi.mock('../services/lorelyApi', () => ({
     adminListUsers: vi.fn(),
     adminUpdateBook: vi.fn(),
     adminUpdateUserRole: vi.fn(),
+    adminGetPlans: vi.fn(),
+    adminUpdateUserPlan: vi.fn(),
   },
 }));
 
@@ -132,6 +135,57 @@ describe('Admin Portal & Route Guard', () => {
       expect(screen.getByText('Background Extraction Telemetry')).toBeInTheDocument();
       expect(screen.getByText('Corrupted Manuscript.pdf')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Retry/i })).toBeInTheDocument();
+    });
+  });
+
+  it('renders Add Book button in AdminCatalog', async () => {
+    vi.mocked(lorelyApi.adminListBooks).mockResolvedValueOnce([]);
+
+    render(
+      <BrowserRouter>
+        <AdminCatalog />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Add Book to Shared Catalog/i })).toBeInTheDocument();
+    });
+  });
+
+  it('renders AdminPlans with subscription tiers and user list', async () => {
+    vi.mocked(lorelyApi.adminGetPlans).mockResolvedValueOnce({
+      plans: [
+        {
+          id: 'free',
+          name: 'Free Reader',
+          price_monthly: 0,
+          book_quota: 3,
+          daily_messages: 20,
+          voice_access: false,
+        },
+      ],
+    });
+    vi.mocked(lorelyApi.adminListUsers).mockResolvedValueOnce([
+      {
+        id: 'u-123',
+        display_name: 'Dostoevsky Enthusiast',
+        email: 'reader@classic.org',
+        role: 'user',
+        plan_tier: 'free',
+        book_count: 2,
+      },
+    ]);
+
+    render(
+      <BrowserRouter>
+        <AdminPlans />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Membership Plans & Quota Management')).toBeInTheDocument();
+      expect(screen.getByText('Dostoevsky Enthusiast')).toBeInTheDocument();
+      expect(screen.getByText('reader@classic.org')).toBeInTheDocument();
     });
   });
 });
