@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { lorelyApi } from '../services/lorelyApi';
+import { getFriendlyErrorMessage } from '../lib/errorUtils';
 import './AddBookModal.css';
 
 export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken }) {
@@ -41,7 +42,7 @@ export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken
       const inspectData = await lorelyApi.inspectSource(
         {
           file: tab === 'upload' ? file : null,
-          rawText: tab === 'paste' ? pastedText : null,
+          text: tab === 'paste' ? pastedText : null,
           filename: tab === 'upload' ? file.name : 'pasted_story.txt',
         },
         accessToken,
@@ -52,7 +53,7 @@ export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken
       setCustomAuthor(inspectData.author || '');
       setStep('review');
     } catch (err) {
-      setError(err.message || 'Inspection failed.');
+      setError(getFriendlyErrorMessage(err));
       setStep('select');
     }
   };
@@ -78,7 +79,7 @@ export default function AddBookModal({ isOpen, onClose, onBookAdded, accessToken
       }
       onClose();
     } catch (err) {
-      setError(err.message || 'Book ingestion failed.');
+      setError(getFriendlyErrorMessage(err));
       setStep('review');
     }
   };

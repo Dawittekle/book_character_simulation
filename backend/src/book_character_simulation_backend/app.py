@@ -33,7 +33,13 @@ def create_app(settings: Settings | None = None) -> Flask:
 
     app = Flask(__name__)
     app.config["SETTINGS"] = resolved_settings
-    CORS(app, resources={r"/api/*": {"origins": resolved_settings.cors_origins}})
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": resolved_settings.cors_origins}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization", "X-Test-User-Id", "Accept"],
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    )
     database_manager = DatabaseManager(resolved_settings)
     auth_service = SupabaseAuthService(resolved_settings)
     if resolved_settings.auto_create_relational_schema and database_manager.is_configured:

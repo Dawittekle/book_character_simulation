@@ -13,12 +13,17 @@ async function request(endpoint, { method = 'GET', body, accessToken, signal } =
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(`${V1_URL}${endpoint}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    signal,
-  });
+  let response;
+  try {
+    response = await fetch(`${V1_URL}${endpoint}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal,
+    });
+  } catch (networkErr) {
+    throw new Error('Unable to connect to the Lorely server. Please check your network or verify the backend is running.');
+  }
 
   const payload = await response
     .json()
@@ -229,12 +234,17 @@ export const lorelyApi = {
       formData.append('file', file);
       if (llmProvider) formData.append('llm_provider', llmProvider);
 
-      const response = await fetch(`${V1_URL}/books/inspect`, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-      const data = await response.json();
+      let response;
+      try {
+        response = await fetch(`${V1_URL}/books/inspect`, {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+      } catch (networkErr) {
+        throw new Error('Unable to connect to the Lorely server. Please check your network or verify the backend is running.');
+      }
+      const data = await response.json().catch(() => ({ error: 'The server returned an unreadable response.' }));
       if (!response.ok) throw new Error(data.error || 'Inspection failed');
       return data;
     }

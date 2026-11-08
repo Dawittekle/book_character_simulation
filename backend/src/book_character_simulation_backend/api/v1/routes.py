@@ -102,7 +102,7 @@ def update_settings():
 
 @v1_blueprint.route("/books/inspect", methods=["POST"])
 def inspect_source():
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
 
     file_bytes = None
@@ -130,7 +130,7 @@ def inspect_source():
 
 @v1_blueprint.route("/books/ingest", methods=["POST"])
 def ingest_source():
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
     temp_source_id = body.get("temp_source_id")
@@ -151,7 +151,7 @@ def ingest_source():
 
 @v1_blueprint.route("/jobs/<job_id>", methods=["GET"])
 def get_job_status(job_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify(service.get_job_status(user, job_id))
 

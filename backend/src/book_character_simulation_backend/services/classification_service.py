@@ -109,6 +109,15 @@ class ClassificationService:
             heuristic = self._heuristic_check(text[:3000])
             if heuristic:
                 return heuristic
+            return ClassificationResult(
+                document_type="document",
+                confidence=0.95,
+                title=(filename.rsplit(".", 1)[0].replace("_", " ").title() if filename else "Resume Document"),
+                author=None,
+                is_narrative=False,
+                reasoning=f"Filename '{filename}' indicates a professional resume or CV rather than a literary narrative.",
+                warning="This document appears to be a resume or CV. Lorely is designed for stories and literary books so characters have rich dialogue and storylines. You can check 'Force extraction' if you'd like to proceed anyway.",
+            )
 
         # Check heuristics first
         sample = text[:4000].strip()

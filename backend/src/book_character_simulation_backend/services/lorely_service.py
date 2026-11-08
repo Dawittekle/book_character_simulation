@@ -331,7 +331,7 @@ class LorelyService:
         llm_provider: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
 
             if file_bytes:
                 doc = extract_document_from_bytes(file_bytes, filename)
@@ -400,7 +400,7 @@ class LorelyService:
         llm_provider: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             job = session.get(ProcessingJob, temp_source_id)
             if job is None:
                 raise NotFoundError("Inspection job not found.")
@@ -518,7 +518,7 @@ class LorelyService:
 
     def get_job_status(self, auth_user: AuthenticatedUser | None, job_id: str) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             job = session.get(ProcessingJob, job_id)
             if job is None:
                 raise NotFoundError("Processing job not found.")
