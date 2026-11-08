@@ -7,10 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml requirements.txt ./
-RUN pip install --no-cache-dir -e .
-
 COPY . .
+
+RUN pip install --no-cache-dir .
 
 ENV PORT=5000 \
     HOST=0.0.0.0 \
