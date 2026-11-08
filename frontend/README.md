@@ -19,12 +19,18 @@ The client-side single page application for **Lorely**, featuring a bespoke warm
 - **Document Ingestion Modal**:
   - Upload stories in `.pdf`, `.epub`, or `.txt` format.
   - Automated classification with friendly error feedback preventing accidental uploads of non-narrative documents (such as resumes).
+- **Membership & Checkout Experience**:
+  - Modern, dark-mode pricing modal with Personal/Business categories.
+  - Interactive checkout drawer with AI reasoning engine selection (`Gemini 3.5 Flash` vs `Gemini 2.5 Pro`).
+  - Real-time payment submission and instant verification tracking.
 - **Dedicated Admin Console (`/admin`) & Isolated Login (`/admin/login`)**:
   - Completely isolated from reader navigation.
   - Requires administrator authentication (`admin@lorely.app`).
+  - **Subscribers & Payments (`/admin/subscribers`)**: Live KPI metrics (MRR, active pro subscribers, revenue), verification queue for pending payments, and transaction ledger.
+  - **Plans & Quotas (`/admin/plans`)**: Live plan editor modal allowing administrators to modify pricing, quotas, voice access, and features directly in PostgreSQL.
   - Catalog management: Toggle books between featured and private.
   - Job monitor: Track extraction pipelines and retry failed document runs.
-  - Plan and user management: Reassign subscription tiers (Free, Scholar, Bibliophile) and user roles.
+  - Plan and user management: Reassign subscription tiers and user roles.
   - System broadcast notifications.
 
 ---

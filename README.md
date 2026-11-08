@@ -18,6 +18,22 @@ Every dialogue turn retrieves citations from exact chapters with spoiler protect
 
 ---
 
+## 💎 Membership Plans & Subscription System
+
+Lorely features a complete database-backed membership, billing checkout, and verification pipeline:
+
+- **Four Subscription Tiers**:
+  - **Free Reader ($0/mo)**: Unlimited basic dialogues, standard classics, community access.
+  - **Explorer ($5/mo)**: 10 personal shelf imports, 100 daily dialogue turns, expanded memory.
+  - **Literary Scholar ($20/mo)**: Unlimited books, HD voice mode, dynamic emotional drift telemetry, and spoiler-gated indexing.
+  - **Institutional Archive ($100/mo)**: Isolated vector namespace, custom persona fine-tuning, multi-seat classroom access.
+- **AI Model Selection**: Readers choose between **Gemini 3.5 Flash** (balanced & fast) and **Gemini 2.5 Pro** (deep literary reasoning) during plan checkout.
+- **Admin Verification Console (`/admin/subscribers`)**: Operations console for approving incoming payments, tracking MRR, and managing subscriber allocations.
+- **Admin Plan Editor (`/admin/plans`)**: Live plan editor allowing administrators to adjust pricing, quotas, features, and active status in real time.
+- **Persistent Chat Sessions**: Full conversation histories and emotional states are preserved across page refreshes and browser sessions via PostgreSQL.
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
@@ -127,10 +143,10 @@ Lorely maintains a strict, regression-tested codebase:
 ./run.sh test
 
 # Or run individually:
-# Backend (53 integration & unit tests)
+# Backend (54 integration & unit tests)
 cd backend && .venv/bin/pytest tests/
 
-# Frontend (61 unit & component tests)
+# Frontend (67 unit & component tests across 12 test suites)
 cd frontend && npm run test -- --run
 ```
 

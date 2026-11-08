@@ -17,6 +17,12 @@ The backend for **Lorely**, an AI-powered literary character simulation and dial
   - Returns exact chapter citations, sequence numbers, and verbatim quotes from the text.
 - **Dynamic Emotion Simulation**:
   - Real-time updates to character emotion states based on dialogue turns.
+- **Persistent Conversational Memory**:
+  - Automatically queries existing active dialogues when entering `/chat/:characterId`.
+  - Full dialogue turns and psychological states are persisted to PostgreSQL and restored upon refresh.
+- **Membership Plans & Payment Verification**:
+  - Database-backed `MembershipPlan` and `PaymentTransaction` models with auto-seeded tiers.
+  - Endpoints for plan updates, payment submission, manual admin approval/rejection, and MRR metrics aggregation.
 - **Voice Mode & Speech Synthesis**:
   - Synthesizes lifelike character speech audio with waveform visualization endpoints.
 - **Dedicated Administrative Portal & Management**:

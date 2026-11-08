@@ -8,6 +8,7 @@ import AdminAnalytics from '../pages/admin/AdminAnalytics';
 import AdminCatalog from '../pages/admin/AdminCatalog';
 import AdminJobs from '../pages/admin/AdminJobs';
 import AdminPlans from '../pages/admin/AdminPlans';
+import AdminSubscribers from '../pages/admin/AdminSubscribers';
 import { lorelyApi } from '../services/lorelyApi';
 
 vi.mock('../services/lorelyApi', () => ({
@@ -21,7 +22,12 @@ vi.mock('../services/lorelyApi', () => ({
     adminUpdateBook: vi.fn(),
     adminUpdateUserRole: vi.fn(),
     adminGetPlans: vi.fn(),
+    adminUpdatePlan: vi.fn(),
     adminUpdateUserPlan: vi.fn(),
+    adminGetSubscribers: vi.fn(),
+    adminListPayments: vi.fn(),
+    adminVerifyPayment: vi.fn(),
+    adminRejectPayment: vi.fn(),
     getStoredAdminToken: vi.fn(() => null),
     getStoredAdminUser: vi.fn(() => null),
     adminLogin: vi.fn(),
@@ -237,6 +243,60 @@ describe('Admin Portal & Route Guard', () => {
       expect(screen.getByText('The Dreamer')).toBeInTheDocument();
       expect(screen.getByText('Cognitive Emotion Drift Timeline')).toBeInTheDocument();
       expect(screen.getByText('Reader Tier Distribution')).toBeInTheDocument();
+    });
+  });
+
+  it('renders AdminSubscribers with KPI metrics and pending verifications queue', async () => {
+    vi.mocked(lorelyApi.adminGetSubscribers).mockResolvedValueOnce({
+      total_subscribers: 3,
+      mrr: 60.0,
+      total_revenue: 120.0,
+      pending_verifications: 1,
+      verified_transactions: 2,
+      free_readers: 5,
+      total_users: 8,
+      subscribers: [
+        {
+          id: 'sub-1',
+          display_name: 'Fyodor Dostoevsky',
+          email: 'fyodor@spb.ru',
+          plan_tier: 'scholar',
+          price_monthly: 20.0,
+          active_model: 'gemini-2.5-pro',
+          created_at: '2026-11-08T00:00:00Z',
+        },
+      ],
+    });
+
+    vi.mocked(lorelyApi.adminListPayments).mockResolvedValueOnce([
+      {
+        id: 'pay-test-1234',
+        user_name: 'Anna Snitkina',
+        user_email: 'anna@spb.ru',
+        plan_slug: 'scholar',
+        amount: 20.0,
+        currency: 'USD',
+        payment_method: 'credit_card',
+        payment_details: { cardholder_name: 'Anna Snitkina', last4: '4242' },
+        chosen_model: 'gemini-2.5-pro',
+        status: 'pending',
+        created_at: '2026-11-08T12:00:00Z',
+      },
+    ]);
+
+    render(
+      <BrowserRouter>
+        <AdminSubscribers />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Subscribers & Payment Verification')).toBeInTheDocument();
+      expect(screen.getByText('$60.00')).toBeInTheDocument();
+      expect(screen.getAllByText('Anna Snitkina').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('PENDING APPROVAL')).toBeInTheDocument();
+      expect(screen.getByText('✓ Verify & Upgrade')).toBeInTheDocument();
+      expect(screen.getByText('✕ Reject')).toBeInTheDocument();
     });
   });
 });
