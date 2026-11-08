@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import AddBookModal from './AddBookModal';
+import NotificationsDropdown from './NotificationsDropdown';
 import { lorelyApi } from '../services/lorelyApi';
 import './AppShell.css';
 
 export default function AppShell({ session, onSignOut, onBookAdded }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [profile, setProfile] = useState(null);
   const dropdownRef = useRef(null);
@@ -205,10 +208,24 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             />
           </form>
 
-          <div className="top-header-right">
-            <button type="button" className="notification-bell-btn" aria-label="Notifications">
+          <div className="top-header-right" style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="notification-bell-btn"
+              aria-label="Notifications"
+              onClick={() => setIsNotifOpen((prev) => !prev)}
+            >
               🔔
+              {unreadCount > 0 && <span className="notification-unread-badge">{unreadCount}</span>}
             </button>
+
+            <NotificationsDropdown
+              isOpen={isNotifOpen}
+              onClose={() => setIsNotifOpen(false)}
+              accessToken={accessToken}
+              onUnreadCountChange={(count) => setUnreadCount(count)}
+            />
+
             <img
               src="/avatars/user_avatar.svg"
               alt={displayName}

@@ -21,6 +21,7 @@ from ..db.models import (
     ChatMessage,
     ChatRole,
     ChatSession,
+    NotificationRecord,
     ProcessingJob,
     UserAccount,
     UserCharacterState,
@@ -501,6 +502,17 @@ class LorelyService:
                 job.status = "completed"
                 job.stage = "ready"
                 job.progress = 100
+
+                # Ingestion notification
+                session.add(
+                    NotificationRecord(
+                        user_id=user.id,
+                        title=f"'{book.title}' is ready!",
+                        message=f"Indexed into semantic vector database with {len(characters)} character personality dossiers.",
+                        category="ingestion",
+                        link_url=f"/books/{book.id}",
+                    )
+                )
             except Exception as exc:
                 logger.exception("Character extraction failed during ingestion: %s", exc)
                 book.processing_status = BookProcessingStatus.failed
@@ -1531,4 +1543,113 @@ class LorelyService:
                 "user_id": target_user.id,
                 "email": target_user.email,
                 "role": role_rec.role,
+            }
+
+    # --- Notifications & Broadcast System ---
+
+    def list_notifications(self, auth_user: AuthenticatedUser | None) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+
+            stmt = (
+                select(NotificationRecord)
+                .where(or_(NotificationRecord.user_id == user.id, NotificationRecord.user_id.is_(None)))
+                .order_by(NotificationRecord.created_at.desc())
+                .limit(40)
+            )
+            records = session.scalars(stmt).all()
+
+            # Seed default welcome/broadcast notifications if none exist
+            if not records:
+                welcome_admin = NotificationRecord(
+                    user_id=None,
+                    title="Curator Broadcast: Fyodor Dostoevsky Collection Live",
+                    message="Three classic short stories with genuine psychological characters are ready on your literary shelf.",
+                    category="admin_broadcast",
+                    link_url="/",
+                    is_read=False,
+                )
+                system_note = NotificationRecord(
+                    user_id=user.id,
+                    title="Chroma Vector DB Connected",
+                    message="High-fidelity semantic embeddings and spoiler-aware retrieval are active.",
+                    category="system",
+                    link_url="/library",
+                    is_read=False,
+                )
+                session.add_all([welcome_admin, system_note])
+                session.flush()
+                records = [welcome_admin, system_note]
+
+            return [
+                {
+                    "id": n.id,
+                    "title": n.title,
+                    "message": n.message,
+                    "category": n.category,
+                    "link_url": n.link_url,
+                    "is_read": n.is_read,
+                    "created_at": n.created_at.isoformat() if n.created_at else None,
+                }
+                for n in records
+            ]
+
+    def mark_notification_read(
+        self, auth_user: AuthenticatedUser | None, notification_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            n = session.get(NotificationRecord, notification_id)
+            if n is None:
+                raise NotFoundError("Notification not found.")
+
+            if n.user_id is not None and n.user_id != user.id:
+                raise ForbiddenError("Cannot modify another reader's notification.")
+
+            n.is_read = True
+            session.flush()
+            return {"id": n.id, "is_read": True}
+
+    def mark_all_notifications_read(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            stmt = select(NotificationRecord).where(
+                or_(NotificationRecord.user_id == user.id, NotificationRecord.user_id.is_(None))
+            )
+            for n in session.scalars(stmt).all():
+                n.is_read = True
+            session.flush()
+            return {"message": "All notifications marked as read."}
+
+    def admin_broadcast_notification(
+        self,
+        auth_user: AuthenticatedUser | None,
+        *,
+        title: str,
+        message: str,
+        category: str = "admin_broadcast",
+        link_url: str | None = None,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            self.require_admin(session, user)
+
+            notification = NotificationRecord(
+                user_id=None,
+                title=title,
+                message=message,
+                category=category,
+                link_url=link_url,
+                is_read=False,
+            )
+            session.add(notification)
+            session.flush()
+
+            return {
+                "id": notification.id,
+                "title": notification.title,
+                "message": notification.message,
+                "category": notification.category,
+                "link_url": notification.link_url,
+                "created_at": notification.created_at.isoformat() if notification.created_at else None,
             }

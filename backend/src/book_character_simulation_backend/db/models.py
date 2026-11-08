@@ -299,3 +299,15 @@ class CharacterMemory(IdentifierMixin, Base):
         back_populates="character_memories"
     )
     session: Mapped["ChatSession"] = relationship(back_populates="character_memories")
+
+
+class NotificationRecord(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "notifications"
+
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), default="system", nullable=False)
+    link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+

@@ -6,6 +6,7 @@ from .models import (
     CharacterProfileRecord,
     ChatMessage,
     ChatSession,
+    NotificationRecord,
     UserAccount,
 )
 from .session import DatabaseManager
@@ -19,5 +20,6 @@ __all__ = [
     "ChatMessage",
     "ChatSession",
     "DatabaseManager",
+    "NotificationRecord",
     "UserAccount",
 ]

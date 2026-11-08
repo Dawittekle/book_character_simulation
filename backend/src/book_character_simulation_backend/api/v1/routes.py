@@ -450,3 +450,51 @@ def admin_update_user_plan(user_id: str):
     return jsonify(service.admin_update_user_plan(user, user_id, new_plan)), 200
 
 
+# --- Notifications & Broadcast Routes ---
+
+@v1_blueprint.route("/notifications", methods=["GET"])
+def list_notifications():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify({"notifications": service.list_notifications(user)}), 200
+
+
+@v1_blueprint.route("/notifications/<notification_id>/read", methods=["POST"])
+def mark_notification_read(notification_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.mark_notification_read(user, notification_id)), 200
+
+
+@v1_blueprint.route("/notifications/read-all", methods=["POST"])
+def mark_all_notifications_read():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.mark_all_notifications_read(user)), 200
+
+
+@v1_blueprint.route("/admin/notifications/broadcast", methods=["POST"])
+def admin_broadcast_notification():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    title = body.get("title")
+    message = body.get("message")
+    if not title or not message:
+        raise BadRequestError("title and message are required for broadcasts.")
+
+    return (
+        jsonify(
+            service.admin_broadcast_notification(
+                user,
+                title=title,
+                message=message,
+                category=body.get("category", "admin_broadcast"),
+                link_url=body.get("link_url"),
+            )
+        ),
+        201,
+    )
+
+
+

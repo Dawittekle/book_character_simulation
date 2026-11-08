@@ -341,6 +341,33 @@ export const lorelyApi = {
       accessToken,
     });
   },
+
+  listNotifications: async (accessToken) => {
+    const res = await request('/notifications', { accessToken });
+    return res.notifications || [];
+  },
+
+  markNotificationRead: async (notificationId, accessToken) => {
+    return request(`/notifications/${notificationId}/read`, {
+      method: 'POST',
+      accessToken,
+    });
+  },
+
+  markAllNotificationsRead: async (accessToken) => {
+    return request('/notifications/read-all', {
+      method: 'POST',
+      accessToken,
+    });
+  },
+
+  adminBroadcastNotification: async (data, accessToken) => {
+    return request('/admin/notifications/broadcast', {
+      method: 'POST',
+      body: data,
+      accessToken,
+    });
+  },
 };
 
 export default lorelyApi;
