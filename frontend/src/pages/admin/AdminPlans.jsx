@@ -43,6 +43,8 @@ export default function AdminPlans() {
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [savingPlan, setSavingPlan] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -90,6 +92,50 @@ export default function AdminPlans() {
       setStatusMessage(err.message || 'Failed to update plan.');
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  const handleOpenEdit = (plan) => {
+    setEditingPlan({
+      ...plan,
+      featuresText: Array.isArray(plan.features) ? plan.features.join('\n') : '',
+    });
+  };
+
+  const handleSavePlan = async (e) => {
+    e.preventDefault();
+    if (!editingPlan) return;
+    setSavingPlan(true);
+    setStatusMessage('');
+    try {
+      const payload = {
+        name: editingPlan.name,
+        price_monthly: parseFloat(editingPlan.price_monthly) || 0,
+        book_quota: String(editingPlan.book_quota),
+        daily_messages: String(editingPlan.daily_messages),
+        voice_access: Boolean(editingPlan.voice_access),
+        description: editingPlan.description,
+        badge: editingPlan.badge || null,
+        features: editingPlan.featuresText
+          .split('\n')
+          .map((f) => f.trim())
+          .filter(Boolean),
+      };
+
+      const res = await lorelyApi.adminUpdatePlan(editingPlan.id, payload, accessToken);
+      const updated = res.plan;
+      setPlans((prev) =>
+        prev.map((p) =>
+          p.id === editingPlan.id ? { ...p, ...updated, features: payload.features } : p
+        )
+      );
+      setStatusMessage(`Plan '${editingPlan.name}' updated successfully in the database.`);
+      setEditingPlan(null);
+      setTimeout(() => setStatusMessage(''), 4000);
+    } catch (err) {
+      setStatusMessage(err.message || 'Failed to update plan.');
+    } finally {
+      setSavingPlan(false);
     }
   };
 
@@ -142,6 +188,14 @@ export default function AdminPlans() {
                 <li key={i}>✓ {f}</li>
               ))}
             </ul>
+
+            <button
+              type="button"
+              className="btn-edit-plan"
+              onClick={() => handleOpenEdit(plan)}
+            >
+              ✏️ Edit Plan Details
+            </button>
           </div>
         ))}
       </div>
@@ -203,6 +257,137 @@ export default function AdminPlans() {
           </div>
         )}
       </section>
+
+      {/* Edit Plan Modal */}
+      {editingPlan && (
+        <div className="plan-modal-backdrop" onClick={() => setEditingPlan(null)}>
+          <div
+            className="plan-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="plan-modal-header">
+              <h3>Edit Plan: {editingPlan.name}</h3>
+              <button
+                type="button"
+                className="plan-modal-close"
+                onClick={() => setEditingPlan(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePlan} className="plan-modal-form">
+              <div className="modal-form-row">
+                <div className="modal-field">
+                  <label>Plan Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingPlan.name}
+                    onChange={(e) =>
+                      setEditingPlan({ ...editingPlan, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="modal-field">
+                  <label>Monthly Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={editingPlan.price_monthly}
+                    onChange={(e) =>
+                      setEditingPlan({ ...editingPlan, price_monthly: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="modal-form-row">
+                <div className="modal-field">
+                  <label>Book Quota</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingPlan.book_quota}
+                    onChange={(e) =>
+                      setEditingPlan({ ...editingPlan, book_quota: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="modal-field">
+                  <label>Daily Dialogue Turns</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingPlan.daily_messages}
+                    onChange={(e) =>
+                      setEditingPlan({ ...editingPlan, daily_messages: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="modal-field-checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editingPlan.voice_access)}
+                    onChange={(e) =>
+                      setEditingPlan({ ...editingPlan, voice_access: e.target.checked })
+                    }
+                  />
+                  <span>Voice Simulation Mode Enabled (HD)</span>
+                </label>
+              </div>
+
+              <div className="modal-field">
+                <label>Plan Description</label>
+                <textarea
+                  rows="2"
+                  value={editingPlan.description}
+                  onChange={(e) =>
+                    setEditingPlan({ ...editingPlan, description: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="modal-field">
+                <label>Features List (one feature per line)</label>
+                <textarea
+                  rows="4"
+                  value={editingPlan.featuresText || ''}
+                  onChange={(e) =>
+                    setEditingPlan({ ...editingPlan, featuresText: e.target.value })
+                  }
+                  placeholder="Unlimited text chat&#10;HD Voice Mode&#10;Priority RAG"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="modal-btn-cancel"
+                  onClick={() => setEditingPlan(null)}
+                  disabled={savingPlan}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="modal-btn-save"
+                  disabled={savingPlan}
+                >
+                  {savingPlan ? 'Saving to Database...' : 'Save Plan Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1802,6 +1802,198 @@ class LorelyService:
                 "message": "Payment submitted successfully. Awaiting administrator verification.",
             }
 
+    def _serialize_payment(
+        self, payment: PaymentTransaction, user: UserAccount | None = None
+    ) -> dict[str, Any]:
+        return {
+            "id": payment.id,
+            "user_id": payment.user_id,
+            "user_name": user.display_name if user else "Reader",
+            "user_email": user.email if user else "unknown",
+            "plan_slug": payment.plan_slug,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "payment_method": payment.payment_method,
+            "payment_details": payment.payment_details or {},
+            "chosen_model": payment.chosen_model,
+            "status": payment.status,
+            "verified_by_admin_id": payment.verified_by_admin_id,
+            "admin_notes": payment.admin_notes,
+            "verified_at": payment.verified_at.isoformat() if payment.verified_at else None,
+            "created_at": payment.created_at.isoformat() if payment.created_at else None,
+        }
+
+    def admin_list_payments(
+        self, auth_user: AuthenticatedUser | None, status_filter: str | None = None
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            admin_user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, admin_user)
+
+            stmt = select(PaymentTransaction, UserAccount).outerjoin(
+                UserAccount, PaymentTransaction.user_id == UserAccount.id
+            ).order_by(PaymentTransaction.created_at.desc())
+
+            if status_filter:
+                stmt = stmt.where(PaymentTransaction.status == status_filter)
+
+            rows = session.execute(stmt).all()
+            return [self._serialize_payment(pay, u) for pay, u in rows]
+
+    def admin_verify_payment(
+        self, auth_user: AuthenticatedUser | None, payment_id: str, admin_notes: str | None = None
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            admin_user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, admin_user)
+
+            payment = session.get(PaymentTransaction, payment_id)
+            if payment is None:
+                raise NotFoundError("Payment transaction not found.")
+
+            payment.status = "verified"
+            payment.verified_by_admin_id = admin_user.id
+            payment.verified_at = utc_now()
+            payment.admin_notes = admin_notes or "Payment verified by administrator."
+            payment.updated_at = utc_now()
+
+            # Upgrade user's plan
+            target_user = session.get(UserAccount, payment.user_id)
+            if target_user:
+                settings_rec = session.scalar(
+                    select(UserSettings).where(UserSettings.user_id == target_user.id)
+                )
+                if settings_rec is None:
+                    settings_rec = UserSettings(
+                        user_id=target_user.id,
+                        preferences={
+                            "plan_tier": payment.plan_slug,
+                            "active_model": payment.chosen_model or "gemini-3.5-flash",
+                        },
+                    )
+                    session.add(settings_rec)
+                else:
+                    prefs = dict(settings_rec.preferences or {})
+                    prefs["plan_tier"] = payment.plan_slug
+                    if payment.chosen_model:
+                        prefs["active_model"] = payment.chosen_model
+                    settings_rec.preferences = prefs
+
+                # Send celebratory notification
+                session.add(
+                    NotificationRecord(
+                        user_id=target_user.id,
+                        title="Payment Verified & Tier Upgraded! 👑",
+                        message=(
+                            f"Your subscription payment of ${payment.amount:.2f} has been verified! "
+                            f"Your account is now activated on the '{payment.plan_slug.capitalize()}' tier with {payment.chosen_model or 'frontier'} AI access."
+                        ),
+                        category="system",
+                        link_url="/settings",
+                        is_read=False,
+                    )
+                )
+
+            session.flush()
+            return self._serialize_payment(payment, target_user)
+
+    def admin_reject_payment(
+        self, auth_user: AuthenticatedUser | None, payment_id: str, admin_notes: str | None = None
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            admin_user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, admin_user)
+
+            payment = session.get(PaymentTransaction, payment_id)
+            if payment is None:
+                raise NotFoundError("Payment transaction not found.")
+
+            payment.status = "rejected"
+            payment.verified_by_admin_id = admin_user.id
+            payment.verified_at = utc_now()
+            payment.admin_notes = admin_notes or "Payment rejected by administrator."
+            payment.updated_at = utc_now()
+
+            target_user = session.get(UserAccount, payment.user_id)
+            if target_user:
+                session.add(
+                    NotificationRecord(
+                        user_id=target_user.id,
+                        title="Subscription Payment Notice",
+                        message=(
+                            f"Your payment transaction of ${payment.amount:.2f} could not be verified. "
+                            f"Reason: {payment.admin_notes}. Please review your billing details or contact support."
+                        ),
+                        category="system",
+                        link_url="/settings",
+                        is_read=False,
+                    )
+                )
+
+            session.flush()
+            return self._serialize_payment(payment, target_user)
+
+    def admin_get_subscriber_metrics(
+        self, auth_user: AuthenticatedUser | None
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            admin_user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, admin_user)
+
+            users = session.scalars(select(UserAccount)).all()
+            settings_map = {
+                s.user_id: s.preferences or {}
+                for s in session.scalars(select(UserSettings)).all()
+            }
+
+            plans = session.scalars(select(MembershipPlan)).all()
+            plan_price_map = {p.slug: p.price_monthly for p in plans}
+            plan_price_map.update({"free": 0.0, "go": 5.0, "scholar": 20.0, "institution": 100.0})
+
+            total_subscribers = 0
+            mrr = 0.0
+            free_readers = 0
+            subscribers_list = []
+
+            for u in users:
+                user_prefs = settings_map.get(u.id, {})
+                tier = user_prefs.get("plan_tier", "free")
+                price = plan_price_map.get(tier, 0.0)
+                if tier != "free":
+                    total_subscribers += 1
+                    mrr += price
+                else:
+                    free_readers += 1
+
+                subscribers_list.append({
+                    "id": u.id,
+                    "display_name": u.display_name,
+                    "email": u.email,
+                    "plan_tier": tier,
+                    "price_monthly": price,
+                    "active_model": user_prefs.get("active_model", "gemini-3.5-flash"),
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                })
+
+            all_payments = session.scalars(
+                select(PaymentTransaction).order_by(PaymentTransaction.created_at.desc())
+            ).all()
+
+            pending_count = sum(1 for p in all_payments if p.status == "pending")
+            verified_count = sum(1 for p in all_payments if p.status == "verified")
+            total_revenue = sum(p.amount for p in all_payments if p.status == "verified")
+
+            return {
+                "total_subscribers": total_subscribers,
+                "mrr": round(mrr, 2),
+                "total_revenue": round(total_revenue, 2),
+                "pending_verifications": pending_count,
+                "verified_transactions": verified_count,
+                "free_readers": free_readers,
+                "total_users": len(users),
+                "subscribers": subscribers_list,
+            }
+
     def admin_update_user_plan(
         self, auth_user: AuthenticatedUser | None, target_user_id: str, new_plan: str
     ) -> dict[str, Any]:

@@ -453,6 +453,36 @@ export const lorelyApi = {
     });
   },
 
+  adminListPayments: async (statusFilter, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
+    const res = await request(`/admin/payments${query}`, { accessToken: token });
+    return res.payments || [];
+  },
+
+  adminVerifyPayment: async (paymentId, adminNotes, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request(`/admin/payments/${encodeURIComponent(paymentId)}/verify`, {
+      method: 'POST',
+      body: { admin_notes: adminNotes },
+      accessToken: token,
+    });
+  },
+
+  adminRejectPayment: async (paymentId, adminNotes, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request(`/admin/payments/${encodeURIComponent(paymentId)}/reject`, {
+      method: 'POST',
+      body: { admin_notes: adminNotes },
+      accessToken: token,
+    });
+  },
+
+  adminGetSubscribers: async (accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request('/admin/subscribers', { accessToken: token });
+  },
+
   listNotifications: async (accessToken) => {
     const res = await request('/notifications', { accessToken });
     return res.notifications || [];

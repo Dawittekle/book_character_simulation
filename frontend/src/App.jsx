@@ -18,6 +18,7 @@ import AdminCatalog from './pages/admin/AdminCatalog';
 import AdminJobs from './pages/admin/AdminJobs';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminPlans from './pages/admin/AdminPlans';
+import AdminSubscribers from './pages/admin/AdminSubscribers';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { lorelyApi } from './services/lorelyApi';
 
@@ -71,6 +72,7 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
             <Route path="jobs" element={<AdminJobs />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="plans" element={<AdminPlans />} />
+            <Route path="subscribers" element={<AdminSubscribers />} />
           </Route>
         </Route>
 

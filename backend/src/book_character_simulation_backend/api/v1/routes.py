@@ -494,6 +494,39 @@ def admin_update_plan(plan_id: str):
     return jsonify(service.admin_update_plan(user, plan_id, body)), 200
 
 
+@v1_blueprint.route("/admin/payments", methods=["GET"])
+def admin_list_payments():
+    user = _authenticated_user()
+    service = _lorely_service()
+    status_filter = request.args.get("status")
+    return jsonify({"payments": service.admin_list_payments(user, status_filter=status_filter)}), 200
+
+
+@v1_blueprint.route("/admin/payments/<payment_id>/verify", methods=["POST"])
+def admin_verify_payment(payment_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    notes = body.get("admin_notes")
+    return jsonify(service.admin_verify_payment(user, payment_id, admin_notes=notes)), 200
+
+
+@v1_blueprint.route("/admin/payments/<payment_id>/reject", methods=["POST"])
+def admin_reject_payment(payment_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    notes = body.get("admin_notes")
+    return jsonify(service.admin_reject_payment(user, payment_id, admin_notes=notes)), 200
+
+
+@v1_blueprint.route("/admin/subscribers", methods=["GET"])
+def admin_get_subscribers():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.admin_get_subscriber_metrics(user)), 200
+
+
 @v1_blueprint.route("/admin/users/<user_id>/plan", methods=["PATCH"])
 def admin_update_user_plan(user_id: str):
     user = _authenticated_user()

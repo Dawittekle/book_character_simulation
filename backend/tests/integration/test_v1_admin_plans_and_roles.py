@@ -124,4 +124,43 @@ def test_submit_payment_flow(db_client: FlaskClient, plan_test_env: dict[str, st
     assert payload["chosen_model"] == "gemini-2.5-pro"
     assert payload["status"] == "pending"
     assert payload["amount"] == 20.0
+    payment_id = payload["id"]
+
+    # 1. Admin lists payments
+    list_res = db_client.get(
+        "/api/v1/admin/payments",
+        headers={"X-Test-User-Id": "admin-plan-test"},
+    )
+    assert list_res.status_code == 200
+    payments = list_res.get_json()["payments"]
+    assert any(p["id"] == payment_id for p in payments)
+
+    # 2. Admin verifies payment
+    verify_res = db_client.post(
+        f"/api/v1/admin/payments/{payment_id}/verify",
+        headers={"X-Test-User-Id": "admin-plan-test"},
+        json={"admin_notes": "All checks cleared."},
+    )
+    assert verify_res.status_code == 200
+    v_data = verify_res.get_json()
+    assert v_data["status"] == "verified"
+    assert v_data["admin_notes"] == "All checks cleared."
+
+    # Verify user was upgraded
+    users_res = db_client.get(
+        "/api/v1/admin/users",
+        headers={"X-Test-User-Id": "admin-plan-test"},
+    )
+    reader_record = next(u for u in users_res.get_json()["users"] if u["id"] == plan_test_env["reader_id"])
+    assert reader_record["plan_tier"] == "scholar"
+
+    # 3. Check subscriber metrics
+    sub_res = db_client.get(
+        "/api/v1/admin/subscribers",
+        headers={"X-Test-User-Id": "admin-plan-test"},
+    )
+    assert sub_res.status_code == 200
+    sub_data = sub_res.get_json()
+    assert sub_data["verified_transactions"] >= 1
+    assert sub_data["mrr"] >= 20.0
 
