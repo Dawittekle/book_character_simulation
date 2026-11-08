@@ -479,6 +479,22 @@ def submit_payment():
     return jsonify(service.submit_payment(user, body)), 201
 
 
+@v1_blueprint.route("/payments/config", methods=["GET"])
+def get_payment_config():
+    service = _lorely_service()
+    return jsonify(service.get_payment_config()), 200
+
+
+@v1_blueprint.route("/admin/payments/config", methods=["GET", "PUT", "PATCH"])
+def admin_payment_config():
+    user = _authenticated_user()
+    service = _lorely_service()
+    if request.method == "GET":
+        return jsonify(service.get_payment_config()), 200
+    body = request.get_json(silent=True) or {}
+    return jsonify(service.admin_update_payment_config(user, body)), 200
+
+
 @v1_blueprint.route("/admin/plans", methods=["GET"])
 def admin_get_plans():
     user = _authenticated_user()

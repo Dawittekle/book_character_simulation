@@ -347,4 +347,13 @@ class PaymentTransaction(IdentifierMixin, TimestampMixin, Base):
     user: Mapped["UserAccount"] = relationship(foreign_keys=[user_id])
 
 
+class SystemSetting(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "system_settings"
+
+    key: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    value: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+
 

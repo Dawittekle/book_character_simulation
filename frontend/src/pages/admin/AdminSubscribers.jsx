@@ -23,22 +23,42 @@ export default function AdminSubscribers() {
   const [toastMessage, setToastMessage] = useState('');
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'transactions' | 'subscribers'
 
+  // Payment settings state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState({
+    telebirr_phone: '+251 91 123 4567',
+    telebirr_name: 'Dawit (Lorely Admin)',
+    cbe_account: '1000123456789',
+    cbe_name: 'Dawit (Lorely Admin)',
+    etb_rate: 135.0,
+    instructions: 'Please transfer the exact amount and input the transaction reference number.',
+  });
+
+  // Receipt image zoom modal state
+  const [zoomReceiptUrl, setZoomReceiptUrl] = useState(null);
+  const [copiedRef, setCopiedRef] = useState(null);
+
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 4000);
+    setTimeout(() => setToastMessage(''), 4500);
   };
 
   const loadData = async () => {
     try {
-      const [subData, payData] = await Promise.all([
+      const [subData, payData, cfg] = await Promise.all([
         lorelyApi.adminGetSubscribers(accessToken).catch(() => ({})),
         lorelyApi.adminListPayments(null, accessToken).catch(() => []),
+        lorelyApi.getPaymentConfig().catch(() => null),
       ]);
       if (subData) {
         setMetrics((prev) => ({ ...prev, ...subData }));
       }
       if (payData) {
         setPayments(payData);
+      }
+      if (cfg) {
+        setPaymentConfig((prev) => ({ ...prev, ...cfg }));
       }
     } finally {
       setLoading(false);
@@ -79,6 +99,60 @@ export default function AdminSubscribers() {
     }
   };
 
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const updated = await lorelyApi.adminUpdatePaymentConfig(
+        {
+          telebirr_phone: paymentConfig.telebirr_phone,
+          telebirr_name: paymentConfig.telebirr_name,
+          cbe_account: paymentConfig.cbe_account,
+          cbe_name: paymentConfig.cbe_name,
+          etb_rate: parseFloat(paymentConfig.etb_rate) || 135.0,
+          instructions: paymentConfig.instructions,
+        },
+        accessToken,
+      );
+      setPaymentConfig((prev) => ({ ...prev, ...updated }));
+      setIsSettingsOpen(false);
+      showToast('Payment settings and Ethiopian accounts saved successfully!');
+    } catch (err) {
+      showToast(`Failed to update settings: ${err.message || 'Server error'}`);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const copyToClipboard = (text, id) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopiedRef(id);
+    setTimeout(() => setCopiedRef(null), 2000);
+  };
+
+  const formatAmount = (amount, currency) => {
+    const curr = (currency || 'USD').toUpperCase();
+    if (curr === 'ETB') {
+      return `${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`;
+    }
+    return `$${Number(amount).toFixed(2)} USD`;
+  };
+
+  const renderMethodBadge = (method) => {
+    switch (method) {
+      case 'telebirr':
+        return <span className="method-chip method-telebirr">🇪🇹 Telebirr</span>;
+      case 'cbe':
+        return <span className="method-chip method-cbe">🇪🇹 CBE Bank</span>;
+      case 'paypal':
+        return <span className="method-chip method-paypal">🅿️ PayPal</span>;
+      case 'credit_card':
+      default:
+        return <span className="method-chip method-card">💳 Card</span>;
+    }
+  };
+
   const pendingPayments = payments.filter((p) => p.status === 'pending');
   const filteredPayments =
     filterStatus === 'all'
@@ -91,20 +165,30 @@ export default function AdminSubscribers() {
         <div>
           <h1 className="subscribers-title">Subscribers & Payment Verification</h1>
           <p className="subscribers-sub">
-            Review user payment submissions, approve membership upgrades, inspect AI model assignments, and oversee subscription revenue.
+            Review user payment submissions, verify Telebirr/CBE receipts, configure payout accounts, and manage memberships.
           </p>
         </div>
-        <button
-          type="button"
-          className="admin-refresh-btn"
-          onClick={() => {
-            setLoading(true);
-            loadData();
-          }}
-          disabled={loading}
-        >
-          {loading ? 'Refreshing...' : '🔄 Refresh Data'}
-        </button>
+        <div className="subscribers-header-actions">
+          <button
+            type="button"
+            className="admin-config-btn"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Configure Telebirr, CBE Bank details & ETB rate"
+          >
+            ⚙️ Ethiopian Payment Accounts
+          </button>
+          <button
+            type="button"
+            className="admin-refresh-btn"
+            onClick={() => {
+              setLoading(true);
+              loadData();
+            }}
+            disabled={loading}
+          >
+            {loading ? 'Refreshing...' : '🔄 Refresh Data'}
+          </button>
+        </div>
       </header>
 
       {toastMessage && (
@@ -150,13 +234,11 @@ export default function AdminSubscribers() {
 
         <div className="kpi-card">
           <div className="kpi-card-header">
-            <span className="kpi-card-icon">📜</span>
-            <span className="kpi-card-label">Total Verified Revenue</span>
+            <span className="kpi-card-icon">🇪🇹</span>
+            <span className="kpi-card-label">ETB Exchange Rate</span>
           </div>
-          <div className="kpi-card-value">${metrics.total_revenue.toFixed(2)}</div>
-          <div className="kpi-card-sub">
-            {metrics.verified_transactions} total approved transaction(s)
-          </div>
+          <div className="kpi-card-value">{paymentConfig.etb_rate} ETB</div>
+          <div className="kpi-card-sub">per $1.00 USD</div>
         </div>
       </div>
 
@@ -191,7 +273,7 @@ export default function AdminSubscribers() {
           <div className="section-head">
             <h2>Pending Payment Verifications</h2>
             <p className="admin-subtext">
-              Review user payment submissions and grant access to paid membership tiers and chosen AI frontier models.
+              Review user payment submissions and grant access to paid membership tiers. For Telebirr/CBE transfers, verify the reference ID and uploaded receipt screenshot.
             </p>
           </div>
 
@@ -203,85 +285,128 @@ export default function AdminSubscribers() {
             </div>
           ) : (
             <div className="pending-cards-grid">
-              {pendingPayments.map((p) => (
-                <div key={p.id} className="pending-payment-card">
-                  <div className="payment-card-top">
-                    <div>
-                      <h4 className="payment-user-name">{p.user_name}</h4>
-                      <span className="payment-user-email">{p.user_email}</span>
-                    </div>
-                    <span className="payment-badge-pending">PENDING APPROVAL</span>
-                  </div>
+              {pendingPayments.map((p) => {
+                const details = p.payment_details || {};
+                const refNum = details.reference_number || details.billing_reference;
+                const senderName = details.sender_name || details.cardholder_name;
+                const senderPhone = details.sender_phone;
+                const receiptImg = details.receipt_image;
 
-                  <div className="payment-specs-grid">
-                    <div className="spec-item">
-                      <span className="spec-label">Plan Tier</span>
-                      <strong className="spec-value plan-name-highlight">
-                        {p.plan_slug.toUpperCase()}
-                      </strong>
+                return (
+                  <div key={p.id} className="pending-payment-card">
+                    <div className="payment-card-top">
+                      <div>
+                        <h4 className="payment-user-name">{p.user_name}</h4>
+                        <span className="payment-user-email">{p.user_email}</span>
+                      </div>
+                      <span className="payment-badge-pending">PENDING APPROVAL</span>
                     </div>
-                    <div className="spec-item">
-                      <span className="spec-label">Amount</span>
-                      <strong className="spec-value price-highlight">${p.amount.toFixed(2)} {p.currency}</strong>
-                    </div>
-                    <div className="spec-item">
-                      <span className="spec-label">Assigned AI Model</span>
-                      <strong className="spec-value model-badge">
-                        {p.chosen_model === 'gemini-2.5-pro' ? '🧠 Gemini 2.5 Pro' : '⚡ Gemini 3.5 Flash'}
-                      </strong>
-                    </div>
-                    <div className="spec-item">
-                      <span className="spec-label">Payment Method</span>
-                      <span className="spec-value">
-                        {p.payment_method === 'credit_card' ? '💳 Credit Card' : p.payment_method}
-                        {p.payment_details?.last4 ? ` (•••• ${p.payment_details.last4})` : ''}
-                      </span>
-                    </div>
-                  </div>
 
-                  {p.payment_details?.cardholder_name && (
-                    <div className="payment-cardholder-row">
-                      <span>Cardholder: <strong>{p.payment_details.cardholder_name}</strong></span>
-                      {p.payment_details?.billing_reference && (
-                        <span>Ref: <em>{p.payment_details.billing_reference}</em></span>
+                    <div className="payment-specs-grid">
+                      <div className="spec-item">
+                        <span className="spec-label">Plan Tier</span>
+                        <strong className="spec-value plan-name-highlight">
+                          {p.plan_slug.toUpperCase()}
+                        </strong>
+                      </div>
+                      <div className="spec-item">
+                        <span className="spec-label">Amount</span>
+                        <strong className="spec-value price-highlight">
+                          {formatAmount(p.amount, p.currency)}
+                        </strong>
+                      </div>
+                      <div className="spec-item">
+                        <span className="spec-label">Payment Method</span>
+                        <div className="spec-value">
+                          {renderMethodBadge(p.payment_method)}
+                          {details.last4 ? ` (•••• ${details.last4})` : ''}
+                        </div>
+                      </div>
+                      <div className="spec-item">
+                        <span className="spec-label">Submission Date</span>
+                        <span className="spec-value">
+                          {p.created_at ? new Date(p.created_at).toLocaleString() : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Detailed Payer / Reference Information */}
+                    <div className="payment-details-box">
+                      {senderName && (
+                        <div className="detail-line">
+                          <span className="detail-label">Sender / Cardholder:</span>
+                          <strong>{senderName}</strong>
+                        </div>
                       )}
-                      <span className="submission-date">
-                        Submitted: {new Date(p.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
+                      {senderPhone && (
+                        <div className="detail-line">
+                          <span className="detail-label">Sender Phone:</span>
+                          <strong>{senderPhone}</strong>
+                        </div>
+                      )}
+                      {refNum && (
+                        <div className="detail-line ref-line">
+                          <span className="detail-label">Transaction Ref:</span>
+                          <code className="ref-code">{refNum}</code>
+                          <button
+                            type="button"
+                            className="ref-copy-btn"
+                            onClick={() => copyToClipboard(refNum, p.id)}
+                            title="Copy reference number"
+                          >
+                            {copiedRef === p.id ? '✓ Copied' : '📋 Copy'}
+                          </button>
+                        </div>
+                      )}
 
-                  <div className="payment-actions-area">
-                    <input
-                      type="text"
-                      className="admin-note-input"
-                      placeholder="Add verification notes (optional)..."
-                      value={adminNotesMap[p.id] || ''}
-                      onChange={(e) =>
-                        setAdminNotesMap({ ...adminNotesMap, [p.id]: e.target.value })
-                      }
-                    />
-                    <div className="action-buttons-group">
-                      <button
-                        type="button"
-                        className="btn-verify"
-                        onClick={() => handleVerify(p.id)}
-                        disabled={actionLoadingId === p.id}
-                      >
-                        {actionLoadingId === p.id ? 'Verifying...' : '✓ Verify & Upgrade'}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-reject"
-                        onClick={() => handleReject(p.id)}
-                        disabled={actionLoadingId === p.id}
-                      >
-                        ✕ Reject
-                      </button>
+                      {/* Receipt Screenshot Thumbnail */}
+                      {receiptImg && (
+                        <div className="receipt-preview-box">
+                          <span className="detail-label">Payment Receipt:</span>
+                          <div className="receipt-thumb-wrap" onClick={() => setZoomReceiptUrl(receiptImg)}>
+                            <img
+                              src={receiptImg}
+                              alt="Receipt Screenshot"
+                              className="receipt-thumbnail-img"
+                            />
+                            <span className="receipt-zoom-hint">🔍 Click to inspect receipt</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="payment-actions-area">
+                      <input
+                        type="text"
+                        className="admin-note-input"
+                        placeholder="Add verification notes (optional)..."
+                        value={adminNotesMap[p.id] || ''}
+                        onChange={(e) =>
+                          setAdminNotesMap({ ...adminNotesMap, [p.id]: e.target.value })
+                        }
+                      />
+                      <div className="action-buttons-group">
+                        <button
+                          type="button"
+                          className="btn-verify"
+                          onClick={() => handleVerify(p.id)}
+                          disabled={actionLoadingId === p.id}
+                        >
+                          {actionLoadingId === p.id ? 'Verifying...' : '✓ Verify & Upgrade'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-reject"
+                          onClick={() => handleReject(p.id)}
+                          disabled={actionLoadingId === p.id}
+                        >
+                          ✕ Reject
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -313,8 +438,9 @@ export default function AdminSubscribers() {
                   <th>Transaction ID</th>
                   <th>Reader</th>
                   <th>Plan Tier</th>
-                  <th>Model</th>
+                  <th>Method</th>
                   <th>Amount</th>
+                  <th>Reference / Receipt</th>
                   <th>Status</th>
                   <th>Date</th>
                   <th>Notes</th>
@@ -324,72 +450,91 @@ export default function AdminSubscribers() {
               <tbody>
                 {filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#8CA898' }}>
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#8CA898' }}>
                       No payment transactions found matching filter.
                     </td>
                   </tr>
                 ) : (
-                  filteredPayments.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <code className="tx-id-code">{p.id.slice(0, 8)}…</code>
-                      </td>
-                      <td>
-                        <strong>{p.user_name}</strong>
-                        <div className="table-sub-email">{p.user_email}</div>
-                      </td>
-                      <td>
-                        <span className="table-plan-badge">{p.plan_slug}</span>
-                      </td>
-                      <td>
-                        <span className="table-model-badge">
-                          {p.chosen_model === 'gemini-2.5-pro' ? '🧠 Pro' : '⚡ Flash'}
-                        </span>
-                      </td>
-                      <td>
-                        <strong>${p.amount.toFixed(2)}</strong>
-                      </td>
-                      <td>
-                        <span className={`status-pill pill-${p.status}`}>
-                          {p.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="table-date">
-                          {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
-                        </span>
-                      </td>
-                      <td className="table-notes-cell">
-                        {p.admin_notes || '—'}
-                      </td>
-                      <td>
-                        {p.status === 'pending' ? (
-                          <div className="inline-action-btns">
-                            <button
-                              type="button"
-                              className="btn-table-verify"
-                              onClick={() => handleVerify(p.id)}
-                              disabled={actionLoadingId === p.id}
-                              title="Verify payment"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-table-reject"
-                              onClick={() => handleReject(p.id)}
-                              disabled={actionLoadingId === p.id}
-                              title="Reject payment"
-                            >
-                              ✕
-                            </button>
+                  filteredPayments.map((p) => {
+                    const details = p.payment_details || {};
+                    const refNum = details.reference_number || details.billing_reference;
+                    const receiptImg = details.receipt_image;
+
+                    return (
+                      <tr key={p.id}>
+                        <td>
+                          <code className="tx-id-code">{p.id.slice(0, 8)}…</code>
+                        </td>
+                        <td>
+                          <strong>{p.user_name}</strong>
+                          <div className="table-sub-email">{p.user_email}</div>
+                        </td>
+                        <td>
+                          <span className="table-plan-badge">{p.plan_slug}</span>
+                        </td>
+                        <td>
+                          {renderMethodBadge(p.payment_method)}
+                        </td>
+                        <td>
+                          <strong>{formatAmount(p.amount, p.currency)}</strong>
+                        </td>
+                        <td>
+                          <div className="table-ref-cell">
+                            {refNum ? <code className="table-ref-code">{refNum}</code> : '—'}
+                            {receiptImg && (
+                              <button
+                                type="button"
+                                className="table-receipt-btn"
+                                onClick={() => setZoomReceiptUrl(receiptImg)}
+                                title="Inspect receipt screenshot"
+                              >
+                                🖼️ View
+                              </button>
+                            )}
                           </div>
-                        ) : (
-                          <span className="tx-completed-label">Completed</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td>
+                          <span className={`status-pill pill-${p.status}`}>
+                            {p.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="table-date">
+                            {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                          </span>
+                        </td>
+                        <td className="table-notes-cell">
+                          {p.admin_notes || '—'}
+                        </td>
+                        <td>
+                          {p.status === 'pending' ? (
+                            <div className="inline-action-btns">
+                              <button
+                                type="button"
+                                className="btn-table-verify"
+                                onClick={() => handleVerify(p.id)}
+                                disabled={actionLoadingId === p.id}
+                                title="Verify payment"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-table-reject"
+                                onClick={() => handleReject(p.id)}
+                                disabled={actionLoadingId === p.id}
+                                title="Reject payment"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="tx-completed-label">Completed</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -403,7 +548,7 @@ export default function AdminSubscribers() {
           <div className="section-head">
             <h2>Active Subscribers & Reader Allocations</h2>
             <p className="admin-subtext">
-              View all readers, their current membership tiers, active AI models, and estimated monthly plan value.
+              View all readers, their current membership tiers, active plan status, and monthly billing values.
             </p>
           </div>
 
@@ -415,7 +560,6 @@ export default function AdminSubscribers() {
                   <th>Email</th>
                   <th>Current Plan</th>
                   <th>Monthly Value</th>
-                  <th>Assigned Model</th>
                   <th>Registered</th>
                 </tr>
               </thead>
@@ -441,11 +585,6 @@ export default function AdminSubscribers() {
                       <strong>${(sub.price_monthly || 0).toFixed(2)}/mo</strong>
                     </td>
                     <td>
-                      <span className="table-model-badge">
-                        {sub.active_model === 'gemini-2.5-pro' ? '🧠 Gemini 2.5 Pro' : '⚡ Gemini 3.5 Flash'}
-                      </span>
-                    </td>
-                    <td>
                       <span className="table-date">
                         {sub.created_at ? new Date(sub.created_at).toLocaleDateString() : '—'}
                       </span>
@@ -456,6 +595,183 @@ export default function AdminSubscribers() {
             </table>
           </div>
         </section>
+      )}
+
+      {/* Modal: Ethiopian Payment Accounts Settings */}
+      {isSettingsOpen && (
+        <div className="admin-modal-backdrop" onClick={() => setIsSettingsOpen(false)}>
+          <div
+            className="admin-settings-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">⚙️ Ethiopian Payment Accounts</h3>
+                <p className="modal-sub">
+                  Configure your Telebirr & CBE details displayed to users during Ethiopian Birr (ETB) checkout.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="settings-form">
+              <div className="form-section-title">🇪🇹 Telebirr Account Details</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="tb-phone">Telebirr Phone Number</label>
+                  <input
+                    id="tb-phone"
+                    type="text"
+                    value={paymentConfig.telebirr_phone}
+                    onChange={(e) =>
+                      setPaymentConfig({ ...paymentConfig, telebirr_phone: e.target.value })
+                    }
+                    placeholder="+251 91 123 4567"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="tb-name">Telebirr Account Holder Name</label>
+                  <input
+                    id="tb-name"
+                    type="text"
+                    value={paymentConfig.telebirr_name}
+                    onChange={(e) =>
+                      setPaymentConfig({ ...paymentConfig, telebirr_name: e.target.value })
+                    }
+                    placeholder="Dawit (Lorely Admin)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-section-title">🏦 Commercial Bank of Ethiopia (CBE)</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="cbe-acct">CBE Account Number</label>
+                  <input
+                    id="cbe-acct"
+                    type="text"
+                    value={paymentConfig.cbe_account}
+                    onChange={(e) =>
+                      setPaymentConfig({ ...paymentConfig, cbe_account: e.target.value })
+                    }
+                    placeholder="1000123456789"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="cbe-name">CBE Account Holder Name</label>
+                  <input
+                    id="cbe-name"
+                    type="text"
+                    value={paymentConfig.cbe_name}
+                    onChange={(e) =>
+                      setPaymentConfig({ ...paymentConfig, cbe_name: e.target.value })
+                    }
+                    placeholder="Dawit (Lorely Admin)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-section-title">💱 Currency Conversion Rate</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="etb-rate">Exchange Rate (1 USD to ETB)</label>
+                  <input
+                    id="etb-rate"
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    value={paymentConfig.etb_rate}
+                    onChange={(e) =>
+                      setPaymentConfig({ ...paymentConfig, etb_rate: e.target.value })
+                    }
+                    placeholder="135.0"
+                    required
+                  />
+                  <span className="field-hint">e.g. 135 means $20/mo plan is 2,700 ETB.</span>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="instructions">Payment Instructions for Users</label>
+                <textarea
+                  id="instructions"
+                  rows="3"
+                  value={paymentConfig.instructions}
+                  onChange={(e) =>
+                    setPaymentConfig({ ...paymentConfig, instructions: e.target.value })
+                  }
+                  placeholder="Instructions displayed to users..."
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setIsSettingsOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-save-settings"
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? 'Saving...' : 'Save Payment Accounts'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Receipt Screenshot Lightbox Zoom */}
+      {zoomReceiptUrl && (
+        <div className="receipt-lightbox-backdrop" onClick={() => setZoomReceiptUrl(null)}>
+          <div className="receipt-lightbox-card" onClick={(e) => e.stopPropagation()}>
+            <div className="lightbox-header">
+              <span>🧾 Transfer Receipt Inspection</span>
+              <button
+                type="button"
+                className="lightbox-close-btn"
+                onClick={() => setZoomReceiptUrl(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="lightbox-image-wrap">
+              <img src={zoomReceiptUrl} alt="Enlarged Receipt" className="lightbox-image" />
+            </div>
+            <div className="lightbox-footer">
+              <a
+                href={zoomReceiptUrl}
+                download="payment-receipt.png"
+                className="btn-download-receipt"
+              >
+                ⬇️ Download Full Receipt
+              </a>
+              <button
+                type="button"
+                className="btn-close-lightbox"
+                onClick={() => setZoomReceiptUrl(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

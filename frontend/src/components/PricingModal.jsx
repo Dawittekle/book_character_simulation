@@ -2,120 +2,141 @@ import React, { useState, useEffect } from 'react';
 import { lorelyApi } from '../services/lorelyApi';
 import './PricingModal.css';
 
-const DEFAULT_TIERS = [
-  {
-    id: 'free',
-    slug: 'free',
-    name: 'Free Reader',
-    category: 'personal',
-    price_monthly: 0,
-    headline: 'Try Lorely',
-    sub: 'See what literary AI and character dialogue can do.',
-    features: [
-      'Unlimited everyday text chats',
-      'Access to standard classics',
-      'Limited memory and storage',
-      'Community support',
-    ],
-    badge: 'Your current plan',
-  },
-  {
-    id: 'go',
-    slug: 'go',
-    name: 'Explorer',
-    category: 'personal',
-    price_monthly: 5,
-    headline: 'Expanded access',
-    sub: 'Chat more with extended character memory and voice.',
-    features: [
-      '10 personal shelf imports',
-      '100 daily dialogue turns',
-      'Expanded character memory',
-      'Standard voice interactions',
-      'Priority classification',
-    ],
-    badge: null,
-  },
-  {
-    id: 'scholar',
-    slug: 'scholar',
-    name: 'Literary Scholar',
-    category: 'personal',
-    price_monthly: 20,
-    headline: 'Advanced capabilities',
-    sub: 'Deep cognitive simulations for literature & life.',
-    features: [
-      'Unlimited book shelf imports',
-      'Unlimited daily dialogue turns',
-      'HD Voice mode simulation',
-      'Dynamic emotional drift telemetry',
-      'Spoiler-gated RAG indexing',
-      'Character memory sync across devices',
-    ],
-    badge: '✦ Most Popular',
-  },
-  {
-    id: 'institution',
-    slug: 'institution',
-    name: 'Institutional Archive',
-    category: 'business',
-    price_monthly: 100,
-    headline: 'Frontier intelligence',
-    sub: 'Our most powerful models, agents, and namespaces.',
-    features: [
-      'Isolated Chroma vector namespace',
-      'Multi-seat classroom & research access',
-      'Custom persona & directive fine-tuning',
-      'LMS & export integration',
-      '24/7 dedicated support & SLA',
-    ],
-    badge: 'Frontier Intelligence',
-  },
-];
+// Card brand detection by IIN prefix
+export function detectCardBrand(number) {
+  const clean = number.replace(/\D/g, '');
+  if (!clean) return { brand: 'generic', name: 'Card' };
+  if (/^4/.test(clean)) return { brand: 'visa', name: 'Visa' };
+  if (/^(5[1-5]|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)/.test(clean))
+    return { brand: 'mastercard', name: 'Mastercard' };
+  if (/^3[47]/.test(clean)) return { brand: 'amex', name: 'American Express' };
+  if (/^(6011|65|64[4-9]|622)/.test(clean))
+    return { brand: 'discover', name: 'Discover' };
+  return { brand: 'generic', name: 'Card' };
+}
 
-export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 'free', userEmail = '' }) {
-  const [plans, setPlans] = useState(DEFAULT_TIERS);
-  const [category, setCategory] = useState('personal'); // 'personal' | 'business'
+// Luhn algorithm check (Mod 10)
+export function isValidCardNumber(number) {
+  const clean = number.replace(/\D/g, '');
+  if (clean.length < 13 || clean.length > 19) return false;
+  let sum = 0;
+  let shouldDouble = false;
+  for (let i = clean.length - 1; i >= 0; i--) {
+    let digit = parseInt(clean.charAt(i), 10);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  return sum % 10 === 0;
+}
+
+export function formatCardNumber(value, brand) {
+  const clean = value.replace(/\D/g, '');
+  if (brand === 'amex') {
+    const limited = clean.slice(0, 15);
+    const parts = [limited.slice(0, 4), limited.slice(4, 10), limited.slice(10, 15)].filter(Boolean);
+    return parts.join(' ');
+  }
+  const limited = clean.slice(0, 16);
+  const parts = [];
+  for (let i = 0; i < limited.length; i += 4) {
+    parts.push(limited.slice(i, i + 4));
+  }
+  return parts.join(' ');
+}
+
+export function formatExpiry(value) {
+  const clean = value.replace(/\D/g, '').slice(0, 4);
+  if (clean.length >= 3) {
+    return `${clean.slice(0, 2)}/${clean.slice(2, 4)}`;
+  }
+  return clean;
+}
+
+export default function PricingModal({
+  isOpen,
+  onClose,
+  accessToken,
+  userPlan = 'free',
+  userEmail = '',
+}) {
+  const [plans, setPlans] = useState([]);
+  const [paymentConfig, setPaymentConfig] = useState({
+    telebirr_phone: '+251 91 123 4567',
+    telebirr_number: '+251 91 123 4567',
+    telebirr_name: 'Dawit (Lorely Admin)',
+    cbe_account: '1000123456789',
+    cbe_account_number: '1000123456789',
+    cbe_name: 'Dawit (Lorely Admin)',
+    cbe_account_name: 'Dawit (Lorely Admin)',
+    etb_rate: 135.0,
+    instructions: 'Transfer the exact amount via Telebirr or CBE and submit your Transaction Reference code below.',
+  });
+
+  const [currency, setCurrency] = useState('USD'); // 'USD' | 'ETB'
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [step, setStep] = useState('tiers'); // 'tiers' | 'checkout' | 'success'
 
-  // Payment form state
+  // USD payment states
+  const [usdMethod, setUsdMethod] = useState('card'); // 'card' | 'paypal'
   const [cardholderName, setCardholderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
+  const [paypalEmail, setPaypalEmail] = useState('');
   const [billingRef, setBillingRef] = useState('');
-  const [chosenModel, setChosenModel] = useState('gemini-3.5-flash');
+
+  // ETB payment states
+  const [etbMethod, setEtbMethod] = useState('telebirr'); // 'telebirr' | 'cbe'
+  const [payerName, setPayerName] = useState('');
+  const [payerPhone, setPayerPhone] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [receiptImage, setReceiptImage] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState('');
+  const [copiedKey, setCopiedKey] = useState(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [submittedPayment, setSubmittedPayment] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const cardBrand = detectCardBrand(cardNumber);
+  const isCardLuhnValid = isValidCardNumber(cardNumber);
+
+  // Load database plans and payment settings
   useEffect(() => {
     if (!isOpen) {
       setStep('tiers');
       setSelectedPlan(null);
       setErrorMessage('');
+      setReceiptImage(null);
+      setReceiptPreview('');
       return;
     }
 
     let mounted = true;
-    async function loadPlans() {
+    async function loadData() {
       try {
-        const res = await lorelyApi.getPlans(accessToken);
-        if (mounted && res?.plans?.length) {
-          setPlans(
-            res.plans.map((p) => ({
-              ...p,
-              headline: p.category === 'business' ? 'Frontier intelligence' : p.slug === 'scholar' ? 'Advanced capabilities' : p.slug === 'go' ? 'Expanded access' : 'Try Lorely',
-              sub: p.description || 'Deep cognitive simulations for literature & life.',
-            }))
-          );
+        const [plansRes, configRes] = await Promise.all([
+          lorelyApi.getPlans(accessToken).catch(() => ({ plans: [] })),
+          lorelyApi.getPaymentConfig(accessToken).catch(() => ({})),
+        ]);
+
+        if (mounted) {
+          if (plansRes?.plans?.length) {
+            setPlans(plansRes.plans);
+          }
+          if (configRes && Object.keys(configRes).length > 0) {
+            setPaymentConfig((prev) => ({ ...prev, ...configRes }));
+          }
         }
       } catch (err) {
-        // Fall back to default tiers
+        // Handled gracefully
       }
     }
-    loadPlans();
+    loadData();
     return () => {
       mounted = false;
     };
@@ -133,20 +154,73 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
 
   if (!isOpen) return null;
 
-  const filteredPlans = plans.filter((p) => p.category === category);
-
   const handleSelectPlan = (plan) => {
     if (plan.slug === userPlan) return;
     setSelectedPlan(plan);
-    setCardholderName(userEmail.split('@')[0] || 'Literary Reader');
+    setCardholderName(userEmail ? userEmail.split('@')[0] : 'Reader');
+    setPayerName(userEmail ? userEmail.split('@')[0] : 'Reader');
     setStep('checkout');
+    setErrorMessage('');
+  };
+
+  const handleCopy = (text, key) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
+  const handleReceiptUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('Receipt image must be under 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setReceiptPreview(reader.result);
+      setReceiptImage(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAutofillDemo = () => {
-    setCardNumber('4242 •••• •••• 4242');
-    setExpiry('12/28');
-    setCvc('789');
-    setBillingRef('Scholar Subscription Demo Checkout');
+    if (currency === 'USD') {
+      if (usdMethod === 'card') {
+        setCardNumber('4242 4242 4242 4242');
+        setExpiry('12/28');
+        setCvc('123');
+        setBillingRef('Literary Scholar Membership');
+      } else {
+        setPaypalEmail(userEmail || 'reader@example.com');
+        setBillingRef('PAYPAL-DEMO-LORELY');
+      }
+    } else {
+      setPayerName(userEmail ? userEmail.split('@')[0] : 'Dawit Haile');
+      setPayerPhone('0911002233');
+      setReferenceNumber(
+        etbMethod === 'telebirr' ? `TB-${Date.now().toString().slice(-8)}` : `FT-${Date.now().toString().slice(-8)}`
+      );
+    }
+  };
+
+  const calculatePrice = (priceMonthly) => {
+    if (currency === 'USD') {
+      return {
+        amount: priceMonthly,
+        display: `$${priceMonthly}`,
+        unit: '/ month',
+      };
+    }
+    const rate = paymentConfig.etb_rate || 135;
+    const etbAmount = Math.round(priceMonthly * rate);
+    return {
+      amount: etbAmount,
+      display: `${etbAmount.toLocaleString()} ETB`,
+      unit: '/ month',
+    };
   };
 
   const handleSubmitPayment = async (e) => {
@@ -157,17 +231,49 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
     setErrorMessage('');
 
     try {
+      const priceInfo = calculatePrice(selectedPlan.price_monthly);
+      let paymentDetails = {};
+      let paymentMethod = 'credit_card';
+
+      if (currency === 'USD') {
+        if (usdMethod === 'card') {
+          paymentMethod = 'credit_card';
+          paymentDetails = {
+            cardholder_name: cardholderName,
+            card_number: cardNumber.replace(/\s/g, ''),
+            card_brand: cardBrand.name,
+            expiry,
+            cvc,
+            notes: billingRef,
+          };
+        } else {
+          paymentMethod = 'paypal';
+          paymentDetails = {
+            paypal_email: paypalEmail || userEmail,
+            billing_reference: billingRef || 'PayPal Transaction',
+          };
+        }
+      } else {
+        paymentMethod = etbMethod; // 'telebirr' | 'cbe'
+        paymentDetails = {
+          payer_name: payerName,
+          payer_phone: payerPhone,
+          reference_number: referenceNumber,
+          account_used:
+            etbMethod === 'telebirr'
+              ? paymentConfig.telebirr_number
+              : paymentConfig.cbe_account_number,
+          receipt_image: receiptImage,
+          etb_rate: paymentConfig.etb_rate,
+        };
+      }
+
       const payload = {
         plan_slug: selectedPlan.slug,
-        amount: selectedPlan.price_monthly,
-        payment_method: 'credit_card',
-        chosen_model: chosenModel,
-        payment_details: {
-          cardholder_name: cardholderName,
-          card_number: cardNumber || '4242424242424242',
-          expiry: expiry || '12/28',
-          notes: billingRef,
-        },
+        amount: priceInfo.amount,
+        currency,
+        payment_method: paymentMethod,
+        payment_details: paymentDetails,
       };
 
       const result = await lorelyApi.submitPayment(payload, accessToken);
@@ -183,12 +289,15 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
   return (
     <div
       className="pricing-modal-overlay"
+      onClick={onClose}
       data-testid="pricing-modal"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
-      <div className="pricing-modal-container" role="dialog" aria-modal="true">
+      <div
+        className="pricing-modal-container"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
         <button
           type="button"
           className="pricing-modal-close-btn"
@@ -198,57 +307,73 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
           ✕
         </button>
 
+        {/* STEP 1: PLANS TIERS GRID */}
         {step === 'tiers' && (
           <>
             <header className="pricing-modal-header">
-              <div className="pricing-category-pill-wrapper" role="tablist">
+              <div className="pricing-modal-title-box">
+                <span className="pricing-modal-kicker">MEMBERSHIP TIERS</span>
+                <h2 className="pricing-modal-heading">Choose Your Literary Journey</h2>
+                <p className="pricing-modal-sub">
+                  Select a plan to unlock extended cognitive memory, dialogue allowances, and speech synthesis.
+                </p>
+              </div>
+
+              {/* Currency Selector */}
+              <div className="pricing-currency-toggle" role="group" aria-label="Select currency">
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={category === 'personal'}
-                  className={`pricing-category-btn ${category === 'personal' ? 'active' : ''}`}
-                  onClick={() => setCategory('personal')}
+                  className={`currency-pill-btn ${currency === 'USD' ? 'active' : ''}`}
+                  onClick={() => setCurrency('USD')}
                 >
-                  Personal
+                  💵 USD ($)
                 </button>
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={category === 'business'}
-                  className={`pricing-category-btn ${category === 'business' ? 'active' : ''}`}
-                  onClick={() => setCategory('business')}
+                  className={`currency-pill-btn ${currency === 'ETB' ? 'active' : ''}`}
+                  onClick={() => setCurrency('ETB')}
                 >
-                  Business
+                  🇪🇹 ETB (Birr)
                 </button>
               </div>
             </header>
 
             <div className="pricing-cards-grid">
-              {filteredPlans.map((plan) => {
+              {plans.map((plan) => {
                 const isCurrent = plan.slug === userPlan;
-                const isScholar = plan.slug === 'scholar';
+                const price = calculatePrice(plan.price_monthly);
+                const isPaid = plan.price_monthly > 0;
 
                 return (
                   <article
                     key={plan.id || plan.slug}
-                    className={`pricing-card ${isScholar ? 'featured-card' : ''}`}
+                    className={`pricing-card ${plan.slug === 'scholar' ? 'featured-card' : ''}`}
                   >
                     {plan.badge && (
                       <span className="pricing-card-badge">{plan.badge}</span>
                     )}
 
                     <h3 className="pricing-card-title">{plan.name}</h3>
-                    <h4 className="pricing-card-headline">{plan.headline}</h4>
-                    <p className="pricing-card-sub">{plan.sub}</p>
+                    <p className="pricing-card-desc">{plan.description}</p>
 
                     <div className="pricing-card-price-row">
-                      {isScholar && (
-                        <span className="pricing-card-old-price">$20</span>
-                      )}
-                      <span className="pricing-card-price">
-                        ${isScholar ? '0' : plan.price_monthly}
-                      </span>
-                      <span className="pricing-card-period">/ month</span>
+                      <span className="pricing-card-price">{price.display}</span>
+                      <span className="pricing-card-period">{price.unit}</span>
+                    </div>
+
+                    <div className="pricing-card-quotas">
+                      <div className="quota-tag">
+                        <span>Books:</span>
+                        <strong>{plan.book_quota}</strong>
+                      </div>
+                      <div className="quota-tag">
+                        <span>Daily Turns:</span>
+                        <strong>{plan.daily_messages}</strong>
+                      </div>
+                      <div className="quota-tag">
+                        <span>Voice HD:</span>
+                        <strong>{plan.voice_access ? 'Yes' : 'No'}</strong>
+                      </div>
                     </div>
 
                     <button
@@ -256,18 +381,18 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
                       className={`pricing-card-action-btn ${
                         isCurrent
                           ? 'btn-current'
-                          : isScholar
+                          : plan.slug === 'scholar'
                           ? 'btn-featured'
                           : 'btn-standard'
                       }`}
                       onClick={() => handleSelectPlan(plan)}
-                      disabled={isCurrent}
+                      disabled={isCurrent || !isPaid}
                     >
                       {isCurrent
                         ? 'Your current plan'
-                        : isScholar
-                        ? '✦ Claim free offer'
-                        : 'Get started'}
+                        : isPaid
+                        ? `Upgrade to ${plan.name}`
+                        : 'Free Standard Access'}
                     </button>
 
                     <ul className="pricing-feature-list">
@@ -285,6 +410,7 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
           </>
         )}
 
+        {/* STEP 2: CHECKOUT & PAYMENT FORM */}
         {step === 'checkout' && selectedPlan && (
           <div className="checkout-view-container">
             <div className="checkout-header">
@@ -296,30 +422,27 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
                 >
                   ← Back to Plans
                 </button>
-                <h2 style={{ margin: '8px 0 0', fontSize: '20px', color: '#FFFFFF' }}>
+                <h2 className="checkout-main-title">
                   Upgrade to {selectedPlan.name}
                 </h2>
               </div>
-              <button
-                type="button"
-                className="quick-autofill-btn"
-                onClick={handleAutofillDemo}
-              >
-                ⚡ Autofill Demo Card
-              </button>
+
+              <div className="checkout-top-actions">
+                <div className="currency-badge-pill">
+                  Currency: <strong>{currency}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="quick-autofill-btn"
+                  onClick={handleAutofillDemo}
+                >
+                  ⚡ Autofill Demo Details
+                </button>
+              </div>
             </div>
 
             {errorMessage && (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid #EF4444',
-                  color: '#F87171',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                }}
-              >
+              <div className="checkout-error-banner" role="alert">
                 {errorMessage}
               </div>
             )}
@@ -329,28 +452,24 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
               <div className="checkout-summary-box">
                 <h3 className="checkout-plan-title">{selectedPlan.name}</h3>
                 <div className="checkout-price-callout">
-                  ${selectedPlan.price_monthly}
-                  <span style={{ fontSize: '13px', color: '#8B949E', fontWeight: 500 }}>
-                    {' '}/ month
-                  </span>
+                  {calculatePrice(selectedPlan.price_monthly).display}
+                  <span className="price-unit-sub"> / month</span>
                 </div>
-                <p style={{ fontSize: '13px', color: '#8B949E', margin: 0 }}>
-                  {selectedPlan.description || selectedPlan.sub}
-                </p>
+                <p className="checkout-desc">{selectedPlan.description}</p>
 
-                <div className="form-group-block">
-                  <label className="form-group-label" htmlFor="model-select">
-                    Chosen AI Reasoning Engine
-                  </label>
-                  <select
-                    id="model-select"
-                    className="form-input-field"
-                    value={chosenModel}
-                    onChange={(e) => setChosenModel(e.target.value)}
-                  >
-                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Balanced & Fast)</option>
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Literary Dialect)</option>
-                  </select>
+                <div className="checkout-plan-metrics">
+                  <div className="metric-row">
+                    <span>Personal Books:</span>
+                    <strong>{selectedPlan.book_quota}</strong>
+                  </div>
+                  <div className="metric-row">
+                    <span>Daily Dialogue Turns:</span>
+                    <strong>{selectedPlan.daily_messages}</strong>
+                  </div>
+                  <div className="metric-row">
+                    <span>Speech Synthesis:</span>
+                    <strong>{selectedPlan.voice_access ? 'HD Neural Audio' : 'Standard'}</strong>
+                  </div>
                 </div>
 
                 <ul className="checkout-features-checklist">
@@ -360,106 +479,362 @@ export default function PricingModal({ isOpen, onClose, accessToken, userPlan = 
                 </ul>
               </div>
 
-              {/* Right Column: Payment Form */}
-              <form className="checkout-form-box" onSubmit={handleSubmitPayment}>
-                <div className="form-group-block">
-                  <label className="form-group-label" htmlFor="cardholder-name">
-                    Cardholder Full Name
-                  </label>
-                  <input
-                    id="cardholder-name"
-                    type="text"
-                    className="form-input-field"
-                    value={cardholderName}
-                    onChange={(e) => setCardholderName(e.target.value)}
-                    placeholder="Jane Austen"
-                    required
-                  />
-                </div>
-
-                <div className="form-group-block">
-                  <label className="form-group-label" htmlFor="card-number">
-                    Card Number
-                  </label>
-                  <input
-                    id="card-number"
-                    type="text"
-                    className="form-input-field"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    placeholder="4242 •••• •••• 4242"
-                    required
-                  />
-                </div>
-
-                <div className="form-row-split">
-                  <div className="form-group-block">
-                    <label className="form-group-label" htmlFor="card-expiry">
-                      Expiration Date
-                    </label>
-                    <input
-                      id="card-expiry"
-                      type="text"
-                      className="form-input-field"
-                      value={expiry}
-                      onChange={(e) => setExpiry(e.target.value)}
-                      placeholder="MM/YY"
-                      required
-                    />
+              {/* Right Column: Payment Details Form */}
+              <div className="checkout-form-container">
+                {/* Currency Method Switchers */}
+                {currency === 'USD' ? (
+                  <div className="payment-method-tabs">
+                    <button
+                      type="button"
+                      className={`method-tab-btn ${usdMethod === 'card' ? 'active' : ''}`}
+                      onClick={() => setUsdMethod('card')}
+                    >
+                      💳 Credit / Debit Card
+                    </button>
+                    <button
+                      type="button"
+                      className={`method-tab-btn ${usdMethod === 'paypal' ? 'active' : ''}`}
+                      onClick={() => setUsdMethod('paypal')}
+                    >
+                      🅿️ PayPal
+                    </button>
                   </div>
-
-                  <div className="form-group-block">
-                    <label className="form-group-label" htmlFor="card-cvc">
-                      Security Code (CVC)
-                    </label>
-                    <input
-                      id="card-cvc"
-                      type="password"
-                      maxLength={4}
-                      className="form-input-field"
-                      value={cvc}
-                      onChange={(e) => setCvc(e.target.value)}
-                      placeholder="123"
-                      required
-                    />
+                ) : (
+                  <div className="payment-method-tabs etb-tabs">
+                    <button
+                      type="button"
+                      className={`method-tab-btn ${etbMethod === 'telebirr' ? 'active' : ''}`}
+                      onClick={() => setEtbMethod('telebirr')}
+                    >
+                      📱 Telebirr
+                    </button>
+                    <button
+                      type="button"
+                      className={`method-tab-btn ${etbMethod === 'cbe' ? 'active' : ''}`}
+                      onClick={() => setEtbMethod('cbe')}
+                    >
+                      🏦 CBE (Commercial Bank)
+                    </button>
                   </div>
-                </div>
+                )}
 
-                <div className="form-group-block">
-                  <label className="form-group-label" htmlFor="billing-ref">
-                    Billing Notes / Institutional Reference (Optional)
-                  </label>
-                  <input
-                    id="billing-ref"
-                    type="text"
-                    className="form-input-field"
-                    value={billingRef}
-                    onChange={(e) => setBillingRef(e.target.value)}
-                    placeholder="e.g. Department of Literature Research Grant"
-                  />
-                </div>
+                <form className="checkout-form-box" onSubmit={handleSubmitPayment}>
+                  {/* USD CARD FLOW */}
+                  {currency === 'USD' && usdMethod === 'card' && (
+                    <>
+                      <div className="form-group-block">
+                        <label className="form-group-label" htmlFor="cardholder-name">
+                          Cardholder Full Name
+                        </label>
+                        <input
+                          id="cardholder-name"
+                          type="text"
+                          className="form-input-field"
+                          value={cardholderName}
+                          onChange={(e) => setCardholderName(e.target.value)}
+                          placeholder="Jane Austen"
+                          required
+                        />
+                      </div>
 
-                <button
-                  type="submit"
-                  className="checkout-submit-btn"
-                  disabled={submitting}
-                >
-                  {submitting
-                    ? 'Submitting to Administrator...'
-                    : `Submit Payment ($${selectedPlan.price_monthly})`}
-                </button>
-              </form>
+                      <div className="form-group-block">
+                        <div className="label-with-brand">
+                          <label className="form-group-label" htmlFor="card-number">
+                            Card Number
+                          </label>
+                          <div className="brand-badges-row">
+                            <span className={`brand-chip ${cardBrand.brand === 'visa' ? 'chip-active' : ''}`}>
+                              Visa
+                            </span>
+                            <span className={`brand-chip ${cardBrand.brand === 'mastercard' ? 'chip-active' : ''}`}>
+                              Mastercard
+                            </span>
+                            <span className={`brand-chip ${cardBrand.brand === 'amex' ? 'chip-active' : ''}`}>
+                              Amex
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="card-input-wrapper">
+                          <input
+                            id="card-number"
+                            type="text"
+                            className={`form-input-field card-num-input ${
+                              cardNumber && isCardLuhnValid ? 'input-valid' : ''
+                            }`}
+                            value={cardNumber}
+                            onChange={(e) => {
+                              const brand = detectCardBrand(e.target.value).brand;
+                              setCardNumber(formatCardNumber(e.target.value, brand));
+                            }}
+                            placeholder="4242 •••• •••• 4242"
+                            required
+                          />
+                          {cardNumber.length >= 15 && (
+                            <span className={`luhn-indicator ${isCardLuhnValid ? 'valid' : 'invalid'}`}>
+                              {isCardLuhnValid ? '✓ Valid' : '⚠️ Incomplete'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-row-split">
+                        <div className="form-group-block">
+                          <label className="form-group-label" htmlFor="card-expiry">
+                            Expiration Date
+                          </label>
+                          <input
+                            id="card-expiry"
+                            type="text"
+                            className="form-input-field"
+                            value={expiry}
+                            onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group-block">
+                          <label className="form-group-label" htmlFor="card-cvc">
+                            Security Code ({cardBrand.brand === 'amex' ? '4 digits' : 'CVC'})
+                          </label>
+                          <input
+                            id="card-cvc"
+                            type="password"
+                            className="form-input-field"
+                            value={cvc}
+                            onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
+                            placeholder={cardBrand.brand === 'amex' ? '1234' : '123'}
+                            maxLength={cardBrand.brand === 'amex' ? 4 : 3}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group-block">
+                        <label className="form-group-label" htmlFor="billing-ref">
+                          Billing Notes (Optional)
+                        </label>
+                        <input
+                          id="billing-ref"
+                          type="text"
+                          className="form-input-field"
+                          value={billingRef}
+                          onChange={(e) => setBillingRef(e.target.value)}
+                          placeholder="e.g. Personal Reader Subscription"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* USD PAYPAL FLOW */}
+                  {currency === 'USD' && usdMethod === 'paypal' && (
+                    <div className="paypal-checkout-block">
+                      <div className="paypal-banner">
+                        <span className="paypal-icon">🅿️</span>
+                        <div>
+                          <strong>PayPal Express Checkout</strong>
+                          <p>Submit your PayPal account details to verify your recurring subscription.</p>
+                        </div>
+                      </div>
+
+                      <div className="form-group-block">
+                        <label className="form-group-label" htmlFor="paypal-email">
+                          PayPal Account Email
+                        </label>
+                        <input
+                          id="paypal-email"
+                          type="email"
+                          className="form-input-field"
+                          value={paypalEmail}
+                          onChange={(e) => setPaypalEmail(e.target.value)}
+                          placeholder="reader@paypal.me"
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group-block">
+                        <label className="form-group-label" htmlFor="paypal-ref">
+                          PayPal Transaction / Order Reference (Optional)
+                        </label>
+                        <input
+                          id="paypal-ref"
+                          type="text"
+                          className="form-input-field"
+                          value={billingRef}
+                          onChange={(e) => setBillingRef(e.target.value)}
+                          placeholder="e.g. PP-99882233"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ETB TELEBIRR & CBE FLOW */}
+                  {currency === 'ETB' && (
+                    <div className="etb-checkout-block">
+                      {/* Admin Account Callout Box */}
+                      <div className="etb-account-card">
+                        <div className="etb-account-badge">
+                          {etbMethod === 'telebirr' ? '📱 TELEBIRR ACCOUNT' : '🏦 CBE ACCOUNT'}
+                        </div>
+
+                        <div className="account-details-group">
+                          <div className="account-detail-item">
+                            <span className="account-label">
+                              {etbMethod === 'telebirr' ? 'Telebirr Number:' : 'CBE Account Number:'}
+                            </span>
+                            <div className="account-number-copy-row">
+                              <strong className="account-number-val">
+                                {etbMethod === 'telebirr'
+                                  ? (paymentConfig.telebirr_phone || paymentConfig.telebirr_number)
+                                  : (paymentConfig.cbe_account || paymentConfig.cbe_account_number)}
+                              </strong>
+                              <button
+                                type="button"
+                                className="copy-num-btn"
+                                onClick={() =>
+                                  handleCopy(
+                                    etbMethod === 'telebirr'
+                                      ? (paymentConfig.telebirr_phone || paymentConfig.telebirr_number)
+                                      : (paymentConfig.cbe_account || paymentConfig.cbe_account_number),
+                                    'account'
+                                  )
+                                }
+                              >
+                                {copiedKey === 'account' ? '✓ Copied' : '📋 Copy'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="account-detail-item">
+                            <span className="account-label">Account Holder:</span>
+                            <span className="account-holder-name">
+                              {etbMethod === 'telebirr'
+                                ? paymentConfig.telebirr_name
+                                : (paymentConfig.cbe_name || paymentConfig.cbe_account_name)}
+                            </span>
+                          </div>
+
+                          <div className="account-detail-item">
+                            <span className="account-label">Amount to Transfer:</span>
+                            <strong className="amount-highlight">
+                              {calculatePrice(selectedPlan.price_monthly).display}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <p className="account-step-instructions">
+                          {etbMethod === 'telebirr'
+                            ? paymentConfig.telebirr_instructions ||
+                              'Transfer the exact amount via Telebirr and submit your Transaction Reference code below.'
+                            : paymentConfig.cbe_instructions ||
+                              'Deposit or transfer to the CBE account and provide the transaction FT reference number.'}
+                        </p>
+                      </div>
+
+                      {/* ETB Payer Details Form */}
+                      <div className="form-group-block">
+                        <label className="form-group-label" htmlFor="etb-payer-name">
+                          Sender Full Name (Account Name)
+                        </label>
+                        <input
+                          id="etb-payer-name"
+                          type="text"
+                          className="form-input-field"
+                          value={payerName}
+                          onChange={(e) => setPayerName(e.target.value)}
+                          placeholder="e.g. Abebe Bikila"
+                          required
+                        />
+                      </div>
+
+                      <div className="form-row-split">
+                        <div className="form-group-block">
+                          <label className="form-group-label" htmlFor="etb-payer-phone">
+                            Sender Phone Number (Optional)
+                          </label>
+                          <input
+                            id="etb-payer-phone"
+                            type="tel"
+                            className="form-input-field"
+                            value={payerPhone}
+                            onChange={(e) => setPayerPhone(e.target.value)}
+                            placeholder="0911..."
+                          />
+                        </div>
+
+                        <div className="form-group-block">
+                          <label className="form-group-label" htmlFor="etb-ref-number">
+                            Transaction / Reference ID
+                          </label>
+                          <input
+                            id="etb-ref-number"
+                            type="text"
+                            className="form-input-field"
+                            value={referenceNumber}
+                            onChange={(e) => setReferenceNumber(e.target.value)}
+                            placeholder={etbMethod === 'telebirr' ? 'e.g. TB12345678' : 'e.g. FT230123...'}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Optional Receipt Screenshot Upload */}
+                      <div className="form-group-block">
+                        <label className="form-group-label" htmlFor="receipt-screenshot">
+                          Transfer Screenshot / Receipt Photo (Optional)
+                        </label>
+                        <input
+                          id="receipt-screenshot"
+                          type="file"
+                          accept="image/*"
+                          className="form-input-file"
+                          onChange={handleReceiptUpload}
+                        />
+
+                        {receiptPreview && (
+                          <div className="receipt-preview-box">
+                            <img src={receiptPreview} alt="Receipt preview" className="receipt-img-thumb" />
+                            <button
+                              type="button"
+                              className="remove-receipt-btn"
+                              onClick={() => {
+                                setReceiptImage(null);
+                                setReceiptPreview('');
+                              }}
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="checkout-submit-btn"
+                    disabled={submitting}
+                  >
+                    {submitting
+                      ? 'Submitting Payment...'
+                      : `Submit Payment (${calculatePrice(selectedPlan.price_monthly).display})`}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         )}
 
+        {/* STEP 3: SUBMISSION SUCCESS VIEW */}
         {step === 'success' && (
           <div className="checkout-success-view">
             <div className="success-badge-circle">✓</div>
             <h2 className="success-title">Payment Submitted for Verification</h2>
             <p className="success-desc">
-              Your payment for <strong>{submittedPayment?.plan_name || selectedPlan?.name}</strong> has been safely recorded with reference ID{' '}
-              <code>{submittedPayment?.id?.slice(0, 14)}...</code>.
+              Your payment for <strong>{selectedPlan?.name}</strong> has been safely recorded with reference ID{' '}
+              <code>{submittedPayment?.id?.slice(0, 16)}...</code>.
               <br />
               An administrator will verify your transaction shortly in the Operations Console. You will receive an in-app notification upon activation.
             </p>

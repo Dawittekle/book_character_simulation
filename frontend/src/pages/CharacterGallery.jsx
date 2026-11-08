@@ -4,15 +4,29 @@ import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl } from '../lib/formatters';
 import './CharacterGallery.css';
 
-// Client-side cache to instantly render previously loaded book casts without jumping/flickering
-const bookCharactersCache = new Map();
+// Storage helpers to instantly render previously loaded casts without jumping
+const getStoredCasts = (key) => {
+  try {
+    const raw = sessionStorage.getItem(`lorely_cast_${key}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredCasts = (key, data) => {
+  try {
+    sessionStorage.setItem(`lorely_cast_${key}`, JSON.stringify(data));
+  } catch {}
+};
 
 export default function CharacterGallery() {
   const { bookId } = useParams();
   const { accessToken } = useOutletContext();
   
-  // Initialize with cached data if available, otherwise empty list
-  const cachedData = bookId ? bookCharactersCache.get(bookId) : null;
+  const cacheKey = bookId || '__all__';
+  const cachedData = getStoredCasts(cacheKey);
+
   const [characters, setCharacters] = useState(cachedData?.characters || []);
   const [bookTitle, setBookTitle] = useState(cachedData?.title || (bookId ? 'Literary Work' : 'All Literary Casts'));
   const [loading, setLoading] = useState(!cachedData);
@@ -22,8 +36,7 @@ export default function CharacterGallery() {
     let mounted = true;
 
     async function loadCharacters() {
-      // If we don't have cached data, ensure loading is true
-      if (!bookCharactersCache.has(bookId || '__all__')) {
+      if (!cachedData) {
         setLoading(true);
       }
 
@@ -34,7 +47,7 @@ export default function CharacterGallery() {
             const chars = Array.isArray(bookDetails.characters) ? bookDetails.characters : [];
             setBookTitle(bookDetails.title);
             setCharacters(chars);
-            bookCharactersCache.set(bookId, {
+            setStoredCasts(bookId, {
               title: bookDetails.title,
               characters: chars,
             });
@@ -44,7 +57,7 @@ export default function CharacterGallery() {
           if (mounted) {
             const chars = Array.isArray(list) ? list : [];
             setCharacters(chars);
-            bookCharactersCache.set('__all__', {
+            setStoredCasts('__all__', {
               title: 'All Literary Casts',
               characters: chars,
             });
@@ -68,18 +81,30 @@ export default function CharacterGallery() {
   return (
     <div className="lorely-gallery-page" data-testid="character-gallery-page">
       <header className="gallery-header">
-        <button
-          type="button"
-          className="page-back-btn"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          ← Back
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="page-back-btn"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+          >
+            ← Back
+          </button>
+          {bookId && (
+            <button
+              type="button"
+              className="page-back-btn"
+              onClick={() => navigate('/characters')}
+              style={{ background: '#F4ECE1', color: '#1A3326', fontWeight: 600 }}
+            >
+              📚 View All 5 Characters
+            </button>
+          )}
+        </div>
         <div className="gallery-title-group">
           <h1 className="gallery-title">Meet the Characters</h1>
           <p className="gallery-subtitle">
-            {bookId ? `Cast of ${bookTitle}` : 'Legendary personalities across the Lorely library.'}
+            {bookId ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})` : 'Legendary personalities across the Lorely library.'}
           </p>
         </div>
       </header>

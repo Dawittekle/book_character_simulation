@@ -17,6 +17,7 @@ from ..models import (
     ChatSession,
     ProcessingJob,
     MembershipPlan,
+    SystemSetting,
     UserAccount,
     UserCharacterState,
     UserRole,
@@ -680,4 +681,37 @@ def seed_membership_plans(db: DatabaseManager) -> list[MembershipPlan]:
         session.flush()
     logger.info("Membership plans seed complete. Total plans: %d", len(seeded))
     return seeded
+
+
+DEFAULT_PAYMENT_CONFIG = {
+    "telebirr_number": "0911234567",
+    "telebirr_name": "Dawit (Lorely Admin)",
+    "cbe_account_number": "100012345678",
+    "cbe_account_name": "Dawit (Lorely Literary Simulation)",
+    "etb_rate": 135.0,
+    "telebirr_instructions": "Send transfer to the Telebirr number above and enter your transaction reference code.",
+    "cbe_instructions": "Deposit or transfer to the CBE account number above and enter your FT reference code.",
+}
+
+
+def seed_payment_config(db: DatabaseManager) -> SystemSetting | None:
+    """
+    Seeds default Telebirr and CBE payment accounts into system_settings.
+    """
+    setting = None
+    with db.session_scope() as session:
+        setting = session.scalar(
+            select(SystemSetting).where(SystemSetting.key == "payment_config")
+        )
+        if setting is None:
+            setting = SystemSetting(
+                key="payment_config",
+                value=DEFAULT_PAYMENT_CONFIG,
+                description="Payment accounts configuration including Telebirr and CBE details.",
+            )
+            session.add(setting)
+            session.flush()
+    logger.info("Payment config seed complete.")
+    return setting
+
 

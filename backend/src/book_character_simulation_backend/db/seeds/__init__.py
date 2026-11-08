@@ -4,6 +4,7 @@ from .dostoevsky_seed import (
     purge_demo_and_test_data,
     seed_dostoevsky_books,
     seed_membership_plans,
+    seed_payment_config,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "purge_demo_and_test_data",
     "seed_dostoevsky_books",
     "seed_membership_plans",
+    "seed_payment_config",
 ]

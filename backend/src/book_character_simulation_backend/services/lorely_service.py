@@ -30,6 +30,7 @@ from ..db.models import (
     NotificationRecord,
     PaymentTransaction,
     ProcessingJob,
+    SystemSetting,
     UserAccount,
     UserCharacterState,
     UserRole,
@@ -1132,15 +1133,24 @@ class LorelyService:
                 provider_name=llm_provider or self.settings.llm_provider,
             )
 
-            raw_response = provider.generate_json(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-            )
-            data = parse_json_response(raw_response)
-
-            reply_text = data.get("reply") or data.get("response", "...")
-            new_psi = data.get("updated_psi") or user_state.psi_parameters
-            new_emotions = data.get("updated_emotion_state") or user_state.emotion_state
+            try:
+                raw_response = provider.generate_json(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                )
+                data = parse_json_response(raw_response)
+                reply_text = data.get("reply") or data.get("response", "...")
+                new_psi = data.get("updated_psi") or user_state.psi_parameters
+                new_emotions = data.get("updated_emotion_state") or user_state.emotion_state
+            except Exception as llm_exc:
+                logger.warning(
+                    "Upstream LLM failed for character %s (%s). Engaging character-grounded fallback.",
+                    char.name,
+                    llm_exc,
+                )
+                reply_text = self._build_grounded_fallback_reply(char, cleaned_content, retrieved)
+                new_psi = user_state.psi_parameters
+                new_emotions = user_state.emotion_state
 
             # Update user state
             user_state.psi_parameters = new_psi
@@ -1212,6 +1222,31 @@ class LorelyService:
                 },
                 "memories": memory_facts,
             }
+
+    def _build_grounded_fallback_reply(
+        self,
+        char: CharacterProfileRecord,
+        content: str,
+        retrieved: list[Any],
+    ) -> str:
+        name = char.name or "the character"
+        lower_name = name.lower()
+
+        if "emelyan" in lower_name:
+            return "Ah... forgive me, kind soul... I am a clumsy, quiet fellow. You speak to me, and my heart aches with gratitude, though I have little of value to offer but my honesty and sorrow."
+        if "nastenka" in lower_name or "nástyenka" in lower_name:
+            return "You are speaking to me! Oh, you cannot imagine how my heart leaps when another soul greets me along the canal. Tell me, do you know what it is to wait and dream under these twilight skies?"
+        if "dreamer" in lower_name:
+            return "I was lost in contemplation of the St. Petersburg twilight, watching the silhouettes upon the Fontanka canal. Your words bring me out of my solitude into this quiet, wondrous conversation."
+        if "ridiculous" in lower_name:
+            return "They say I am ridiculous, and perhaps I am! But I have seen the truth in a dream, a shining world where love is not a battle but pure joy. What thoughts bring you to me?"
+        if "astafy" in lower_name:
+            return "Good day to you. A quiet conscience and an honest day's labor are what matter most in this town. What brings you to seek out Astafy Ivanovich?"
+
+        if retrieved and len(retrieved) > 0:
+            snippet = retrieved[0].content[:160].strip()
+            return f"I hear you clearly. As {name}, I recall: '{snippet}'... Let us continue our exchange."
+        return f"Greetings. I am {name}. I hear your words ('{content}') and reflect deeply upon them."
 
     def synthesize_message_audio(
         self,
@@ -1731,6 +1766,65 @@ class LorelyService:
             session.flush()
             return {"plan": self._serialize_plan(plan)}
 
+    def get_payment_config(self) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            setting = session.scalar(
+                select(SystemSetting).where(SystemSetting.key == "payment_config")
+            )
+            config_val = setting.value if setting else {
+                "telebirr_number": "0911234567",
+                "telebirr_name": "Dawit (Lorely Admin)",
+                "cbe_account_number": "100012345678",
+                "cbe_account_name": "Dawit (Lorely Literary Simulation)",
+                "etb_rate": 135.0,
+                "telebirr_instructions": "Send transfer to the Telebirr number above and enter your transaction reference code.",
+                "cbe_instructions": "Deposit or transfer to the CBE account number above and enter your FT reference code.",
+            }
+            return {"config": config_val}
+
+    def admin_update_payment_config(
+        self, auth_user: AuthenticatedUser | None, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            admin_user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, admin_user)
+
+            setting = session.scalar(
+                select(SystemSetting).where(SystemSetting.key == "payment_config")
+            )
+            new_val = dict(setting.value if setting else {})
+            for k in (
+                "telebirr_number",
+                "telebirr_name",
+                "cbe_account_number",
+                "cbe_account_name",
+                "etb_rate",
+                "telebirr_instructions",
+                "cbe_instructions",
+            ):
+                if k in payload:
+                    if k == "etb_rate":
+                        try:
+                            new_val[k] = float(payload[k])
+                        except (ValueError, TypeError):
+                            pass
+                    else:
+                        new_val[k] = str(payload[k]).strip()
+
+            if setting is None:
+                setting = SystemSetting(
+                    key="payment_config",
+                    value=new_val,
+                    description="Payment accounts configuration including Telebirr and CBE details.",
+                )
+                session.add(setting)
+            else:
+                setting.value = new_val
+                setting.updated_at = utc_now()
+
+            session.flush()
+            return {"config": setting.value}
+
     def submit_payment(
         self, auth_user: AuthenticatedUser | None, payload: dict[str, Any]
     ) -> dict[str, Any]:
@@ -1746,17 +1840,32 @@ class LorelyService:
             if plan is None:
                 raise NotFoundError(f"Plan '{plan_slug}' not found.")
 
-            # Sanitize payment details
             raw_details = payload.get("payment_details") or {}
-            card_number = str(raw_details.get("card_number") or "").replace(" ", "").replace("-", "")
-            masked_last4 = card_number[-4:] if len(card_number) >= 4 else "4242"
-            sanitized_details = {
-                "cardholder_name": str(raw_details.get("cardholder_name") or user.display_name).strip(),
-                "last4": masked_last4,
-                "card_brand": str(raw_details.get("card_brand") or "Visa"),
-                "billing_reference": str(raw_details.get("billing_reference") or raw_details.get("notes") or "").strip(),
+            currency = str(payload.get("currency") or "USD").upper().strip()
+            payment_method = str(payload.get("payment_method") or "credit_card").lower().strip()
+
+            sanitized_details: dict[str, Any] = {
                 "submitted_at": utc_now().isoformat(),
             }
+
+            if payment_method in ("telebirr", "cbe"):
+                sanitized_details.update({
+                    "payer_name": str(raw_details.get("payer_name") or user.display_name).strip(),
+                    "payer_phone": str(raw_details.get("payer_phone") or "").strip(),
+                    "reference_number": str(raw_details.get("reference_number") or raw_details.get("transaction_id") or "").strip(),
+                    "account_used": str(raw_details.get("account_used") or "").strip(),
+                    "notes": str(raw_details.get("notes") or "").strip(),
+                    "receipt_image": raw_details.get("receipt_image"),
+                })
+            else:
+                card_number = str(raw_details.get("card_number") or "").replace(" ", "").replace("-", "")
+                masked_last4 = card_number[-4:] if len(card_number) >= 4 else str(raw_details.get("last4") or "4242")
+                sanitized_details.update({
+                    "cardholder_name": str(raw_details.get("cardholder_name") or user.display_name).strip(),
+                    "last4": masked_last4,
+                    "card_brand": str(raw_details.get("card_brand") or raw_details.get("brand") or "Visa"),
+                    "billing_reference": str(raw_details.get("billing_reference") or raw_details.get("notes") or "").strip(),
+                })
 
             amount = float(payload.get("amount") or plan.price_monthly)
             chosen_model = str(payload.get("chosen_model") or "gemini-3.5-flash").strip()
@@ -1765,8 +1874,8 @@ class LorelyService:
                 user_id=user.id,
                 plan_slug=plan.slug,
                 amount=amount,
-                currency="USD",
-                payment_method=str(payload.get("payment_method") or "credit_card"),
+                currency=currency,
+                payment_method=payment_method,
                 payment_details=sanitized_details,
                 chosen_model=chosen_model,
                 status="pending",
@@ -1774,13 +1883,13 @@ class LorelyService:
             session.add(payment)
             session.flush()
 
-            # Create notification for user
+            curr_fmt = f"${amount:.2f} USD" if currency == "USD" else f"{amount:,.2f} ETB"
             session.add(
                 NotificationRecord(
                     user_id=user.id,
                     title="Subscription Payment Submitted",
                     message=(
-                        f"Your payment of ${amount:.2f} for {plan.name} has been submitted for review. "
+                        f"Your payment of {curr_fmt} for {plan.name} via {payment_method.upper()} has been submitted for review. "
                         "An administrator will verify your transaction shortly."
                     ),
                     category="system",
@@ -1796,6 +1905,7 @@ class LorelyService:
                 "plan_name": plan.name,
                 "amount": payment.amount,
                 "currency": payment.currency,
+                "payment_method": payment.payment_method,
                 "status": payment.status,
                 "chosen_model": payment.chosen_model,
                 "created_at": payment.created_at.isoformat() if payment.created_at else None,
@@ -1880,13 +1990,14 @@ class LorelyService:
                     settings_rec.preferences = prefs
 
                 # Send celebratory notification
+                curr_fmt = f"${payment.amount:.2f} USD" if payment.currency == "USD" else f"{payment.amount:,.2f} ETB"
                 session.add(
                     NotificationRecord(
                         user_id=target_user.id,
                         title="Payment Verified & Tier Upgraded! 👑",
                         message=(
-                            f"Your subscription payment of ${payment.amount:.2f} has been verified! "
-                            f"Your account is now activated on the '{payment.plan_slug.capitalize()}' tier with {payment.chosen_model or 'frontier'} AI access."
+                            f"Your subscription payment of {curr_fmt} has been verified! "
+                            f"Your account is now activated on the '{payment.plan_slug.capitalize()}' tier."
                         ),
                         category="system",
                         link_url="/settings",
@@ -1916,12 +2027,13 @@ class LorelyService:
 
             target_user = session.get(UserAccount, payment.user_id)
             if target_user:
+                curr_fmt = f"${payment.amount:.2f} USD" if payment.currency == "USD" else f"{payment.amount:,.2f} ETB"
                 session.add(
                     NotificationRecord(
                         user_id=target_user.id,
                         title="Subscription Payment Notice",
                         message=(
-                            f"Your payment transaction of ${payment.amount:.2f} could not be verified. "
+                            f"Your payment transaction of {curr_fmt} could not be verified. "
                             f"Reason: {payment.admin_notes}. Please review your billing details or contact support."
                         ),
                         category="system",
