@@ -89,7 +89,63 @@ def update_settings():
     return jsonify(service.update_settings(user, body))
 
 
-# --- Books ---
+# --- Books & Ingestion ---
+
+@v1_blueprint.route("/books/inspect", methods=["POST"])
+def inspect_source():
+    user = _authenticated_user()
+    service = _lorely_service()
+
+    file_bytes = None
+    filename = None
+    raw_text = None
+
+    if "file" in request.files:
+        uploaded_file = request.files["file"]
+        filename = uploaded_file.filename
+        file_bytes = uploaded_file.read()
+    else:
+        body = request.get_json(silent=True) or {}
+        raw_text = body.get("text") or request.form.get("text")
+        filename = body.get("filename") or request.form.get("filename")
+
+    result = service.inspect_source(
+        user,
+        file_bytes=file_bytes,
+        filename=filename,
+        raw_text=raw_text,
+        llm_provider=request.args.get("llm_provider"),
+    )
+    return jsonify(result), 200
+
+
+@v1_blueprint.route("/books/ingest", methods=["POST"])
+def ingest_source():
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    temp_source_id = body.get("temp_source_id")
+    if not temp_source_id:
+        raise BadRequestError("temp_source_id is required.")
+
+    result = service.ingest_source(
+        user,
+        temp_source_id=temp_source_id,
+        title=body.get("title"),
+        author=body.get("author"),
+        visibility=body.get("visibility", "private"),
+        force_extraction=bool(body.get("force_extraction", False)),
+        llm_provider=body.get("llm_provider"),
+    )
+    return jsonify(result), 201
+
+
+@v1_blueprint.route("/jobs/<job_id>", methods=["GET"])
+def get_job_status(job_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.get_job_status(user, job_id))
+
 
 @v1_blueprint.route("/books", methods=["GET"])
 def list_books():

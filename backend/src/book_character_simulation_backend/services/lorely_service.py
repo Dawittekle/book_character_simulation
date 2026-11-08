@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from sqlalchemy import delete, func, or_, select
@@ -12,11 +13,13 @@ from ..db.base import utc_now
 from ..db.models import (
     Book,
     BookProcessingStatus,
+    BookSource,
     CharacterMemory,
     CharacterProfileRecord,
     ChatMessage,
     ChatRole,
     ChatSession,
+    ProcessingJob,
     UserAccount,
     UserCharacterState,
     UserRole,
@@ -25,8 +28,11 @@ from ..db.models import (
 from ..db.session import DatabaseManager
 from ..errors import BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError
 from ..llm.factory import get_llm_provider
-from ..prompts import chat_prompt, fact_extraction_prompt
+from ..prompts import character_extraction_prompt, chat_prompt, fact_extraction_prompt
+from ..schemas.character import CharacterProfile
+from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
+from .classification_service import ClassificationService
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +41,7 @@ class LorelyService:
     def __init__(self, database_manager: DatabaseManager, settings: Any):
         self.db = database_manager
         self.settings = settings
+        self.classifier = ClassificationService(settings)
 
     # --- User & Account helpers ---
 
@@ -255,6 +262,208 @@ class LorelyService:
                 "conversation_count": 0,
                 "created_at": book.created_at.isoformat(),
                 "updated_at": book.updated_at.isoformat(),
+            }
+
+    def inspect_source(
+        self,
+        auth_user: AuthenticatedUser | None,
+        *,
+        file_bytes: bytes | None = None,
+        filename: str | None = None,
+        raw_text: str | None = None,
+        llm_provider: str | None = None,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+
+            if file_bytes:
+                doc = extract_document_from_bytes(file_bytes, filename)
+            elif raw_text:
+                clean_text = raw_text.strip()
+                if not clean_text:
+                    raise BadRequestError("Text content cannot be empty.")
+                doc = extract_document_from_bytes(clean_text.encode("utf-8"), filename or "pasted_text.txt")
+            else:
+                raise BadRequestError("Either file or text must be provided.")
+
+            classification = self.classifier.classify_text(
+                doc.text,
+                filename=filename,
+                embedded_title=doc.embedded_title,
+                embedded_author=doc.embedded_author,
+                llm_provider=llm_provider,
+            )
+
+            job = ProcessingJob(
+                owner_user_id=user.id,
+                status="pending",
+                stage="inspected",
+                progress=20,
+                document_type=classification.document_type,
+                confidence=classification.confidence,
+                inferred_title=classification.title,
+                inferred_author=classification.author,
+                job_metadata={
+                    "text": doc.text,
+                    "filename": filename,
+                    "format": doc.format,
+                    "page_count": doc.page_count,
+                    "word_count": doc.word_count,
+                    "is_narrative": classification.is_narrative,
+                    "warning": classification.warning,
+                    "reasoning": classification.reasoning,
+                },
+            )
+            session.add(job)
+            session.flush()
+
+            return {
+                "temp_source_id": job.id,
+                "document_type": classification.document_type,
+                "confidence": classification.confidence,
+                "title": classification.title or (filename.rsplit(".", 1)[0].replace("_", " ").title() if filename else "Untitled Book"),
+                "author": classification.author,
+                "is_narrative": classification.is_narrative,
+                "page_count": doc.page_count,
+                "word_count": doc.word_count,
+                "format": doc.format,
+                "warning": classification.warning,
+                "reasoning": classification.reasoning,
+            }
+
+    def ingest_source(
+        self,
+        auth_user: AuthenticatedUser | None,
+        *,
+        temp_source_id: str,
+        title: str | None = None,
+        author: str | None = None,
+        visibility: str = "private",
+        force_extraction: bool = False,
+        llm_provider: str | None = None,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            job = session.get(ProcessingJob, temp_source_id)
+            if job is None:
+                raise NotFoundError("Inspection job not found.")
+
+            if job.owner_user_id != user.id:
+                raise ForbiddenError("You do not have access to this job.")
+
+            if job.document_type == "document" and not force_extraction:
+                raise BadRequestError(
+                    job.job_metadata.get("warning")
+                    or "This file is classified as a non-narrative document. To extract characters anyway, confirm by enabling force_extraction."
+                )
+
+            job.status = "processing"
+            job.stage = "creating_book"
+            job.progress = 40
+            session.flush()
+
+            extracted_text = job.job_metadata.get("text", "")
+            final_title = (title or job.inferred_title or "Untitled Book").strip()
+            final_author = (author or job.inferred_author or "").strip() or None
+
+            book = Book(
+                owner_user_id=user.id,
+                title=final_title,
+                author=final_author,
+                summary=job.job_metadata.get("reasoning"),
+                visibility=visibility,
+                source_type=job.document_type or "book",
+                processing_status=BookProcessingStatus.extracting,
+            )
+            session.add(book)
+            session.flush()
+
+            source = BookSource(
+                book_id=book.id,
+                original_filename=job.job_metadata.get("filename"),
+                mime_type=f"application/{job.job_metadata.get('format', 'text')}",
+                extracted_text=extracted_text,
+                file_size_bytes=len(extracted_text.encode("utf-8")),
+            )
+            session.add(source)
+            job.book_id = book.id
+            job.stage = "extracting_characters"
+            job.progress = 60
+            session.flush()
+
+            # Extract characters with LLM
+            characters = []
+            try:
+                provider = get_llm_provider(
+                    self.settings,
+                    provider_name=llm_provider or self.settings.llm_provider,
+                )
+                system_prompt, user_prompt = character_extraction_prompt(extracted_text[: self.settings.max_source_characters])
+                raw_response = provider.generate_json(system_prompt=system_prompt, user_prompt=user_prompt)
+                parsed_characters = parse_json_response(raw_response)
+                if isinstance(parsed_characters, list):
+                    for idx, char_dict in enumerate(parsed_characters):
+                        if not isinstance(char_dict, dict):
+                            continue
+                        if not char_dict.get("id"):
+                            char_dict["id"] = re.sub(r"[^a-z0-9]+", "-", char_dict.get("name", f"char-{idx+1}").lower()).strip("-")
+                        c = CharacterProfile.model_validate(char_dict)
+                        char_rec = CharacterProfileRecord(
+                            book_id=book.id,
+                            stable_character_key=c.id or f"char-{idx+1}",
+                            name=c.name,
+                            role="Protagonist" if idx == 0 else "Supporting",
+                            personality=c.personality,
+                            key_events=c.key_events or [],
+                            relationships=c.relationships or [],
+                            psi_parameters=c.psi_parameters.model_dump(mode="json"),
+                            emotion_state=c.emotion_state.model_dump(mode="json"),
+                        )
+                        session.add(char_rec)
+                        characters.append(char_rec)
+
+                book.processing_status = BookProcessingStatus.ready
+                job.status = "completed"
+                job.stage = "ready"
+                job.progress = 100
+            except Exception as exc:
+                logger.exception("Character extraction failed during ingestion: %s", exc)
+                book.processing_status = BookProcessingStatus.failed
+                job.status = "failed"
+                job.error_message = str(exc)
+
+            session.flush()
+            return {
+                "job_id": job.id,
+                "status": job.status,
+                "book_id": book.id,
+                "character_count": len(characters),
+                "book": self._get_book_details_in_session(session, user, book.id),
+            }
+
+    def get_job_status(self, auth_user: AuthenticatedUser | None, job_id: str) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            job = session.get(ProcessingJob, job_id)
+            if job is None:
+                raise NotFoundError("Processing job not found.")
+
+            if job.owner_user_id != user.id:
+                raise ForbiddenError("You do not have permission to view this job.")
+
+            return {
+                "id": job.id,
+                "status": job.status,
+                "stage": job.stage,
+                "progress": job.progress,
+                "book_id": job.book_id,
+                "document_type": job.document_type,
+                "confidence": job.confidence,
+                "inferred_title": job.inferred_title,
+                "inferred_author": job.inferred_author,
+                "error_message": job.error_message,
+                "created_at": job.created_at.isoformat() if job.created_at else None,
+                "updated_at": job.updated_at.isoformat() if job.updated_at else None,
             }
 
     def _get_book_details_in_session(

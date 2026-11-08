@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, IdentifierMixin, TimestampMixin, utc_now
@@ -113,6 +113,32 @@ class UserAccount(IdentifierMixin, TimestampMixin, Base):
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )
+    processing_jobs: Mapped[list["ProcessingJob"]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+
+
+class ProcessingJob(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "processing_jobs"
+
+    owner_user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    book_id: Mapped[str | None] = mapped_column(
+        ForeignKey("books.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    stage: Mapped[str] = mapped_column(String(50), default="queued", nullable=False)
+    progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    document_type: Mapped[str | None] = mapped_column(String(50))
+    confidence: Mapped[float | None] = mapped_column(Float)
+    inferred_title: Mapped[str | None] = mapped_column(String(255))
+    inferred_author: Mapped[str | None] = mapped_column(String(255))
+    error_message: Mapped[str | None] = mapped_column(Text)
+    job_metadata: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+    owner: Mapped["UserAccount"] = relationship(back_populates="processing_jobs")
+    book: Mapped["Book | None"] = relationship()
 
 
 class Book(IdentifierMixin, TimestampMixin, Base):

@@ -172,6 +172,55 @@ export const lorelyApi = {
       accessToken,
     });
   },
+
+  // Document Ingestion & Classification Gate
+  inspectSource: async ({ file, text, filename, llmProvider } = {}, accessToken) => {
+    const headers = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (llmProvider) formData.append('llm_provider', llmProvider);
+
+      const response = await fetch(`${V1_URL}/books/inspect`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Inspection failed');
+      return data;
+    }
+
+    return request('/books/inspect', {
+      method: 'POST',
+      body: { text, filename, llm_provider: llmProvider },
+      accessToken,
+    });
+  },
+
+  ingestSource: async (
+    { tempSourceId, title, author, visibility = 'private', forceExtraction = false, llmProvider },
+    accessToken,
+  ) => {
+    return request('/books/ingest', {
+      method: 'POST',
+      body: {
+        temp_source_id: tempSourceId,
+        title,
+        author,
+        visibility,
+        force_extraction: forceExtraction,
+        llm_provider: llmProvider,
+      },
+      accessToken,
+    });
+  },
+
+  getJobStatus: async (jobId, accessToken) => {
+    return request(`/jobs/${jobId}`, { accessToken });
+  },
 };
 
 export default lorelyApi;

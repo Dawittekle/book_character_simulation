@@ -119,4 +119,68 @@ describe('lorelyApi client', () => {
       expect(res).toEqual(mockTurn);
     });
   });
+
+  describe('Document Inspection & Ingestion Gate', () => {
+    it('calls POST /books/inspect with text and returns classification', async () => {
+      const mockInspection = {
+        temp_source_id: 'job-123',
+        document_type: 'document',
+        is_narrative: false,
+        warning: 'This appears to be a resume/cover letter.',
+      };
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockInspection,
+      });
+
+      const res = await lorelyApi.inspectSource(
+        { text: 'Dear Hiring Manager', filename: 'cover_letter.pdf' },
+        'token',
+      );
+      const [url, opts] = globalThis.fetch.mock.calls[0];
+      expect(url).toContain('/api/v1/books/inspect');
+      expect(opts.method).toBe('POST');
+      expect(JSON.parse(opts.body).filename).toBe('cover_letter.pdf');
+      expect(res).toEqual(mockInspection);
+    });
+
+    it('calls POST /books/ingest with forceExtraction flag', async () => {
+      const mockIngest = {
+        job_id: 'job-123',
+        status: 'completed',
+        book_id: 'book-456',
+      };
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockIngest,
+      });
+
+      const res = await lorelyApi.ingestSource(
+        { tempSourceId: 'job-123', forceExtraction: true },
+        'token',
+      );
+      const [url, opts] = globalThis.fetch.mock.calls[0];
+      expect(url).toContain('/api/v1/books/ingest');
+      expect(JSON.parse(opts.body).force_extraction).toBe(true);
+      expect(res).toEqual(mockIngest);
+    });
+
+    it('calls GET /jobs/:jobId to poll job status', async () => {
+      const mockJob = {
+        id: 'job-123',
+        status: 'completed',
+        progress: 100,
+        stage: 'ready',
+      };
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockJob,
+      });
+
+      const res = await lorelyApi.getJobStatus('job-123', 'token');
+      const [url] = globalThis.fetch.mock.calls[0];
+      expect(url).toContain('/api/v1/jobs/job-123');
+      expect(res).toEqual(mockJob);
+    });
+  });
 });
