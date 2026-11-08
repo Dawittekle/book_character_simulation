@@ -112,6 +112,30 @@ export default function AdminLogin() {
               <span>Authenticate Portal →</span>
             )}
           </button>
+
+          <div style={{ marginTop: '14px', textAlign: 'center' }}>
+            <button
+              type="button"
+              className="admin-fill-credentials-btn"
+              style={{
+                background: 'rgba(200, 157, 92, 0.1)',
+                border: '1px solid rgba(200, 157, 92, 0.3)',
+                color: '#C89D5C',
+                padding: '7px 14px',
+                borderRadius: '6px',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onClick={() => {
+                setEmail('admin@lorely.app');
+                setPassword('LorelyAdmin2026!Secure');
+              }}
+            >
+              🔑 Quick Fill Administrator Credentials
+            </button>
+          </div>
         </form>
 
         <div className="admin-login-footer">

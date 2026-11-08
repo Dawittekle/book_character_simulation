@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
 import './AdminLayout.css';
 
-export default function AdminLayout({ accessToken }) {
+export default function AdminLayout() {
   const navigate = useNavigate();
-  const effectiveToken = accessToken || lorelyApi.getStoredAdminToken();
+  const adminToken = lorelyApi.getStoredAdminToken();
+
+  useEffect(() => {
+    if (!adminToken) {
+      navigate('/admin/login', { replace: true });
+    }
+  }, [adminToken, navigate]);
 
   const handleAdminLogout = () => {
     lorelyApi.adminLogout();
@@ -31,6 +37,12 @@ export default function AdminLayout({ accessToken }) {
             className={({ isActive }) => `admin-nav-tab ${isActive ? 'active' : ''}`}
           >
             Overview
+          </NavLink>
+          <NavLink
+            to="/admin/analytics"
+            className={({ isActive }) => `admin-nav-tab ${isActive ? 'active' : ''}`}
+          >
+            Analytics & Telemetry
           </NavLink>
           <NavLink
             to="/admin/catalog"
@@ -81,7 +93,7 @@ export default function AdminLayout({ accessToken }) {
       </header>
 
       <main className="admin-main-container">
-        <Outlet context={{ accessToken: effectiveToken }} />
+        <Outlet context={{ accessToken: adminToken }} />
       </main>
     </div>
   );

@@ -46,6 +46,28 @@ export default function AdminOverview() {
       <div className="admin-error-box">
         <h3>Operational Error</h3>
         <p>{error}</p>
+        {(error.includes('Administrator privileges') || error.includes('403') || error.includes('401')) && (
+          <button
+            type="button"
+            className="admin-login-retry-btn"
+            style={{
+              marginTop: '12px',
+              background: '#233B2E',
+              border: '1px solid #325240',
+              color: '#C89D5C',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+            onClick={() => {
+              lorelyApi.adminLogout();
+              navigate('/admin/login');
+            }}
+          >
+            Sign In with Administrator Credentials →
+          </button>
+        )}
       </div>
     );
   }

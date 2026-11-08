@@ -393,6 +393,13 @@ def get_admin_overview():
     return jsonify(service.get_admin_overview(user)), 200
 
 
+@v1_blueprint.route("/admin/analytics", methods=["GET"])
+def get_admin_analytics():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.get_admin_analytics(user)), 200
+
+
 @v1_blueprint.route("/admin/jobs", methods=["GET"])
 def admin_list_jobs():
     user = _authenticated_user()

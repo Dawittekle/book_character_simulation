@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import AdminRouteGuard from '../pages/admin/AdminRouteGuard';
 import AdminOverview from '../pages/admin/AdminOverview';
+import AdminAnalytics from '../pages/admin/AdminAnalytics';
 import AdminCatalog from '../pages/admin/AdminCatalog';
 import AdminJobs from '../pages/admin/AdminJobs';
 import AdminPlans from '../pages/admin/AdminPlans';
@@ -12,6 +13,7 @@ import { lorelyApi } from '../services/lorelyApi';
 vi.mock('../services/lorelyApi', () => ({
   lorelyApi: {
     getAdminOverview: vi.fn(),
+    getAdminAnalytics: vi.fn(),
     adminListBooks: vi.fn(),
     adminListJobs: vi.fn(),
     adminRetryJob: vi.fn(),
@@ -40,15 +42,16 @@ describe('Admin Portal & Route Guard', () => {
     render(
       <BrowserRouter>
         <Routes>
-          <Route element={<AdminRouteGuard userRole="user" loading={false} />}>
+          <Route element={<AdminRouteGuard />}>
             <Route path="/" element={<div>Secret Admin Dashboard</div>} />
           </Route>
-          <Route path="/" element={<div>Public Reader Home</div>} />
+          <Route path="/admin/login" element={<div>Admin Login Portal</div>} />
         </Routes>
       </BrowserRouter>,
     );
 
     expect(screen.queryByText('Secret Admin Dashboard')).not.toBeInTheDocument();
+    expect(screen.getByText('Admin Login Portal')).toBeInTheDocument();
   });
 
   it('renders AdminOverview metrics and recent jobs for admin users', async () => {
@@ -190,6 +193,50 @@ describe('Admin Portal & Route Guard', () => {
       expect(screen.getByText('Membership Plans & Quota Management')).toBeInTheDocument();
       expect(screen.getByText('Dostoevsky Enthusiast')).toBeInTheDocument();
       expect(screen.getByText('reader@classic.org')).toBeInTheDocument();
+    });
+  });
+
+  it('renders AdminAnalytics with cognitive telemetry and character engagement', async () => {
+    vi.mocked(lorelyApi.getAdminAnalytics).mockResolvedValueOnce({
+      character_engagement: [
+        {
+          id: 'char-1',
+          name: 'The Dreamer',
+          book_title: 'White Nights',
+          role: 'Protagonist',
+          sessions_count: 5,
+          messages_count: 24,
+          unique_readers: 2,
+          emotion_state: { hope: 0.85 },
+        },
+      ],
+      plan_distribution: { free: 1, scholar: 3, institution: 0 },
+      telemetry: {
+        total_vector_chunks: 24,
+        total_books: 3,
+        total_messages: 24,
+        total_users: 4,
+        avg_retrieval_latency_ms: 22.4,
+        vector_similarity_avg: 0.912,
+        llm_provider: 'gemini',
+        llm_model: 'gemini-3.5-flash',
+      },
+      timeline: [
+        { day: 'Mon', turns: 12, hope: 78, longing: 65, anxiety: 22 },
+      ],
+    });
+
+    render(
+      <BrowserRouter>
+        <AdminAnalytics />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Literary Analytics & Deep Telemetry')).toBeInTheDocument();
+      expect(screen.getByText('The Dreamer')).toBeInTheDocument();
+      expect(screen.getByText('Cognitive Emotion Drift Timeline')).toBeInTheDocument();
+      expect(screen.getByText('Reader Tier Distribution')).toBeInTheDocument();
     });
   });
 });

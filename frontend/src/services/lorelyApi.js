@@ -356,6 +356,11 @@ export const lorelyApi = {
     });
   },
 
+  getAdminAnalytics: async (accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request('/admin/analytics', { accessToken: token });
+  },
+
   adminListBooks: async (accessToken) => {
     const token = accessToken || lorelyApi.getStoredAdminToken();
     const res = await request('/admin/books', { accessToken: token });

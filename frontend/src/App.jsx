@@ -13,6 +13,7 @@ import AdminRouteGuard from './pages/admin/AdminRouteGuard';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminOverview from './pages/admin/AdminOverview';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminCatalog from './pages/admin/AdminCatalog';
 import AdminJobs from './pages/admin/AdminJobs';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -62,9 +63,10 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
 
         {/* Dedicated Authoritative Admin Portal */}
         <Route path="admin/login" element={<AdminLogin />} />
-        <Route element={<AdminRouteGuard userRole={userRole} loading={loadingRole} />}>
-          <Route path="admin" element={<AdminLayout accessToken={accessToken} />}>
+        <Route element={<AdminRouteGuard />}>
+          <Route path="admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="catalog" element={<AdminCatalog />} />
             <Route path="jobs" element={<AdminJobs />} />
             <Route path="users" element={<AdminUsers />} />
