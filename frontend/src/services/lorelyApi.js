@@ -386,6 +386,14 @@ export const lorelyApi = {
     });
   },
 
+  adminDeleteUser: async (userId, accessToken) => {
+    const token = accessToken || lorelyApi.getStoredAdminToken();
+    return request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+      accessToken: token,
+    });
+  },
+
   switchRole: async (role, accessToken) => {
     return request('/auth/switch-role', {
       method: 'POST',

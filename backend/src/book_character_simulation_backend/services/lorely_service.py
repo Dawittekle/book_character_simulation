@@ -867,11 +867,13 @@ class LorelyService:
 
             results = []
             for s in sessions:
-                char = session.get(CharacterProfileRecord, s.character_id)
-                book = session.get(Book, s.book_id)
                 msg_count = session.scalar(
                     select(func.count(ChatMessage.id)).where(ChatMessage.session_id == s.id)
                 ) or 0
+                if msg_count == 0:
+                    continue  # Only include conversations where the user has actually exchanged messages
+                char = session.get(CharacterProfileRecord, s.character_id)
+                book = session.get(Book, s.book_id)
                 results.append({
                     "id": s.id,
                     "title": s.title or f"Conversation with {char.name if char else 'Character'}",
@@ -956,7 +958,12 @@ class LorelyService:
                 raise NotFoundError("Conversation session not found.")
 
             if s.owner_user_id != user.id:
-                raise ForbiddenError("You do not have access to this conversation.")
+                guest_user = session.scalar(select(UserAccount).where(UserAccount.supabase_user_id == "guest-reader"))
+                if guest_user and s.owner_user_id == guest_user.id and auth_user and getattr(auth_user, "role", None) != "guest":
+                    s.owner_user_id = user.id
+                    session.flush()
+                else:
+                    raise ForbiddenError("You do not have access to this conversation.")
 
             messages = session.scalars(
                 select(ChatMessage)
@@ -998,7 +1005,12 @@ class LorelyService:
                 raise NotFoundError("Conversation not found.")
 
             if chat_session.owner_user_id != user.id:
-                raise ForbiddenError("You cannot send messages to this conversation.")
+                guest_user = session.scalar(select(UserAccount).where(UserAccount.supabase_user_id == "guest-reader"))
+                if guest_user and chat_session.owner_user_id == guest_user.id and auth_user and getattr(auth_user, "role", None) != "guest":
+                    chat_session.owner_user_id = user.id
+                    session.flush()
+                else:
+                    raise ForbiddenError("You cannot send messages to this conversation.")
 
             char = session.get(CharacterProfileRecord, chat_session.character_id)
             if char is None:
@@ -1268,7 +1280,12 @@ class LorelyService:
                 raise NotFoundError("Conversation not found.")
 
             if s.owner_user_id != user.id:
-                raise ForbiddenError("You cannot delete this conversation.")
+                guest_user = session.scalar(select(UserAccount).where(UserAccount.supabase_user_id == "guest-reader"))
+                if guest_user and s.owner_user_id == guest_user.id and auth_user and getattr(auth_user, "role", None) != "guest":
+                    s.owner_user_id = user.id
+                    session.flush()
+                else:
+                    raise ForbiddenError("You cannot delete this conversation.")
 
             session.delete(s)
             session.flush()
@@ -1610,6 +1627,10 @@ class LorelyService:
             if target_user is None:
                 raise NotFoundError("Target user not found.")
 
+            configured_email = getattr(self.settings, "admin_email", "admin@lorely.app").strip().lower()
+            if target_user.email and target_user.email.strip().lower() == configured_email:
+                raise ForbiddenError("The primary administrator account cannot be demoted or modified.")
+
             role_rec = session.scalar(select(UserRole).where(UserRole.user_id == target_user.id))
             if role_rec is None:
                 role_rec = UserRole(user_id=target_user.id, role=new_role)
@@ -1623,6 +1644,33 @@ class LorelyService:
                 "email": target_user.email,
                 "role": role_rec.role,
             }
+
+    def admin_delete_user(
+        self, auth_user: AuthenticatedUser | None, target_user_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            self.require_admin(session, user)
+
+            target_user = session.get(UserAccount, target_user_id)
+            if target_user is None:
+                raise NotFoundError("Target user not found.")
+
+            configured_email = getattr(self.settings, "admin_email", "admin@lorely.app").strip().lower()
+            if target_user.email and target_user.email.strip().lower() == configured_email:
+                raise ForbiddenError("The primary administrator account cannot be deleted.")
+
+            # Remove associated sessions and settings
+            user_sessions = session.scalars(select(ChatSession).where(ChatSession.owner_user_id == target_user.id)).all()
+            for cs in user_sessions:
+                session.execute(delete(ChatMessage).where(ChatMessage.session_id == cs.id))
+                session.delete(cs)
+            session.execute(delete(UserRole).where(UserRole.user_id == target_user.id))
+            session.execute(delete(UserSettings).where(UserSettings.user_id == target_user.id))
+            session.delete(target_user)
+            session.flush()
+
+            return {"user_id": target_user_id, "deleted": True}
 
     # --- Notifications & Broadcast System ---
 

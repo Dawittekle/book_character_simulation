@@ -62,6 +62,9 @@ class SupabaseAuthService:
 
     def _verify_admin_token(self, token: str) -> AuthenticatedUser | None:
         try:
+            unverified_header = jwt.get_unverified_header(token)
+            if unverified_header.get("alg") != "HS256":
+                return None
             secret = self._get_admin_signing_key()
             payload = jwt.decode(
                 token,
@@ -78,8 +81,7 @@ class SupabaseAuthService:
                     role="admin",
                     claims=payload,
                 )
-        except Exception as exc:
-            logger.warning("Admin token verification failed: %s", exc)
+        except Exception:
             return None
         return None
 

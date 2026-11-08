@@ -4,24 +4,9 @@ import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl, formatRelativeDate } from '../lib/formatters';
 import './Conversations.css';
 
-const DEFAULT_CONVERSATIONS = [
-  {
-    id: 's-white-nights-1',
-    title: 'Dialogue on Solitude and Petersburg Nights',
-    book_title: 'White Nights',
-    character_id: 'c-nastenka',
-    character_name: 'Nástyenka',
-    character_avatar_asset_id: 'avatar-nastenka',
-    spoiler_policy: 'cautious',
-    message_count: 4,
-    last_message_at: new Date(Date.now() - 3600000).toISOString(),
-    latest_emotion_state: { hope: 0.85, melancholy: 0.25 },
-  },
-];
-
 export default function Conversations() {
   const { accessToken } = useOutletContext();
-  const [conversations, setConversations] = useState(DEFAULT_CONVERSATIONS);
+  const [conversations, setConversations] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,11 +14,13 @@ export default function Conversations() {
     async function loadConversations() {
       try {
         const list = await lorelyApi.listConversations(accessToken);
-        if (mounted && list && list.length > 0) {
-          setConversations(list);
+        if (mounted) {
+          setConversations(Array.isArray(list) ? list : []);
         }
       } catch (err) {
-        // Fall back gracefully
+        if (mounted) {
+          setConversations([]);
+        }
       }
     }
     loadConversations();

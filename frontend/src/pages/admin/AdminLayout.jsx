@@ -72,17 +72,10 @@ export default function AdminLayout({ accessToken }) {
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
-              marginRight: '8px',
+              marginRight: '0',
             }}
           >
             Sign Out Admin
-          </button>
-          <button
-            type="button"
-            className="admin-return-btn"
-            onClick={() => navigate('/')}
-          >
-            ← Reader App
           </button>
         </div>
       </header>

@@ -28,6 +28,7 @@ export default function AdminUsers() {
   }, [accessToken]);
 
   const handleToggleRole = async (user) => {
+    if (user.email === 'admin@lorely.app') return;
     const nextRole = user.role === 'admin' ? 'user' : 'admin';
     setUpdatingId(user.id);
 
@@ -37,7 +38,23 @@ export default function AdminUsers() {
         prev.map((u) => (u.id === user.id ? { ...u, role: updated.role } : u)),
       );
     } catch (err) {
-      // Error handling
+      alert(err.message || 'Failed to update user role.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (user.email === 'admin@lorely.app') return;
+    if (!window.confirm(`Are you sure you want to permanently delete user ${user.email || user.display_name}?`)) {
+      return;
+    }
+    setUpdatingId(user.id);
+    try {
+      await lorelyApi.adminDeleteUser(user.id, accessToken);
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    } catch (err) {
+      alert(err.message || 'Failed to delete user.');
     } finally {
       setUpdatingId(null);
     }
@@ -49,7 +66,7 @@ export default function AdminUsers() {
         <div>
           <h1 className="users-title">User Roles & Access Control</h1>
           <p className="users-sub">
-            Authoritative Postgres role management. Grant or revoke administrative access across the platform.
+            Authoritative platform access control. Primary admin (admin@lorely.app) is protected and cannot be deleted or demoted.
           </p>
         </div>
       </header>
@@ -71,36 +88,69 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="code-font">{u.id.slice(0, 8)}...</td>
-                  <td>
-                    <strong>{u.display_name}</strong>
-                  </td>
-                  <td>{u.email}</td>
-                  <td>
-                    <span className="type-badge">
-                      {u.plan_tier || 'scholar'}
-                    </span>
-                  </td>
-                  <td>{u.book_count}</td>
-                  <td>
-                    <span className={`role-pill pill-${u.role}`}>
-                      {u.role === 'admin' ? '🛡️ Admin' : '📖 Reader'}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className={`role-toggle-btn ${u.role === 'admin' ? 'demote' : 'promote'}`}
-                      disabled={updatingId === u.id}
-                      onClick={() => handleToggleRole(u)}
-                    >
-                      {u.role === 'admin' ? 'Demote to Reader' : 'Promote to Admin'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {users.map((u) => {
+                const isPrimaryAdmin = u.email === 'admin@lorely.app';
+                return (
+                  <tr key={u.id}>
+                    <td className="code-font">{u.id.slice(0, 8)}...</td>
+                    <td>
+                      <strong>{u.display_name}</strong>
+                    </td>
+                    <td>{u.email}</td>
+                    <td>
+                      <span className="type-badge">
+                        {u.plan_tier || 'scholar'}
+                      </span>
+                    </td>
+                    <td>{u.book_count}</td>
+                    <td>
+                      <span className={`role-pill pill-${u.role}`}>
+                        {isPrimaryAdmin ? '🛡️ Primary Admin' : u.role === 'admin' ? '🛡️ Admin' : '📖 Reader'}
+                      </span>
+                    </td>
+                    <td>
+                      {isPrimaryAdmin ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            color: '#C89D5C',
+                            fontWeight: 600,
+                            padding: '4px 8px',
+                            background: 'rgba(200, 157, 92, 0.1)',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(200, 157, 92, 0.25)',
+                          }}
+                        >
+                          🔒 Protected Admin
+                        </span>
+                      ) : (
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className={`role-toggle-btn ${u.role === 'admin' ? 'demote' : 'promote'}`}
+                            disabled={updatingId === u.id}
+                            onClick={() => handleToggleRole(u)}
+                          >
+                            {u.role === 'admin' ? 'Demote to Reader' : 'Promote to Admin'}
+                          </button>
+                          <button
+                            type="button"
+                            className="role-toggle-btn demote"
+                            style={{ background: '#451a1a', borderColor: '#7a2828' }}
+                            disabled={updatingId === u.id}
+                            onClick={() => handleDeleteUser(u)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -65,21 +65,26 @@ export default function ChatScreen() {
           }
         }
 
-        // If session exists or create one
-        let activeSessionId = paramSessionId;
-        if (!activeSessionId) {
-          const conv = await lorelyApi.createConversation(
-            { characterId, title: `Dialogue with ${dossier?.name || 'Character'}` },
-            accessToken,
-          );
-          activeSessionId = conv.id;
-          if (mounted) setSessionId(conv.id);
-        }
-
-        if (activeSessionId) {
-          const fetchedMessages = await lorelyApi.getConversationMessages(activeSessionId, accessToken);
+        // Only load messages if a specific sessionId is provided in the route param
+        if (paramSessionId) {
+          try {
+            const fetchedMessages = await lorelyApi.getConversationMessages(paramSessionId, accessToken);
+            if (mounted) {
+              setSessionId(paramSessionId);
+              setMessages(fetchedMessages || []);
+            }
+          } catch (fetchErr) {
+            console.warn('Existing session inaccessible, starting fresh session:', fetchErr);
+            if (mounted) {
+              setSessionId(null);
+              setMessages([]);
+            }
+          }
+        } else {
+          // Do NOT create conversation prematurely on mount - wait until user sends first message
           if (mounted) {
-            setMessages(fetchedMessages || []);
+            setSessionId(null);
+            setMessages([]);
           }
         }
       } catch (err) {
@@ -143,17 +148,19 @@ export default function ChatScreen() {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
+    const wasRecording = isRecording;
     setIsRecording(false);
     if (inputText.trim()) {
-      handleSendMessage();
+      handleSendMessage(undefined, wasRecording);
     }
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = async (e, forceVoiceMode = false) => {
     e?.preventDefault();
     const clean = inputText.trim();
     if (!clean || sending) return;
 
+    const useVoice = forceVoiceMode || isRecording;
     if (isRecording) {
       setIsRecording(false);
       if (recognitionRef.current) {
@@ -188,19 +195,45 @@ export default function ChatScreen() {
       }
 
       let responseData;
-      // If user was using voice mode or has audio, invoke voice-turn
-      if (isRecording) {
-        responseData = await lorelyApi.sendVoiceTurn(
-          activeSessionId,
-          { speechText: clean },
-          accessToken,
-        );
-      } else {
-        responseData = await lorelyApi.sendConversationMessage(
-          activeSessionId,
-          { content: clean },
-          accessToken,
-        );
+      try {
+        if (useVoice) {
+          responseData = await lorelyApi.sendVoiceTurn(
+            activeSessionId,
+            { speechText: clean },
+            accessToken,
+          );
+        } else {
+          responseData = await lorelyApi.sendConversationMessage(
+            activeSessionId,
+            { content: clean },
+            accessToken,
+          );
+        }
+      } catch (msgErr) {
+        // If session was 403 (e.g. stale ownership) or 404, automatically recover by creating a new session for the current user
+        const isAuthOrNotFoundError =
+          msgErr?.status === 403 ||
+          msgErr?.status === 404 ||
+          String(msgErr?.message || '').includes('403') ||
+          String(msgErr?.message || '').includes('Forbidden') ||
+          String(msgErr?.message || '').includes('not found');
+
+        if (isAuthOrNotFoundError && characterId) {
+          console.warn('Session ownership conflict, establishing fresh session for user...');
+          const freshConv = await lorelyApi.createConversation(
+            { characterId, title: `Dialogue with ${character.name}` },
+            accessToken,
+          );
+          activeSessionId = freshConv.id;
+          setSessionId(freshConv.id);
+          responseData = await lorelyApi.sendConversationMessage(
+            activeSessionId,
+            { content: clean },
+            accessToken,
+          );
+        } else {
+          throw msgErr;
+        }
       }
 
       const audioSrc = responseData.audio?.base64_data
@@ -222,12 +255,15 @@ export default function ChatScreen() {
         setEmotionState(responseData.updated_state.emotion_state);
       }
     } catch (err) {
+      console.error('Chat error:', err);
       setMessages((prev) => [
         ...prev,
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          content: 'My apologies, I could not respond at this moment. Please check your connection or try again.',
+          content: err.message && !err.message.includes('403')
+            ? `I could not respond due to an error: ${err.message}`
+            : 'My apologies, I could not respond at this moment. Please check your connection or try again.',
           created_at: new Date().toISOString(),
         },
       ]);

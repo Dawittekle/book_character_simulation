@@ -379,23 +379,28 @@ def seed_dostoevsky_books(db: DatabaseManager, settings: Any) -> list[Book]:
     seeded_books: list[Book] = []
 
     with db.session_scope() as session:
-        # Resolve curator user for ownership
-        curator = session.scalar(
-            select(UserAccount).where(UserAccount.email == "curator@lorely.app")
+        # Resolve primary admin user for library ownership
+        admin_email = getattr(settings, "admin_email", "admin@lorely.app").strip().lower()
+        admin_user = session.scalar(
+            select(UserAccount).where(UserAccount.email == admin_email)
         )
-        if curator is None:
-            curator = UserAccount(
-                supabase_user_id="curator-system-user",
-                email="curator@lorely.app",
-                display_name="Fyodor Dostoevsky Collection",
+        if admin_user is None:
+            admin_user = UserAccount(
+                supabase_user_id="admin-curator-user",
+                email=admin_email,
+                display_name="System Administrator",
             )
-            session.add(curator)
+            session.add(admin_user)
             session.flush()
 
-            # Ensure curator has admin role
-            role_rec = UserRole(user_id=curator.id, role="admin")
-            session.add(role_rec)
-            session.flush()
+        role_rec = session.scalar(
+            select(UserRole).where(UserRole.user_id == admin_user.id)
+        )
+        if role_rec is None:
+            session.add(UserRole(user_id=admin_user.id, role="admin"))
+        else:
+            role_rec.role = "admin"
+        session.flush()
 
         for book_info in DOSTOEVSKY_BOOKS_DATA:
             existing_book = session.scalar(
@@ -409,7 +414,7 @@ def seed_dostoevsky_books(db: DatabaseManager, settings: Any) -> list[Book]:
                 logger.info("Seeding featured Dostoevsky book: %s", book_info["title"])
                 book = Book(
                     id=book_info["id"],
-                    owner_user_id=curator.id,
+                    owner_user_id=admin_user.id,
                     title=book_info["title"],
                     author=book_info["author"],
                     summary=book_info["summary"],
@@ -511,7 +516,7 @@ def purge_demo_and_test_data(db: DatabaseManager, settings: Any) -> dict[str, in
                 session.delete(b)
                 deleted_counts["books"] += 1
 
-        # 2. Also clean up any orphan sessions not tied to valid books
+        # 2. Also clean up any orphan sessions not tied to valid books, or unstarted 0-message sessions
         orphan_sessions = session.scalars(
             select(ChatSession).where(ChatSession.book_id.not_in(featured_ids))
         ).all()
@@ -520,6 +525,13 @@ def purge_demo_and_test_data(db: DatabaseManager, settings: Any) -> dict[str, in
             session.query(ChatMessage).filter(ChatMessage.session_id.in_(orphan_ids)).delete(synchronize_session=False)
             session.query(CharacterMemory).filter(CharacterMemory.session_id.in_(orphan_ids)).delete(synchronize_session=False)
             session.query(ChatSession).filter(ChatSession.id.in_(orphan_ids)).delete(synchronize_session=False)
+
+        # Remove empty uninitiated sessions
+        empty_sessions = session.scalars(
+            select(ChatSession).where(~ChatSession.messages.any())
+        ).all()
+        for es in empty_sessions:
+            session.delete(es)
 
         # 3. Ensure the designated Admin user exists
         admin_email = getattr(settings, "admin_email", "admin@lorely.app")

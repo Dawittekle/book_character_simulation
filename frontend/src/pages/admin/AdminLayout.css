@@ -88,22 +88,6 @@
   color: #FFFFFF;
 }
 
-.admin-return-btn {
-  background: none;
-  border: 1px solid #325240;
-  color: #C0D6CA;
-  border-radius: 6px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.admin-return-btn:hover {
-  background: #233B2E;
-  color: #FFFFFF;
-}
 
 .admin-main-container {
   flex: 1;

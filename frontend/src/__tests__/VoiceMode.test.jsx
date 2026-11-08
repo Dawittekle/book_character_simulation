@@ -48,7 +48,7 @@ describe('WaveformPlayer Component', () => {
 
 describe('Voice Mode in ChatScreen', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('activates voice recording mode when microphone button is clicked', async () => {
@@ -59,8 +59,6 @@ describe('Voice Mode in ChatScreen', () => {
       role: 'Protagonist',
       emotion_state: { hope: 0.8 },
     });
-    lorelyApi.createConversation.mockResolvedValueOnce({ id: 'session-voice-1' });
-    lorelyApi.getConversationMessages.mockResolvedValueOnce([]);
 
     render(
       <MemoryRouter initialEntries={['/chat/char-1']}>
@@ -115,9 +113,9 @@ describe('Voice Mode in ChatScreen', () => {
       </MemoryRouter>
     );
 
-    // Wait for load
+    // Wait for dossier to load
     await waitFor(() => {
-      expect(lorelyApi.createConversation).toHaveBeenCalled();
+      expect(lorelyApi.getCharacterDossier).toHaveBeenCalled();
     });
 
     // Click mic button
@@ -128,8 +126,9 @@ describe('Voice Mode in ChatScreen', () => {
     const sendVoiceBtn = await screen.findByText(/Send Voice/i);
     fireEvent.click(sendVoiceBtn);
 
-    // Verify voice turn was sent
+    // Verify conversation was created and voice turn was sent
     await waitFor(() => {
+      expect(lorelyApi.createConversation).toHaveBeenCalled();
       expect(lorelyApi.sendVoiceTurn).toHaveBeenCalledWith(
         'session-voice-2',
         expect.objectContaining({ speechText: expect.any(String) }),

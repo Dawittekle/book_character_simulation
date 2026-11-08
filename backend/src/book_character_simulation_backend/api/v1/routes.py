@@ -441,13 +441,20 @@ def admin_update_user_role(user_id: str):
     return jsonify(service.admin_update_user_role(user, user_id, new_role)), 200
 
 
+@v1_blueprint.route("/admin/users/<user_id>", methods=["DELETE"])
+def admin_delete_user(user_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.admin_delete_user(user, user_id)), 200
+
+
 @v1_blueprint.route("/auth/switch-role", methods=["POST"])
 @v1_blueprint.route("/users/me/role", methods=["PATCH"])
 def switch_my_role():
-    user = _optional_authenticated_user()
+    user = _authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
-    target_role = body.get("role", "admin")
+    target_role = body.get("role", "user")
     return jsonify(service.switch_my_role(user, target_role)), 200
 
 
