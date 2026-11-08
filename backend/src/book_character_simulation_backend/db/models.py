@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -168,6 +169,9 @@ class Book(IdentifierMixin, TimestampMixin, Base):
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
         back_populates="book", cascade="all, delete-orphan"
     )
+    chunks: Mapped[list["BookChunk"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
 
 
 class BookSource(IdentifierMixin, TimestampMixin, Base):
@@ -183,6 +187,24 @@ class BookSource(IdentifierMixin, TimestampMixin, Base):
     file_size_bytes: Mapped[int | None] = mapped_column(Integer)
 
     book: Mapped["Book"] = relationship(back_populates="sources")
+
+
+class BookChunk(IdentifierMixin, Base):
+    __tablename__ = "book_chunks"
+
+    book_id: Mapped[str] = mapped_column(
+        ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    chapter_order: Mapped[int] = mapped_column(Integer, default=1, nullable=False, index=True)
+    chapter_title: Mapped[str | None] = mapped_column(String(255))
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+
+    book: Mapped["Book"] = relationship(back_populates="chunks")
 
 
 class CharacterProfileRecord(IdentifierMixin, TimestampMixin, Base):
@@ -247,6 +269,7 @@ class ChatMessage(IdentifierMixin, Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False)
     input_modality: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
+    citations: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,

@@ -53,16 +53,23 @@ def chat_prompt(
     psi_parameters: str,
     emotion_state: str,
     latest_message: str,
+    book_passages: str = "",
 ) -> tuple[str, str]:
     system_prompt = (
         "You are roleplaying as a book character. "
         "Stay in character and return only valid JSON."
     )
 
+    passages_section = (
+        f"\nRelevant source book passages (ground your memories, facts, and tone in these events):\n{book_passages}\n"
+        if book_passages
+        else ""
+    )
+
     user_prompt = f"""
 Character details:
 {character_json}
-
+{passages_section}
 Conversation history:
 {chat_history}
 

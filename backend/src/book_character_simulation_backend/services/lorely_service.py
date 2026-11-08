@@ -12,6 +12,7 @@ from ..auth import AuthenticatedUser
 from ..db.base import utc_now
 from ..db.models import (
     Book,
+    BookChunk,
     BookProcessingStatus,
     BookSource,
     CharacterMemory,
@@ -29,6 +30,9 @@ from ..db.session import DatabaseManager
 from ..errors import BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError
 from ..llm.factory import get_llm_provider
 from ..prompts import character_extraction_prompt, chat_prompt, fact_extraction_prompt
+from ..rag.chunker import build_semantic_chunks
+from ..rag.embedding_provider import EmbeddingService
+from ..rag.retriever import SpoilerAwareRetriever
 from ..schemas.character import CharacterProfile
 from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
@@ -42,6 +46,8 @@ class LorelyService:
         self.db = database_manager
         self.settings = settings
         self.classifier = ClassificationService(settings)
+        self.embedding_service = EmbeddingService(settings)
+        self.retriever = SpoilerAwareRetriever(self.embedding_service)
 
     # --- User & Account helpers ---
 
@@ -248,6 +254,30 @@ class LorelyService:
             session.add(book)
             session.flush()
 
+            if extracted_text:
+                source = BookSource(
+                    book_id=book.id,
+                    original_filename=f"{cleaned_title}.txt",
+                    mime_type="text/plain",
+                    extracted_text=extracted_text,
+                    file_size_bytes=len(extracted_text.encode("utf-8")),
+                )
+                session.add(source)
+                chunks = build_semantic_chunks(extracted_text)
+                for c in chunks:
+                    vec = self.embedding_service.embed_text(c.content)
+                    session.add(
+                        BookChunk(
+                            book_id=book.id,
+                            chapter_order=c.chapter_order,
+                            chapter_title=c.chapter_title,
+                            chunk_index=c.chunk_index,
+                            content=c.content,
+                            embedding=vec,
+                        )
+                    )
+                session.flush()
+
             return {
                 "id": book.id,
                 "title": book.title,
@@ -421,6 +451,24 @@ class LorelyService:
                         )
                         session.add(char_rec)
                         characters.append(char_rec)
+
+                # Build semantic chunks and store embeddings for RAG
+                job.stage = "indexing_passages"
+                job.progress = 85
+                chunks = build_semantic_chunks(extracted_text)
+                for c in chunks:
+                    vec = self.embedding_service.embed_text(c.content)
+                    session.add(
+                        BookChunk(
+                            book_id=book.id,
+                            chapter_order=c.chapter_order,
+                            chapter_title=c.chapter_title,
+                            chunk_index=c.chunk_index,
+                            content=c.content,
+                            embedding=vec,
+                        )
+                    )
+                session.flush()
 
                 book.processing_status = BookProcessingStatus.ready
                 job.status = "completed"
@@ -865,6 +913,7 @@ class LorelyService:
                     "role": m.role.value,
                     "content": m.content,
                     "input_modality": m.input_modality,
+                    "citations": m.citations or [],
                     "sequence_number": m.sequence_number,
                     "created_at": m.created_at.isoformat() if m.created_at else None,
                 }
@@ -955,6 +1004,37 @@ class LorelyService:
             else:
                 formatted_history = f"User: {cleaned_content}"
 
+            # RAG passage retrieval with spoiler boundary protection
+            policy = chat_session.spoiler_policy or "cautious"
+            max_chapter = None
+            if policy == "no_spoilers":
+                max_chapter = 1
+            elif policy == "cautious":
+                max_chapter = 3
+
+            retrieved = self.retriever.retrieve(
+                session,
+                book_id=chat_session.book_id,
+                query=cleaned_content,
+                spoiler_policy=policy,
+                max_allowed_chapter=max_chapter,
+                top_k=3,
+            )
+
+            citations = [
+                {
+                    "chapter_order": p.chapter_order,
+                    "chapter_title": p.chapter_title,
+                    "snippet": p.content[:200] + "..." if len(p.content) > 200 else p.content,
+                    "similarity": round(float(p.similarity), 3),
+                }
+                for p in retrieved
+            ]
+            passages_context = "\n\n".join(
+                f"[{p.chapter_title} (Chapter {p.chapter_order})]: {p.content}"
+                for p in retrieved
+            )
+
             char_json_dict = {
                 "id": char.stable_character_key or char.id,
                 "name": char.name,
@@ -969,6 +1049,7 @@ class LorelyService:
                 psi_parameters=json.dumps(user_state.psi_parameters),
                 emotion_state=json.dumps(user_state.emotion_state),
                 latest_message=cleaned_content,
+                book_passages=passages_context,
             )
 
             provider = get_llm_provider(
@@ -1003,6 +1084,7 @@ class LorelyService:
                 content=reply_text,
                 sequence_number=next_seq + 1,
                 input_modality="text",
+                citations=citations,
             )
             session.add(assistant_msg)
             session.flush()
@@ -1043,6 +1125,7 @@ class LorelyService:
                 "user_message_id": user_msg.id,
                 "assistant_message_id": assistant_msg.id,
                 "response": reply_text,
+                "citations": citations,
                 "character": {
                     "id": char.id,
                     "name": char.name,
