@@ -74,6 +74,12 @@ export default function AdminLayout() {
           >
             Subscribers & Payments
           </NavLink>
+          <NavLink
+            to="/admin/settings"
+            className={({ isActive }) => `admin-nav-tab ${isActive ? 'active' : ''}`}
+          >
+            Settings
+          </NavLink>
         </nav>
 
         <div className="admin-header-right">

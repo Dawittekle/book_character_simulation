@@ -1,0 +1,237 @@
+.admin-settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-header-line {
+  border-bottom: 1px solid #233B2E;
+  padding-bottom: 16px;
+}
+
+.settings-title {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 6px;
+}
+
+.settings-sub {
+  font-size: 13px;
+  color: #8CA898;
+  margin: 0;
+  max-width: 800px;
+}
+
+.settings-toast {
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+.toast-success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #86EFAC;
+}
+
+.toast-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #F87171;
+}
+
+.settings-cards-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .settings-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-panel-card {
+  background: #14241B;
+  border: 1px solid #233B2E;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card-section-head {
+  border-bottom: 1px solid #233B2E;
+  padding-bottom: 14px;
+}
+
+.card-icon-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.section-icon {
+  font-size: 22px;
+}
+
+.section-heading {
+  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 4px;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: #8CA898;
+  margin: 0;
+}
+
+.settings-accounts-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.form-group-cluster {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(35, 59, 46, 0.7);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cluster-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #C89D5C;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.settings-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 650px) {
+  .settings-input-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-field-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field-unit label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #B5C7BC;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-field-unit input,
+.form-field-unit textarea {
+  background: #0B1611;
+  border: 1px solid #233B2E;
+  color: #FFFFFF;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.form-field-unit input:focus,
+.form-field-unit textarea:focus {
+  border-color: #C89D5C;
+}
+
+.field-caption {
+  font-size: 11px;
+  color: #6C8B77;
+}
+
+.settings-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #233B2E;
+  padding-top: 16px;
+}
+
+.btn-save-settings {
+  background: linear-gradient(135deg, #C89D5C 0%, #A87D3C 100%);
+  border: none;
+  color: #0B1611;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-save-settings:hover:not(:disabled) {
+  background: #D8AF6E;
+  box-shadow: 0 0 16px rgba(200, 157, 92, 0.35);
+}
+
+.btn-save-settings:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Status Panel */
+.telemetry-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.telemetry-item {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #233B2E;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.telemetry-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #8CA898;
+  letter-spacing: 0.5px;
+}
+
+.telemetry-val {
+  font-size: 13px;
+  color: #FFFFFF;
+  font-weight: 500;
+}
+
+.telemetry-badge {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-active {
+  color: #4ADE80;
+}

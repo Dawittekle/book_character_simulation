@@ -186,26 +186,6 @@ export default function PricingModal({
     reader.readAsDataURL(file);
   };
 
-  const handleAutofillDemo = () => {
-    if (currency === 'USD') {
-      if (usdMethod === 'card') {
-        setCardNumber('4242 4242 4242 4242');
-        setExpiry('12/28');
-        setCvc('123');
-        setBillingRef('Literary Scholar Membership');
-      } else {
-        setPaypalEmail(userEmail || 'reader@example.com');
-        setBillingRef('PAYPAL-DEMO-LORELY');
-      }
-    } else {
-      setPayerName(userEmail ? userEmail.split('@')[0] : 'Dawit Haile');
-      setPayerPhone('0911002233');
-      setReferenceNumber(
-        etbMethod === 'telebirr' ? `TB-${Date.now().toString().slice(-8)}` : `FT-${Date.now().toString().slice(-8)}`
-      );
-    }
-  };
-
   const calculatePrice = (priceMonthly) => {
     if (currency === 'USD') {
       return {
@@ -361,21 +341,6 @@ export default function PricingModal({
                       <span className="pricing-card-period">{price.unit}</span>
                     </div>
 
-                    <div className="pricing-card-quotas">
-                      <div className="quota-tag">
-                        <span>Books:</span>
-                        <strong>{plan.book_quota}</strong>
-                      </div>
-                      <div className="quota-tag">
-                        <span>Daily Turns:</span>
-                        <strong>{plan.daily_messages}</strong>
-                      </div>
-                      <div className="quota-tag">
-                        <span>Voice HD:</span>
-                        <strong>{plan.voice_access ? 'Yes' : 'No'}</strong>
-                      </div>
-                    </div>
-
                     <button
                       type="button"
                       className={`pricing-card-action-btn ${
@@ -396,7 +361,7 @@ export default function PricingModal({
                     </button>
 
                     <ul className="pricing-feature-list">
-                      {plan.features?.map((f, i) => (
+                      {plan.features?.slice(0, 4).map((f, i) => (
                         <li key={i} className="pricing-feature-item">
                           <span className="pricing-feature-icon">✓</span>
                           <span>{f}</span>
@@ -431,13 +396,6 @@ export default function PricingModal({
                 <div className="currency-badge-pill">
                   Currency: <strong>{currency}</strong>
                 </div>
-                <button
-                  type="button"
-                  className="quick-autofill-btn"
-                  onClick={handleAutofillDemo}
-                >
-                  ⚡ Autofill Demo Details
-                </button>
               </div>
             </div>
 
@@ -448,8 +406,9 @@ export default function PricingModal({
             )}
 
             <div className="checkout-grid">
-              {/* Left Column: Plan Summary */}
+              {/* Left Column: Minimalist Plan Summary */}
               <div className="checkout-summary-box">
+                <span className="summary-plan-badge">SELECTED MEMBERSHIP</span>
                 <h3 className="checkout-plan-title">{selectedPlan.name}</h3>
                 <div className="checkout-price-callout">
                   {calculatePrice(selectedPlan.price_monthly).display}
@@ -457,23 +416,8 @@ export default function PricingModal({
                 </div>
                 <p className="checkout-desc">{selectedPlan.description}</p>
 
-                <div className="checkout-plan-metrics">
-                  <div className="metric-row">
-                    <span>Personal Books:</span>
-                    <strong>{selectedPlan.book_quota}</strong>
-                  </div>
-                  <div className="metric-row">
-                    <span>Daily Dialogue Turns:</span>
-                    <strong>{selectedPlan.daily_messages}</strong>
-                  </div>
-                  <div className="metric-row">
-                    <span>Speech Synthesis:</span>
-                    <strong>{selectedPlan.voice_access ? 'HD Neural Audio' : 'Standard'}</strong>
-                  </div>
-                </div>
-
                 <ul className="checkout-features-checklist">
-                  {selectedPlan.features?.map((f, i) => (
+                  {selectedPlan.features?.slice(0, 4).map((f, i) => (
                     <li key={i}>✓ {f}</li>
                   ))}
                 </ul>

@@ -9,6 +9,7 @@ import AdminCatalog from '../pages/admin/AdminCatalog';
 import AdminJobs from '../pages/admin/AdminJobs';
 import AdminPlans from '../pages/admin/AdminPlans';
 import AdminSubscribers from '../pages/admin/AdminSubscribers';
+import AdminSettings from '../pages/admin/AdminSettings';
 import { lorelyApi } from '../services/lorelyApi';
 
 vi.mock('../services/lorelyApi', () => ({
@@ -313,6 +314,21 @@ describe('Admin Portal & Route Guard', () => {
       expect(screen.getByText('PENDING APPROVAL')).toBeInTheDocument();
       expect(screen.getByText('✓ Verify & Upgrade')).toBeInTheDocument();
       expect(screen.getByText('✕ Reject')).toBeInTheDocument();
+    });
+  });
+
+  it('renders AdminSettings and allows configuring Telebirr and CBE bank accounts', async () => {
+    render(
+      <BrowserRouter>
+        <AdminSettings />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('System & Payment Settings')).toBeInTheDocument();
+      expect(screen.getByText(/Ethiopian Bank & Mobile Money/i)).toBeInTheDocument();
+      expect(screen.getByDisplayValue('+251 91 123 4567')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('1000123456789')).toBeInTheDocument();
     });
   });
 });

@@ -402,6 +402,15 @@
   gap: 16px;
 }
 
+.summary-plan-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #C89D5C;
+  text-transform: uppercase;
+  margin-bottom: -6px;
+}
+
 .checkout-plan-title {
   font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
   font-size: 20px;

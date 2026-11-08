@@ -135,9 +135,16 @@ describe('PricingModal Component', () => {
       expect(screen.getByText(/Upgrade to Literary Scholar/i)).toBeInTheDocument();
     });
 
-    // Click Demo Card fill
-    const autofillBtn = screen.getByRole('button', { name: /Autofill Demo Details/i });
-    fireEvent.click(autofillBtn);
+    // Fill card inputs directly
+    fireEvent.change(screen.getByPlaceholderText(/4242 •••• •••• 4242/i), {
+      target: { value: '4242 4242 4242 4242' },
+    });
+    fireEvent.change(screen.getByLabelText(/Expiration Date/i), {
+      target: { value: '12/28' },
+    });
+    fireEvent.change(screen.getByLabelText(/Security Code/i), {
+      target: { value: '123' },
+    });
 
     // Submit payment
     const submitBtn = screen.getByRole('button', { name: /Submit Payment/i });

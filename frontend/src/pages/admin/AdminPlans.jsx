@@ -36,11 +36,30 @@ const DEFAULT_PLANS = [
   },
 ];
 
+// Storage helpers to instantly render cached plans and allocations without layout flicker
+const getStoredAdminData = (key) => {
+  try {
+    const raw = sessionStorage.getItem(`lorely_admin_${key}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredAdminData = (key, data) => {
+  try {
+    sessionStorage.setItem(`lorely_admin_${key}`, JSON.stringify(data));
+  } catch {}
+};
+
 export default function AdminPlans() {
   const { accessToken } = useOutletContext();
-  const [plans, setPlans] = useState(DEFAULT_PLANS);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedPlans = getStoredAdminData('plans');
+  const cachedUsers = getStoredAdminData('users');
+
+  const [plans, setPlans] = useState(cachedPlans || DEFAULT_PLANS);
+  const [users, setUsers] = useState(cachedUsers || []);
+  const [loading, setLoading] = useState(!cachedUsers || cachedUsers.length === 0);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [editingPlan, setEditingPlan] = useState(null);
@@ -56,17 +75,20 @@ export default function AdminPlans() {
         ]);
         if (mounted) {
           if (plansRes?.plans?.length) {
-            setPlans(
-              plansRes.plans.map((p) => ({
-                ...p,
-                features: DEFAULT_PLANS.find((dp) => dp.id === p.id)?.features || [
-                  `Book quota: ${p.book_quota}`,
-                  `Daily messages: ${p.daily_messages}`,
-                ],
-              }))
-            );
+            const mappedPlans = plansRes.plans.map((p) => ({
+              ...p,
+              features: DEFAULT_PLANS.find((dp) => dp.id === p.id)?.features || [
+                `Book quota: ${p.book_quota}`,
+                `Daily messages: ${p.daily_messages}`,
+              ],
+            }));
+            setPlans(mappedPlans);
+            setStoredAdminData('plans', mappedPlans);
           }
-          if (usersRes) setUsers(usersRes);
+          if (usersRes && Array.isArray(usersRes)) {
+            setUsers(usersRes);
+            setStoredAdminData('users', usersRes);
+          }
         }
       } finally {
         if (mounted) setLoading(false);
@@ -207,22 +229,37 @@ export default function AdminPlans() {
           Assign membership tiers and custom quota packages to active readers.
         </p>
 
-        {loading ? (
-          <p className="admin-subtext">Loading user plan allocations...</p>
-        ) : (
-          <div className="admin-table-wrapper">
-            <table className="admin-telemetry-table">
-              <thead>
+        <div className="admin-table-wrapper">
+          <table className="admin-telemetry-table">
+            <thead>
+              <tr>
+                <th>Reader</th>
+                <th>Email</th>
+                <th>Current Tier</th>
+                <th>Assigned Books</th>
+                <th>Modify Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && users.length === 0 ? (
+                // Elegant skeleton rows matching character gallery / user library
+                [1, 2, 3].map((n) => (
+                  <tr key={`skeleton-user-${n}`} className="skeleton-table-row">
+                    <td><div className="skeleton-line-cell medium" /></td>
+                    <td><div className="skeleton-line-cell long" /></td>
+                    <td><div className="skeleton-pill-cell" /></td>
+                    <td><div className="skeleton-line-cell short" /></td>
+                    <td><div className="skeleton-line-cell medium" /></td>
+                  </tr>
+                ))
+              ) : users.length === 0 ? (
                 <tr>
-                  <th>Reader</th>
-                  <th>Email</th>
-                  <th>Current Tier</th>
-                  <th>Assigned Books</th>
-                  <th>Modify Tier</th>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: '#8CA898' }}>
+                    No readers registered in database yet.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
+              ) : (
+                users.map((u) => (
                   <tr key={u.id}>
                     <td>
                       <strong>{u.display_name}</strong>
@@ -251,11 +288,11 @@ export default function AdminPlans() {
                       </select>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* Edit Plan Modal */}
