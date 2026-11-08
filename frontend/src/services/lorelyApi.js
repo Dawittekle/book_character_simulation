@@ -173,6 +173,52 @@ export const lorelyApi = {
     });
   },
 
+  // Voice & Audio Methods
+  getMessageAudioUrl: (sessionId, messageId) => {
+    return `${V1_URL}/conversations/${sessionId}/messages/${messageId}/audio`;
+  },
+
+  fetchMessageAudio: async (sessionId, messageId, accessToken) => {
+    const headers = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const response = await fetch(`${V1_URL}/conversations/${sessionId}/messages/${messageId}/audio`, {
+      headers,
+    });
+    if (!response.ok) throw new Error('Audio retrieval failed');
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
+  sendVoiceTurn: async (sessionId, { speechText, audioBlob, llmProvider } = {}, accessToken) => {
+    const headers = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+
+    if (audioBlob) {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'speech.wav');
+      if (speechText) formData.append('speech_text', speechText);
+      if (llmProvider) formData.append('llm_provider', llmProvider);
+
+      const response = await fetch(`${V1_URL}/conversations/${sessionId}/voice-turn`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Voice turn failed');
+      return data;
+    }
+
+    return request(`/conversations/${sessionId}/voice-turn`, {
+      method: 'POST',
+      body: {
+        speech_text: speechText,
+        llm_provider: llmProvider,
+      },
+      accessToken,
+    });
+  },
+
   // Document Ingestion & Classification Gate
   inspectSource: async ({ file, text, filename, llmProvider } = {}, accessToken) => {
     const headers = {};

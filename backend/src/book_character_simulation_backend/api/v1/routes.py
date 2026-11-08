@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import base64
+import io
 import logging
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, send_file
 
 from ...auth import AuthenticatedUser
 from ...errors import AppError, BadRequestError, UnauthorizedError
@@ -291,6 +293,61 @@ def send_conversation_message(session_id: str):
         llm_provider=body.get("llm_provider"),
     )
     return jsonify(result), 201
+
+
+@v1_blueprint.route("/conversations/<session_id>/messages/<message_id>/audio", methods=["GET"])
+def get_message_audio(session_id: str, message_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    audio_bytes, mime_type, _ = service.synthesize_message_audio(user, session_id, message_id)
+    return send_file(
+        io.BytesIO(audio_bytes),
+        mimetype=mime_type,
+        as_attachment=False,
+        download_name=f"audio_{message_id}.wav",
+    )
+
+
+@v1_blueprint.route("/conversations/<session_id>/voice-turn", methods=["POST"])
+def conversation_voice_turn(session_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+
+    speech_text = None
+    audio_bytes = None
+    filename = "speech.wav"
+    llm_provider = None
+
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        speech_text = body.get("speech_text") or body.get("content")
+        raw_b64 = body.get("audio_base64")
+        if raw_b64:
+            try:
+                audio_bytes = base64.b64decode(raw_b64)
+            except Exception as exc:
+                raise BadRequestError(f"Invalid base64 audio payload: {exc}")
+        llm_provider = body.get("llm_provider")
+    elif request.files:
+        speech_text = request.form.get("speech_text")
+        llm_provider = request.form.get("llm_provider")
+        file = request.files.get("audio") or request.files.get("file")
+        if file:
+            audio_bytes = file.read()
+            filename = file.filename or "speech.wav"
+
+    if not speech_text and not audio_bytes:
+        raise BadRequestError("Either speech_text or audio file payload is required.")
+
+    result = service.execute_voice_turn(
+        user,
+        session_id,
+        speech_text=speech_text,
+        audio_bytes=audio_bytes,
+        filename=filename,
+        llm_provider=llm_provider,
+    )
+    return jsonify(result), 200
 
 
 @v1_blueprint.route("/conversations/<session_id>", methods=["DELETE"])

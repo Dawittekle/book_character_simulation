@@ -1,30 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './WaveformPlayer.css';
 
-export default function WaveformPlayer({ isPlaying: externalPlaying, onTogglePlay }) {
+export default function WaveformPlayer({
+  audioSrc,
+  isPlaying: externalPlaying,
+  onTogglePlay,
+  initialDuration = 18,
+}) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(12); // seconds
-  const totalDuration = 18; // seconds
+  const [progress, setProgress] = useState(audioSrc ? 0 : 12);
+  const [duration, setDuration] = useState(initialDuration);
+  const audioRef = useRef(null);
 
   const active = externalPlaying !== undefined ? externalPlaying : isPlaying;
 
   const handleToggle = () => {
-    if (onTogglePlay) {
-      onTogglePlay();
+    if (audioSrc && audioRef.current) {
+      if (active) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      }
     } else {
       setIsPlaying((prev) => !prev);
+    }
+    if (onTogglePlay) {
+      onTogglePlay();
     }
   };
 
   useEffect(() => {
-    let timer;
-    if (active) {
-      timer = setInterval(() => {
-        setProgress((prev) => (prev >= totalDuration ? 0 : prev + 1));
-      }, 1000);
+    if (!audioSrc) {
+      let timer;
+      if (active) {
+        timer = setInterval(() => {
+          setProgress((prev) => (prev >= duration ? 0 : prev + 1));
+        }, 1000);
+      }
+      return () => clearInterval(timer);
     }
-    return () => clearInterval(timer);
-  }, [active, totalDuration]);
+  }, [active, duration, audioSrc]);
+
+  useEffect(() => {
+    if (!audioSrc || !audioRef.current) return;
+    const audio = audioRef.current;
+
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(Math.round(audio.duration));
+      }
+    };
+    const handleTimeUpdate = () => {
+      setProgress(Math.round(audio.currentTime));
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [audioSrc]);
 
   const formatTime = (secs) => {
     const mins = Math.floor(secs / 60);
@@ -40,6 +85,7 @@ export default function WaveformPlayer({ isPlaying: externalPlaying, onTogglePla
 
   return (
     <div className="waveform-player" data-testid="waveform-player">
+      {audioSrc && <audio ref={audioRef} src={audioSrc} preload="metadata" />}
       <button
         type="button"
         className="waveform-play-button"
@@ -55,7 +101,7 @@ export default function WaveformPlayer({ isPlaying: externalPlaying, onTogglePla
 
       <div className="waveform-bars-container">
         {bars.map((height, idx) => {
-          const played = idx / bars.length <= progress / totalDuration;
+          const played = idx / bars.length <= (progress / (duration || 1));
           return (
             <span
               key={idx}
@@ -70,7 +116,7 @@ export default function WaveformPlayer({ isPlaying: externalPlaying, onTogglePla
       </div>
 
       <div className="waveform-timestamp">
-        {formatTime(progress)} / {formatTime(totalDuration)}
+        {formatTime(progress)} / {formatTime(duration)}
       </div>
 
       <button type="button" className="waveform-speaker-button" aria-label="Mute/Unmute">

@@ -408,3 +408,70 @@
   color: #D5CAB9;
   font-size: 12px;
 }
+
+/* Voice Recording Mode UI */
+.composer-mic-btn.recording {
+  background: #DC2626;
+  color: #FFFFFF;
+  animation: pulse-recording 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-recording {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.subaction-pill.active {
+  color: #DC2626;
+  font-weight: 700;
+}
+
+.voice-recording-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  border-radius: 12px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #991B1B;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.voice-banner-left {
+  display: flex;
+  align-items: center;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #DC2626;
+  margin-right: 8px;
+  display: inline-block;
+  animation: blink-dot 1s infinite;
+}
+
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.stop-recording-btn {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stop-recording-btn:hover {
+  background: #B91C1C;
+}

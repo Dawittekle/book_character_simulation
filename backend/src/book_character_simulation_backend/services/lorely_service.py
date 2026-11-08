@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import re
@@ -37,6 +38,7 @@ from ..schemas.character import CharacterProfile
 from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
 from .classification_service import ClassificationService
+from .voice_service import VoiceService
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ class LorelyService:
         self.classifier = ClassificationService(settings)
         self.embedding_service = EmbeddingService(settings)
         self.retriever = SpoilerAwareRetriever(self.embedding_service)
+        self.voice_service = VoiceService(settings)
 
     # --- User & Account helpers ---
 
@@ -1137,6 +1140,70 @@ class LorelyService:
                 },
                 "memories": memory_facts,
             }
+
+    def synthesize_message_audio(
+        self,
+        auth_user: AuthenticatedUser | None,
+        session_id: str,
+        message_id: str,
+    ) -> tuple[bytes, str, float]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            chat_session = session.get(ChatSession, session_id)
+            if chat_session is None:
+                raise NotFoundError("Conversation not found.")
+
+            role_record = session.scalar(
+                select(UserRole).where(UserRole.user_id == user.id)
+            )
+            is_admin = bool(role_record and role_record.role == "admin")
+            if chat_session.owner_user_id != user.id and not is_admin:
+                raise ForbiddenError("You cannot access this conversation's audio.")
+
+            msg = session.get(ChatMessage, message_id)
+            if msg is None or msg.session_id != chat_session.id:
+                raise NotFoundError("Message not found in this conversation.")
+
+            char = session.get(CharacterProfileRecord, chat_session.character_id)
+            voice = "nova"
+            if char and isinstance(char.psi_parameters, dict):
+                voice = char.psi_parameters.get("voice", "nova")
+
+            return self.voice_service.synthesize_speech(msg.content, voice=voice)
+
+    def execute_voice_turn(
+        self,
+        auth_user: AuthenticatedUser | None,
+        session_id: str,
+        *,
+        speech_text: str | None = None,
+        audio_bytes: bytes | None = None,
+        filename: str = "speech.wav",
+        llm_provider: str | None = None,
+    ) -> dict[str, Any]:
+        transcript = (speech_text or "").strip()
+        if not transcript and audio_bytes:
+            transcript = self.voice_service.transcribe_audio(audio_bytes, filename=filename)
+
+        if not transcript:
+            raise BadRequestError("Speech text or audio payload is required.")
+
+        result = self.send_message(
+            auth_user,
+            session_id,
+            content=transcript,
+            input_modality="voice",
+            llm_provider=llm_provider,
+        )
+
+        audio_bytes_out, mime_type, duration = self.voice_service.synthesize_speech(result["response"])
+        result["audio"] = {
+            "mime_type": mime_type,
+            "duration": duration,
+            "base64_data": base64.b64encode(audio_bytes_out).decode("ascii"),
+            "speech_text": transcript,
+        }
+        return result
 
     def delete_conversation(self, auth_user: AuthenticatedUser | None, session_id: str) -> None:
         with self.db.session_scope() as session:

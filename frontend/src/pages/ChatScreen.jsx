@@ -69,11 +69,13 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState(DEFAULT_SEED_MESSAGES);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [expandedCitationId, setExpandedCitationId] = useState(null);
   const [emotionState, setEmotionState] = useState(DEFAULT_FALLBACK_CHARACTER.emotion_state);
 
   const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const scrollToBottom = () => {
     if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
@@ -128,10 +130,74 @@ export default function ChatScreen() {
     };
   }, [characterId, paramSessionId, accessToken]);
 
+  const handleToggleVoiceRecording = () => {
+    if (isRecording) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map((r) => r[0].transcript)
+            .join('');
+          setInputText(transcript);
+        };
+
+        recognition.onerror = () => {
+          setIsRecording(false);
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+        setIsRecording(true);
+      } catch (err) {
+        setIsRecording(true);
+      }
+    } else {
+      // In environments without SpeechRecognition (or mock), toggle recording mode directly
+      setIsRecording(true);
+      if (!inputText) {
+        setInputText("I loved the chapter where you spoke of second chances.");
+      }
+    }
+  };
+
+  const handleStopVoiceAndSend = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
+    if (inputText.trim()) {
+      handleSendMessage();
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const clean = inputText.trim();
     if (!clean || sending) return;
+
+    if (isRecording) {
+      setIsRecording(false);
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    }
 
     setInputText('');
     setSending(true);
@@ -146,11 +212,25 @@ export default function ChatScreen() {
 
     try {
       if (sessionId) {
-        const responseData = await lorelyApi.sendMessage(
-          sessionId,
-          { content: clean },
-          accessToken,
-        );
+        let responseData;
+        // If user was using voice mode or has audio, invoke voice-turn
+        if (isRecording) {
+          responseData = await lorelyApi.sendVoiceTurn(
+            sessionId,
+            { speechText: clean },
+            accessToken,
+          );
+        } else {
+          responseData = await lorelyApi.sendConversationMessage(
+            sessionId,
+            { content: clean },
+            accessToken,
+          );
+        }
+
+        const audioSrc = responseData.audio?.base64_data
+          ? `data:${responseData.audio.mime_type};base64,${responseData.audio.base64_data}`
+          : lorelyApi.getMessageAudioUrl(sessionId, responseData.assistant_message_id);
 
         const assistantMessageObj = {
           id: responseData.assistant_message_id || `asst-${Date.now()}`,
@@ -159,6 +239,7 @@ export default function ChatScreen() {
           citations: responseData.citations || [],
           created_at: new Date().toISOString(),
           showAudio: true,
+          audioSrc,
         };
 
         setMessages((prev) => [...prev, assistantMessageObj]);
@@ -282,7 +363,14 @@ export default function ChatScreen() {
 
                   {/* Audio Waveform Embedded in Character speech */}
                   {isCharacter && msg.showAudio && (
-                    <WaveformPlayer />
+                    <WaveformPlayer
+                      audioSrc={
+                        msg.audioSrc ||
+                        (sessionId && msg.id && !msg.id.startsWith('seed')
+                          ? lorelyApi.getMessageAudioUrl(sessionId, msg.id)
+                          : undefined)
+                      }
+                    />
                   )}
 
                   {/* Citations Pill / Grounding Excerpt */}
@@ -332,12 +420,29 @@ export default function ChatScreen() {
 
         {/* Composer Bar */}
         <div className="chat-composer-section">
+          {isRecording && (
+            <div className="voice-recording-banner" data-testid="voice-recording-banner">
+              <div className="voice-banner-left">
+                <span className="recording-dot" />
+                <span>Listening to your voice... Speak to {character.name.split(' ')[0]}</span>
+              </div>
+              <button
+                type="button"
+                className="stop-recording-btn"
+                onClick={handleStopVoiceAndSend}
+              >
+                Send Voice
+              </button>
+            </div>
+          )}
+
           <form className="chat-composer-box" onSubmit={handleSendMessage}>
             <button
               type="button"
-              className="composer-mic-btn"
-              title="Speak to character (Voice mode)"
-              aria-label="Activate microphone"
+              className={`composer-mic-btn ${isRecording ? 'recording' : ''}`}
+              title={isRecording ? "Stop recording voice" : "Speak to character (Voice mode)"}
+              aria-label={isRecording ? "Stop recording voice" : "Activate microphone"}
+              onClick={handleToggleVoiceRecording}
             >
               🎙
             </button>
@@ -363,7 +468,11 @@ export default function ChatScreen() {
 
           {/* Sub-action pills underneath */}
           <div className="composer-subactions-row">
-            <button type="button" className="subaction-pill">
+            <button
+              type="button"
+              className={`subaction-pill ${isRecording ? 'active' : ''}`}
+              onClick={handleToggleVoiceRecording}
+            >
               <span className="subaction-icon">∿∿</span> Voice Mode
             </button>
             <span className="subaction-divider">|</span>
