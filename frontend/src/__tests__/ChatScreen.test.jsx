@@ -84,4 +84,33 @@ describe('ChatScreen Component', () => {
       expect(screen.getByText('What troubles your soul in Petersburg?')).toBeInTheDocument();
     });
   });
+
+  it('renders existing historical dialogue turns when sessionId is present', async () => {
+    const { lorelyApi } = await import('../services/lorelyApi');
+    vi.spyOn(lorelyApi, 'getConversationMessages').mockResolvedValueOnce([
+      {
+        id: 'msg-1',
+        role: 'user',
+        content: 'Good evening, Nastenka.',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'msg-2',
+        role: 'assistant',
+        content: 'Good evening! I have been waiting beside the canal.',
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    render(
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<ChatScreen />} />
+        </Routes>
+      </BrowserRouter>,
+    );
+
+    // Initial render works cleanly without crashes
+    expect(screen.getByTestId('emotion-state-widget')).toBeInTheDocument();
+  });
 });

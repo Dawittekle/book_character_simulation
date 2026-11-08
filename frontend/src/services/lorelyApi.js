@@ -141,7 +141,18 @@ export const lorelyApi = {
   },
 
   // Conversations
-  listConversations: async ({ bookId, characterId } = {}, accessToken) => {
+  listConversations: async (filterOrToken = {}, maybeToken) => {
+    let bookId;
+    let characterId;
+    let accessToken = maybeToken;
+
+    if (typeof filterOrToken === 'string') {
+      accessToken = filterOrToken;
+    } else if (typeof filterOrToken === 'object' && filterOrToken !== null) {
+      bookId = filterOrToken.bookId || filterOrToken.book_id;
+      characterId = filterOrToken.characterId || filterOrToken.character_id;
+    }
+
     const params = new URLSearchParams();
     if (bookId) params.append('book_id', bookId);
     if (characterId) params.append('character_id', characterId);

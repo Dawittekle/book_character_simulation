@@ -81,10 +81,31 @@ export default function ChatScreen() {
             }
           }
         } else {
-          // Do NOT create conversation prematurely on mount - wait until user sends first message
-          if (mounted) {
-            setSessionId(null);
-            setMessages([]);
+          // If no sessionId in route param, check if user already has an active conversation with this character
+          try {
+            const existingConvs = await lorelyApi.listConversations({ characterId }, accessToken);
+            if (mounted && existingConvs && existingConvs.length > 0) {
+              const latestConv = existingConvs[0];
+              const fetchedMessages = await lorelyApi.getConversationMessages(latestConv.id, accessToken);
+              if (mounted) {
+                setSessionId(latestConv.id);
+                setMessages(fetchedMessages || []);
+                // Synchronize browser address bar so reloading preserves session
+                if (typeof window !== 'undefined' && window.history?.replaceState) {
+                  window.history.replaceState(null, '', `/chat/${characterId}/${latestConv.id}`);
+                }
+              }
+            } else if (mounted) {
+              // Wait until user sends first message to establish session
+              setSessionId(null);
+              setMessages([]);
+            }
+          } catch (convErr) {
+            console.warn('Could not query existing conversations for character:', convErr);
+            if (mounted) {
+              setSessionId(null);
+              setMessages([]);
+            }
           }
         }
       } catch (err) {
@@ -188,6 +209,9 @@ export default function ChatScreen() {
         );
         activeSessionId = conv.id;
         setSessionId(conv.id);
+        if (typeof window !== 'undefined' && window.history?.replaceState) {
+          window.history.replaceState(null, '', `/chat/${characterId}/${conv.id}`);
+        }
       }
 
       if (!activeSessionId) {
@@ -226,6 +250,9 @@ export default function ChatScreen() {
           );
           activeSessionId = freshConv.id;
           setSessionId(freshConv.id);
+          if (typeof window !== 'undefined' && window.history?.replaceState) {
+            window.history.replaceState(null, '', `/chat/${characterId}/${freshConv.id}`);
+          }
           responseData = await lorelyApi.sendConversationMessage(
             activeSessionId,
             { content: clean },

@@ -11,6 +11,7 @@ vi.mock('../services/lorelyApi', () => ({
     getCharacterDossier: vi.fn(),
     createConversation: vi.fn(),
     getConversationMessages: vi.fn(),
+    listConversations: vi.fn().mockResolvedValue([]),
     sendConversationMessage: vi.fn(),
     sendVoiceTurn: vi.fn(),
     getMessageAudioUrl: vi.fn((sessionId, msgId) => `/api/v1/conversations/${sessionId}/messages/${msgId}/audio`),
