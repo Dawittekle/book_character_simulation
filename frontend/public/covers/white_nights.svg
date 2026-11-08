@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="100%" height="100%">
+  <defs>
+    <linearGradient id="white-nights-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#1E293B"/>
+      <stop offset="85%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <radialGradient id="twilight-glow" cx="50%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#FEF08A" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#CBD5E1" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#1E293B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="canal-water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="300" height="420" rx="8" fill="url(#white-nights-sky)"/>
+  <rect x="12" y="12" width="276" height="396" rx="6" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-opacity="0.75"/>
+
+  <!-- Luminous White Night Sky & Moon -->
+  <circle cx="150" cy="140" r="60" fill="url(#twilight-glow)"/>
+  <circle cx="150" cy="140" r="26" fill="#FFFBEB"/>
+
+  <!-- Canal Bridge Railing & Lantern -->
+  <!-- Water -->
+  <rect x="12" y="270" width="276" height="70" fill="url(#canal-water)"/>
+  <path d="M12 270 Q150 250 288 270 L288 290 Q150 270 12 290 Z" fill="#0F172A"/>
+
+  <!-- Bridge Arch -->
+  <path d="M30 270 Q150 220 270 270" stroke="#D4AF37" stroke-width="3" fill="none" opacity="0.8"/>
+  <path d="M60 262 L60 275 M100 252 L100 270 M150 245 L150 268 M200 252 L200 270 M240 262 L240 275" stroke="#D4AF37" stroke-width="2" opacity="0.7"/>
+
+  <!-- Two silhouettes on the bridge (The Dreamer and Nastenka) -->
+  <circle cx="140" cy="225" r="7" fill="#0A0F1D"/>
+  <path d="M132 233 C132 242 148 242 148 233 Z" fill="#0A0F1D"/>
+  <circle cx="158" cy="227" r="6.5" fill="#0A0F1D"/>
+  <path d="M151 235 C151 243 165 243 165 235 Z" fill="#0A0F1D"/>
+
+  <!-- Classical Streetlamp -->
+  <line x1="85" y1="210" x2="85" y2="265" stroke="#D4AF37" stroke-width="2"/>
+  <polygon points="80,210 90,210 93,198 77,198" fill="#FDE047" opacity="0.9"/>
+  <circle cx="85" cy="204" r="8" fill="#FEF08A" opacity="0.5"/>
+
+  <!-- Subtle stars -->
+  <circle cx="45" cy="65" r="1.5" fill="#FDE047"/>
+  <circle cx="78" cy="95" r="1.2" fill="#FDE047"/>
+  <circle cx="225" cy="70" r="1.5" fill="#FDE047"/>
+  <circle cx="250" cy="110" r="1.2" fill="#FDE047"/>
+
+  <!-- Water reflections -->
+  <line x1="120" y1="295" x2="180" y2="295" stroke="#FEF08A" stroke-width="1" opacity="0.4"/>
+  <line x1="135" y1="305" x2="165" y2="305" stroke="#FEF08A" stroke-width="1" opacity="0.3"/>
+
+  <!-- Border Divider & Typography -->
+  <line x1="30" y1="345" x2="270" y2="345" stroke="#D4AF37" stroke-width="0.8" stroke-opacity="0.6"/>
+  <text x="150" y="372" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-size="16" font-weight="700" fill="#FFFDF0" letter-spacing="2">WHITE NIGHTS</text>
+  <text x="150" y="392" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="9" font-weight="600" fill="#D4AF37" letter-spacing="1.5">FYODOR DOSTOEVSKY</text>
+</svg>

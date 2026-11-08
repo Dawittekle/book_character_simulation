@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="100%" height="100%">
+  <defs>
+    <linearGradient id="vintage-amber-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#261A11"/>
+      <stop offset="40%" stop-color="#452715"/>
+      <stop offset="80%" stop-color="#6E3D1D"/>
+      <stop offset="100%" stop-color="#1F130B"/>
+    </linearGradient>
+    <radialGradient id="lantern-light" cx="50%" cy="38%" r="40%">
+      <stop offset="0%" stop-color="#FEF3C7" stop-opacity="1"/>
+      <stop offset="45%" stop-color="#F59E0B" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#452715" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="300" height="420" rx="8" fill="url(#vintage-amber-bg)"/>
+  <rect x="12" y="12" width="276" height="396" rx="6" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-opacity="0.75"/>
+
+  <!-- Warm Petersburg Hearth & Window Glow -->
+  <circle cx="150" cy="145" r="70" fill="url(#lantern-light)"/>
+
+  <!-- Arched Window Frame with Snow Falling -->
+  <path d="M100 210 L100 130 Q150 90 200 130 L200 210 Z" fill="#1C1108" opacity="0.85"/>
+  <path d="M100 210 L100 130 Q150 90 200 130 L200 210 Z" fill="none" stroke="#FBBF24" stroke-width="2"/>
+  <line x1="150" y1="102" x2="150" y2="210" stroke="#FBBF24" stroke-width="1.5"/>
+  <line x1="100" y1="155" x2="200" y2="155" stroke="#FBBF24" stroke-width="1.5"/>
+
+  <!-- Sky-blue breeches / garment ribbon emblem -->
+  <path d="M125 240 Q150 225 175 240 L165 265 Q150 255 135 265 Z" fill="#38BDF8" opacity="0.9"/>
+  <circle cx="150" cy="235" r="4" fill="#FBBF24"/>
+
+  <!-- Tailor's Shears / Needle emblem in gold -->
+  <line x1="135" y1="285" x2="165" y2="285" stroke="#FBBF24" stroke-width="2"/>
+  <circle cx="130" cy="285" r="5" fill="none" stroke="#FBBF24" stroke-width="1.5"/>
+  <circle cx="170" cy="285" r="5" fill="none" stroke="#FBBF24" stroke-width="1.5"/>
+
+  <!-- Winter snow specks -->
+  <circle cx="115" cy="125" r="1.5" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="170" cy="120" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="135" cy="175" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="180" cy="180" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+
+  <!-- Decorative Corner Filigrees -->
+  <circle cx="30" cy="30" r="3" fill="#FBBF24"/>
+  <circle cx="270" cy="30" r="3" fill="#FBBF24"/>
+  <circle cx="30" cy="390" r="3" fill="#FBBF24"/>
+  <circle cx="270" cy="390" r="3" fill="#FBBF24"/>
+
+  <!-- Typography Divider & Labels -->
+  <line x1="30" y1="340" x2="270" y2="340" stroke="#F59E0B" stroke-width="0.8" stroke-opacity="0.6"/>
+  <text x="150" y="368" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-size="16" font-weight="700" fill="#FFFBEB" letter-spacing="2">AN HONEST THIEF</text>
+  <text x="150" y="390" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="9" font-weight="600" fill="#FBBF24" letter-spacing="1.5">FYODOR DOSTOEVSKY</text>
+</svg>

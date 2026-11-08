@@ -26,9 +26,7 @@ def test_create_and_list_books(db_client: FlaskClient):
     res = db_client.get("/api/v1/books", headers=headers_u1)
     assert res.status_code == 200
     books = res.get_json()["books"]
-    assert len(books) == 1
-    assert books[0]["id"] == book_id
-    assert books[0]["is_owner"] is True
+    assert any(b["id"] == book_id and b["is_owner"] is True for b in books)
 
 
 def test_book_details_and_patch(db_client: FlaskClient):
@@ -73,10 +71,12 @@ def test_user_isolation_private_book(db_client: FlaskClient):
     )
     book_id = create_res.get_json()["id"]
 
-    # User 2 lists books -> should NOT see User 1's book
+    # User 2 lists books -> should NOT see User 1's private book
     res = db_client.get("/api/v1/books", headers=headers_u2)
     assert res.status_code == 200
-    assert len(res.get_json()["books"]) == 0
+    user2_books = res.get_json()["books"]
+    assert not any(b["id"] == book_id for b in user2_books)
+    assert not any(b["title"] == "Alpha Secret Diary" for b in user2_books)
 
     # User 2 attempts to get User 1's book details -> 403 Forbidden
     res = db_client.get(f"/api/v1/books/{book_id}", headers=headers_u2)

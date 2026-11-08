@@ -100,6 +100,21 @@ export function getCharacterAvatarUrl(name = '', avatarId = null) {
     return avatarId;
   }
   const clean = (name || '').toLowerCase();
+  if (clean.includes('dreamer') || avatarId === 'portrait-the-dreamer') {
+    return '/avatars/the_dreamer.svg';
+  }
+  if (clean.includes('nastenka') || clean.includes('nástyenka') || avatarId === 'portrait-nastenka') {
+    return '/avatars/nastenka.svg';
+  }
+  if (clean.includes('ridiculous') || avatarId === 'portrait-the-ridiculous-man') {
+    return '/avatars/the_ridiculous_man.svg';
+  }
+  if (clean.includes('astafy') || avatarId === 'portrait-astafy') {
+    return '/avatars/astafy_ivanovich.svg';
+  }
+  if (clean.includes('emelyan') || clean.includes('emelyushka') || avatarId === 'portrait-emelyan') {
+    return '/avatars/emelyan_ilyitch.svg';
+  }
   if (clean.includes('elena') || avatarId === 'portrait-elena-01') {
     return '/avatars/elena_marlowe.svg';
   }
@@ -112,7 +127,7 @@ export function getCharacterAvatarUrl(name = '', avatarId = null) {
   if (clean.includes('victor')) {
     return '/avatars/victor_kane.svg';
   }
-  return '/avatars/elena_marlowe.svg';
+  return '/avatars/the_dreamer.svg';
 }
 
 export function getBookCoverUrl(title = '', coverUrl = null) {
@@ -120,6 +135,15 @@ export function getBookCoverUrl(title = '', coverUrl = null) {
     return coverUrl;
   }
   const clean = (title || '').toLowerCase();
+  if (clean.includes('white nights') || clean.includes('white night')) {
+    return '/covers/white_nights.svg';
+  }
+  if (clean.includes('ridiculous')) {
+    return '/covers/the_dream_of_a_ridiculous_man.svg';
+  }
+  if (clean.includes('honest thief')) {
+    return '/covers/an_honest_thief.svg';
+  }
   if (clean.includes('midnight')) {
     return '/covers/the_midnight_letters.svg';
   }
@@ -132,7 +156,7 @@ export function getBookCoverUrl(title = '', coverUrl = null) {
   if (clean.includes('voyage') || clean.includes('last')) {
     return '/covers/the_last_voyage.svg';
   }
-  return '/covers/the_midnight_letters.svg';
+  return '/covers/white_nights.svg';
 }
 
 export function getEmotionInsight(emotionState = {}) {

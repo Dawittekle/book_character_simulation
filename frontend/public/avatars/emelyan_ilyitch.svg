@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="100%" height="100%">
+  <defs>
+    <linearGradient id="emelyan-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E5E5E5"/>
+      <stop offset="100%" stop-color="#A3A3A3"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="240" rx="12" fill="url(#emelyan-bg)"/>
+  <!-- Portrait Base -->
+  <circle cx="100" cy="95" r="44" fill="#FCEBD9"/>
+  <!-- Disheveled sandy-brown hair and stubble -->
+  <path d="M56 95 C54 48 146 48 144 95 C144 115 138 120 134 110 C125 70 75 70 66 110 C62 120 56 115 56 95 Z" fill="#78350F"/>
+  <!-- Sorrowful, childlike, pleading eyes -->
+  <ellipse cx="86" cy="95" rx="3.5" ry="4.5" fill="#451A03"/>
+  <ellipse cx="114" cy="95" rx="3.5" ry="4.5" fill="#451A03"/>
+  <path d="M80 88 C85 86 90 88 94 91" stroke="#525252" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M106 91 C110 88 115 86 120 88" stroke="#525252" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 95 L98 107 L102 107" stroke="#D19C79" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Tremulous, repentant mouth -->
+  <path d="M93 118 C97 116 103 116 107 118" stroke="#991B1B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Threadbare coat with patched scarf -->
+  <path d="M58 215 C68 155 132 155 142 215 Z" fill="#525252"/>
+  <path d="M82 155 Q100 175 118 155 L112 195 Q100 185 88 195 Z" fill="#9CA3AF"/>
+</svg>

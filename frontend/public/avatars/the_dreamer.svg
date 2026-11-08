@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="100%" height="100%">
+  <defs>
+    <linearGradient id="dreamer-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E2E8F0"/>
+      <stop offset="100%" stop-color="#94A3B8"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="240" rx="12" fill="url(#dreamer-bg)"/>
+  <!-- Portrait Base -->
+  <circle cx="100" cy="95" r="46" fill="#FCEBD9"/>
+  <!-- Dark curly hair of 19th-century romantic -->
+  <path d="M54 95 C52 40 148 40 146 95 C146 115 140 120 135 110 C125 70 75 70 65 110 C60 120 54 115 54 95 Z" fill="#2D241E"/>
+  <!-- Thoughtful eyes -->
+  <ellipse cx="85" cy="95" rx="3.5" ry="4.5" fill="#334155"/>
+  <ellipse cx="115" cy="95" rx="3.5" ry="4.5" fill="#334155"/>
+  <path d="M80 86 C85 84 90 85 93 87" stroke="#1E1712" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M107 87 C110 85 115 84 120 86" stroke="#1E1712" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 95 L98 107 L102 107" stroke="#D19C79" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M92 118 C96 121 104 121 108 118" stroke="#9A3412" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Romantic Petersburg dark frock coat and silver cravat -->
+  <path d="M55 215 C65 155 135 155 145 215 Z" fill="#1E293B"/>
+  <polygon points="90,158 100,185 110,158" fill="#F8FAFC"/>
+  <circle cx="100" cy="180" r="2.5" fill="#D4AF37"/>
+</svg>

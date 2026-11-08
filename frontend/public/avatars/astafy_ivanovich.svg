@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="100%" height="100%">
+  <defs>
+    <linearGradient id="astafy-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="240" rx="12" fill="url(#astafy-bg)"/>
+  <!-- Portrait Base -->
+  <circle cx="100" cy="95" r="46" fill="#F8E3CE"/>
+  <!-- Silver-grey military veteran cropped hair -->
+  <path d="M54 95 C52 45 148 45 146 95 C146 105 142 110 138 100 C130 65 70 65 62 100 C58 110 54 105 54 95 Z" fill="#94A3B8"/>
+  <!-- Distinguished grey mustache -->
+  <path d="M82 114 Q100 112 100 116 Q100 112 118 114 Q100 125 82 114 Z" fill="#64748B"/>
+  <!-- Weathered, kind eyes with character lines -->
+  <ellipse cx="85" cy="94" rx="3.5" ry="4" fill="#451A03"/>
+  <ellipse cx="115" cy="94" rx="3.5" ry="4.5" fill="#451A03"/>
+  <path d="M78 86 C83 83 90 84 94 87" stroke="#475569" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M106 87 C110 84 117 83 122 86" stroke="#475569" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M100 93 L97 106 L103 106" stroke="#B45309" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Retired soldier high-collared coat with brass buttons -->
+  <path d="M55 215 C65 152 135 152 145 215 Z" fill="#365314"/>
+  <path d="M92 152 L108 152 L105 185 L95 185 Z" fill="#1C1917"/>
+  <circle cx="100" cy="165" r="3" fill="#F59E0B"/>
+  <circle cx="100" cy="180" r="3" fill="#F59E0B"/>
+</svg>

@@ -28,8 +28,9 @@ describe('Discover Page', () => {
     expect(screen.getByText('Lorely')).toBeInTheDocument();
     expect(screen.getByText('Step into the stories.')).toBeInTheDocument();
     expect(screen.getByText('Timeless Classics')).toBeInTheDocument();
-    expect(screen.getByText('The Midnight Letters')).toBeInTheDocument();
-    expect(screen.getByText('The Hidden Garden')).toBeInTheDocument();
+    expect(screen.getByText('White Nights')).toBeInTheDocument();
+    expect(screen.getByText('The Dream of a Ridiculous Man')).toBeInTheDocument();
+    expect(screen.getByText('An Honest Thief')).toBeInTheDocument();
   });
 
   it('triggers add book modal when "+ Add a Book" card is clicked', () => {

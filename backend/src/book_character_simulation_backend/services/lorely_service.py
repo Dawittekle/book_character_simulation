@@ -54,9 +54,33 @@ class LorelyService:
 
     # --- User & Account helpers ---
 
-    def resolve_user(self, session: Session, auth_user: AuthenticatedUser | None) -> UserAccount:
+    def resolve_user(
+        self,
+        session: Session,
+        auth_user: AuthenticatedUser | None,
+        *,
+        allow_guest: bool = False,
+    ) -> UserAccount:
         if auth_user is None:
-            raise UnauthorizedError("Authentication required.")
+            if not allow_guest:
+                raise UnauthorizedError("Authentication required.")
+            guest = session.scalar(
+                select(UserAccount).where(UserAccount.supabase_user_id == "guest-reader")
+            )
+            if guest is None:
+                guest = UserAccount(
+                    supabase_user_id="guest-reader",
+                    email="guest@lorely.app",
+                    display_name="Guest Reader",
+                )
+                session.add(guest)
+                session.flush()
+                session.add_all([
+                    UserRole(user_id=guest.id, role="user"),
+                    UserSettings(user_id=guest.id),
+                ])
+                session.flush()
+            return guest
 
         user = session.scalar(
             select(UserAccount).where(UserAccount.supabase_user_id == auth_user.subject)
@@ -187,9 +211,9 @@ class LorelyService:
 
     # --- Books ---
 
-    def list_books(self, auth_user: AuthenticatedUser | None) -> list[dict[str, Any]]:
+    def list_books(self, auth_user: AuthenticatedUser | None = None) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             books = session.scalars(
                 select(Book)
                 .where(or_(Book.owner_user_id == user.id, Book.visibility == "featured"))
@@ -577,7 +601,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, book_id: str
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             return self._get_book_details_in_session(session, user, book_id)
 
     def update_book(
@@ -625,7 +649,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, book_id: str
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             book = session.get(Book, book_id)
             if book is None:
                 raise NotFoundError("Book not found.")
@@ -661,7 +685,7 @@ class LorelyService:
         self, auth_user: AuthenticatedUser | None, character_id: str
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
-            user = self.resolve_user(session, auth_user)
+            user = self.resolve_user(session, auth_user, allow_guest=True)
             char = session.get(CharacterProfileRecord, character_id)
             if char is None:
                 # Fallback by stable_character_key

@@ -4,35 +4,31 @@ import BookCard from '../components/BookCard';
 import { lorelyApi } from '../services/lorelyApi';
 import './Discover.css';
 
-// Default featured collection fallback books matching reference visual
+// Default featured collection fallback books featuring Fyodor Dostoevsky classics
 const DEFAULT_FEATURED_BOOKS = [
   {
-    id: 'b-midnight-letters',
-    title: 'The Midnight Letters',
-    author: 'Elena Marlowe',
+    id: 'book-dostoevsky-white-nights',
+    title: 'White Nights',
+    author: 'Fyodor Dostoevsky',
     character_count: 2,
-    cover_url: '/covers/the_midnight_letters.svg',
+    cover_url: '/covers/white_nights.svg',
+    summary: 'A sentimental novel from the recollections of a dreamer across the luminous white nights of St. Petersburg.',
   },
   {
-    id: 'b-hidden-garden',
-    title: 'The Hidden Garden',
-    author: 'Frances Hodgson',
-    character_count: 3,
-    cover_url: '/covers/the_hidden_garden.svg',
+    id: 'book-dostoevsky-ridiculous-man',
+    title: 'The Dream of a Ridiculous Man',
+    author: 'Fyodor Dostoevsky',
+    character_count: 1,
+    cover_url: '/covers/the_dream_of_a_ridiculous_man.svg',
+    summary: 'A visionary philosophical revelation on an uncorrupted duplicate earth.',
   },
   {
-    id: 'b-echoes-tomorrow',
-    title: 'Echoes of Tomorrow',
-    author: 'Arthur Chandler',
-    character_count: 4,
-    cover_url: '/covers/echoes_of_tomorrow.svg',
-  },
-  {
-    id: 'b-last-voyage',
-    title: 'The Last Voyage',
-    author: 'Capt. S. Hawthorne',
+    id: 'book-dostoevsky-honest-thief',
+    title: 'An Honest Thief',
+    author: 'Fyodor Dostoevsky',
     character_count: 2,
-    cover_url: '/covers/the_last_voyage.svg',
+    cover_url: '/covers/an_honest_thief.svg',
+    summary: 'A touching narrative of conscience and forgiveness in St. Petersburg.',
   },
 ];
 

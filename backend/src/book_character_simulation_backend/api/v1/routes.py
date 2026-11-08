@@ -59,6 +59,13 @@ def handle_unexpected_error(exc: Exception):
     return jsonify({"error": "An unexpected server error occurred."}), 500
 
 
+def _optional_authenticated_user() -> AuthenticatedUser | None:
+    try:
+        return _authenticated_user()
+    except Exception:
+        return None
+
+
 # --- Me / Settings ---
 
 @v1_blueprint.route("/me", methods=["GET"])
@@ -151,7 +158,7 @@ def get_job_status(job_id: str):
 
 @v1_blueprint.route("/books", methods=["GET"])
 def list_books():
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify({"books": service.list_books(user)})
 
@@ -180,7 +187,7 @@ def create_book():
 
 @v1_blueprint.route("/books/<book_id>", methods=["GET"])
 def get_book_details(book_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify(service.get_book_details(user, book_id))
 
@@ -203,7 +210,7 @@ def delete_book(book_id: str):
 
 @v1_blueprint.route("/books/<book_id>/characters", methods=["GET"])
 def list_book_characters(book_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify({"characters": service.list_characters(user, book_id)})
 
@@ -212,7 +219,7 @@ def list_book_characters(book_id: str):
 
 @v1_blueprint.route("/characters/<character_id>", methods=["GET"])
 def get_character_dossier(character_id: str):
-    user = _authenticated_user()
+    user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify(service.get_character_dossier(user, character_id))
 
