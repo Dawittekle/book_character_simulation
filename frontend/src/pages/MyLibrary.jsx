@@ -75,6 +75,14 @@ export default function MyLibrary() {
   return (
     <div className="lorely-library-page" data-testid="my-library-page">
       <header className="library-header">
+        <button
+          type="button"
+          className="page-back-btn"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
         <div className="library-title-group">
           <h1 className="library-title">My Literary Shelf</h1>
           <p className="library-subtitle">

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { lorelyApi } from '../services/lorelyApi';
 import './Settings.css';
 
 export default function Settings() {
   const { accessToken } = useOutletContext();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState('');
   const [readingTheme, setReadingTheme] = useState('parchment');
@@ -71,6 +72,14 @@ export default function Settings() {
   return (
     <div className="lorely-settings-page" data-testid="settings-page">
       <header className="settings-header">
+        <button
+          type="button"
+          className="page-back-btn"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
         <h1 className="settings-title">Reader Preferences & Profile</h1>
         <p className="settings-subtitle">
           Configure your personal reading environment, spoiler boundaries, and display identity.

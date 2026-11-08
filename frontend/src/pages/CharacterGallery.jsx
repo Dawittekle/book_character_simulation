@@ -6,36 +6,44 @@ import './CharacterGallery.css';
 
 const DEFAULT_CHARACTERS = [
   {
-    id: 'c-elena-marlowe',
-    name: 'Elena Marlowe',
-    book_title: 'The Midnight Letters',
+    id: 'char-the-dreamer',
+    name: 'The Dreamer',
+    book_title: 'White Nights',
     role: 'Protagonist',
-    personality: 'A thoughtful writer with a curious mind and a hopeful heart.',
-    avatar_asset_id: 'portrait-elena-01',
+    personality: 'A lonely, solitary, and deeply romantic young man wandering the luminous Petersburg canals.',
+    avatar_asset_id: 'portrait-the-dreamer',
   },
   {
-    id: 'c-daniel-hayes',
-    name: 'Daniel Hayes',
-    book_title: 'The Midnight Letters',
+    id: 'char-nastenka',
+    name: 'Nástyenka',
+    book_title: 'White Nights',
     role: 'Companion',
-    personality: 'A loyal coastal cartographer who decodes historic navigational charts.',
-    avatar_asset_id: 'portrait-daniel-01',
+    personality: 'Warm-hearted, candid, emotional, and spirited, yearning for true connection and freedom.',
+    avatar_asset_id: 'portrait-nastenka',
   },
   {
-    id: 'c-margaret-ellison',
-    name: 'Margaret Ellison',
-    book_title: 'The Midnight Letters',
-    role: 'Mentor',
-    personality: 'An esteemed literary salon host who safeguards lost manuscripts.',
-    avatar_asset_id: 'portrait-margaret-01',
+    id: 'char-ridiculous-man',
+    name: 'The Ridiculous Man',
+    book_title: 'The Dream of a Ridiculous Man',
+    role: 'Philosopher',
+    personality: 'A Petersburg thinker whose cosmic dream revealed the living gospel of human love.',
+    avatar_asset_id: 'portrait-the-ridiculous-man',
   },
   {
-    id: 'c-victor-kane',
-    name: 'Victor Kane',
-    book_title: 'The Midnight Letters',
-    role: 'Rival',
-    personality: 'A relentless antique collector vying for the coastal estate archives.',
-    avatar_asset_id: 'portrait-victor-01',
+    id: 'char-astafy-ivanovich',
+    name: 'Astafy Ivanovich',
+    book_title: 'An Honest Thief',
+    role: 'Narrator',
+    personality: 'An austere retired soldier of strict integrity and tender Christian compassion.',
+    avatar_asset_id: 'portrait-astafy',
+  },
+  {
+    id: 'char-emelyan-ilyitch',
+    name: 'Emelyan Ilyitch',
+    book_title: 'An Honest Thief',
+    role: 'Tragic Companion',
+    personality: 'A gentle, childlike stray soul burdened by devastating guilt and repentance.',
+    avatar_asset_id: 'portrait-emelyan',
   },
 ];
 
@@ -77,6 +85,14 @@ export default function CharacterGallery() {
   return (
     <div className="lorely-gallery-page" data-testid="character-gallery-page">
       <header className="gallery-header">
+        <button
+          type="button"
+          className="page-back-btn"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
         <div className="gallery-title-group">
           <h1 className="gallery-title">Meet the Characters</h1>
           <p className="gallery-subtitle">

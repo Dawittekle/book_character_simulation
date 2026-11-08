@@ -39,3 +39,28 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
+
+/* Shared Elegant Page Back Button */
+.page-back-btn {
+  background: none;
+  border: 1px solid #D5CAB9;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: #554D43;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-self: flex-start;
+}
+
+.page-back-btn:hover {
+  background: #F4EFE6;
+  border-color: #C89D5C;
+  color: #1C2E24;
+}

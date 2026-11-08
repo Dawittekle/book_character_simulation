@@ -6,16 +6,16 @@ import './Conversations.css';
 
 const DEFAULT_CONVERSATIONS = [
   {
-    id: 's-midnight-letters-1',
-    title: 'Dialogue on Literature and Hope',
-    book_title: 'The Midnight Letters',
-    character_id: 'c-elena-marlowe',
-    character_name: 'Elena Marlowe',
-    character_avatar_asset_id: 'portrait-elena-01',
+    id: 's-white-nights-1',
+    title: 'Dialogue on Solitude and Petersburg Nights',
+    book_title: 'White Nights',
+    character_id: 'c-nastenka',
+    character_name: 'Nástyenka',
+    character_avatar_asset_id: 'avatar-nastenka',
     spoiler_policy: 'cautious',
-    message_count: 3,
+    message_count: 4,
     last_message_at: new Date(Date.now() - 3600000).toISOString(),
-    latest_emotion_state: { hope: 0.78 },
+    latest_emotion_state: { hope: 0.85, melancholy: 0.25 },
   },
 ];
 
@@ -55,6 +55,14 @@ export default function Conversations() {
   return (
     <div className="lorely-conversations-page" data-testid="conversations-page">
       <header className="conversations-header">
+        <button
+          type="button"
+          className="page-back-btn"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
         <div className="conversations-title-group">
           <h1 className="conversations-title">Your Conversations</h1>
           <p className="conversations-subtitle">
