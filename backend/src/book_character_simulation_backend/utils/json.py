@@ -19,4 +19,22 @@ def parse_json_response(raw_response: str):
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as exc:
+        start_obj = cleaned.find("{")
+        start_arr = cleaned.find("[")
+        if start_obj != -1 or start_arr != -1:
+            if start_obj != -1 and (start_arr == -1 or start_obj < start_arr):
+                end_obj = cleaned.rfind("}")
+                if end_obj > start_obj:
+                    try:
+                        return json.loads(cleaned[start_obj : end_obj + 1])
+                    except json.JSONDecodeError:
+                        pass
+            elif start_arr != -1:
+                end_arr = cleaned.rfind("]")
+                if end_arr > start_arr:
+                    try:
+                        return json.loads(cleaned[start_arr : end_arr + 1])
+                    except json.JSONDecodeError:
+                        pass
+
         raise AppError("The LLM returned invalid JSON.") from exc
