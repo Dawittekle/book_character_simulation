@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
 import { translateErrorMessage } from '../../lib/errorUtils';
+import { BrandLogo } from '../../components/brand';
 import './AdminLogin.css';
 
 export default function AdminLogin() {
@@ -45,11 +46,14 @@ export default function AdminLogin() {
     <div className="admin-login-viewport" data-testid="admin-login-page">
       <div className="admin-login-card">
         <div className="admin-login-header">
-          <div className="admin-crest-badge">
-            <span className="admin-crest-icon">🛡️</span>
+          <div className="admin-logo-mark-wrap">
+            <BrandLogo size={42} variant="orange" />
           </div>
-          <span className="admin-portal-tag">Restricted Access</span>
-          <h1 className="admin-login-title">Lorely Administration</h1>
+          <div className="admin-portal-tag">
+            <span className="admin-portal-tag-dot" />
+            <span>Restricted Access</span>
+          </div>
+          <h1 className="admin-login-title">Administrative Console</h1>
           <p className="admin-login-subtitle">
             Curator operations, user catalog governance, and system-wide RAG oversight.
           </p>
@@ -57,7 +61,19 @@ export default function AdminLogin() {
 
         {errorMessage && (
           <div className="admin-login-error" role="alert" data-testid="admin-login-error">
-            <span className="error-icon">⚠️</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="admin-error-icon"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
             <span className="error-text">{errorMessage}</span>
           </div>
         )}
@@ -113,21 +129,10 @@ export default function AdminLogin() {
             )}
           </button>
 
-          <div style={{ marginTop: '14px', textAlign: 'center' }}>
+          <div className="admin-quickfill-container">
             <button
               type="button"
               className="admin-fill-credentials-btn"
-              style={{
-                background: 'rgba(200, 157, 92, 0.1)',
-                border: '1px solid rgba(200, 157, 92, 0.3)',
-                color: '#C89D5C',
-                padding: '7px 14px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
               onClick={() => {
                 setEmail('admin@lorely.app');
                 setPassword('LorelyAdmin2026!Secure');
@@ -140,7 +145,7 @@ export default function AdminLogin() {
 
         <div className="admin-login-footer">
           <Link to="/" className="admin-back-link">
-            ← Return to Reader Library
+            ← Return to Home
           </Link>
         </div>
       </div>

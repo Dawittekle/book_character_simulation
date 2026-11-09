@@ -4,6 +4,8 @@ import './App.css';
 import AppShell from './components/AppShell';
 import AuthScreen from './components/AuthScreen';
 import LandingPage from './pages/LandingPage';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
 import Discover from './pages/Discover';
 import MyLibrary from './pages/MyLibrary';
 import CharacterGallery from './pages/CharacterGallery';
@@ -62,6 +64,8 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
           {/* Backward compatibility redirects */}
           <Route path="workspace/:textId" element={<LegacyWorkspaceRedirect />} />
           <Route path="chat/:textId/:characterId" element={<LegacyChatRedirect />} />
+          <Route path="login" element={<Navigate replace to="/" />} />
+          <Route path="signup" element={<Navigate replace to="/" />} />
         </Route>
 
         {/* Dedicated Authoritative Admin Portal */}
@@ -90,12 +94,6 @@ function App() {
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [userRole, setUserRole] = useState('user');
   const [loadingRole, setLoadingRole] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(
-    typeof window !== 'undefined' &&
-      (window.location.pathname === '/login' ||
-        window.location.pathname === '/signup' ||
-        window.location.pathname.startsWith('/admin'))
-  );
 
   useEffect(() => {
     if (supabase === null) {
@@ -188,26 +186,28 @@ function App() {
   }
 
   if (session === null) {
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
-      return (
-        <BrowserRouter>
-          <Routes>
-            <Route path="admin/login" element={<AdminLogin />} />
-            <Route path="*" element={<Navigate replace to="/admin/login" />} />
-          </Routes>
-        </BrowserRouter>
-      );
-    }
-
-    if (showAuthModal) {
-      return <AuthScreen onBackToLanding={() => setShowAuthModal(false)} />;
-    }
-
     return (
-      <LandingPage
-        onGetStarted={() => setShowAuthModal(true)}
-        onSignIn={() => setShowAuthModal(true)}
-      />
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <LandingPage
+                onGetStarted={() => {
+                  window.location.href = '/signup';
+                }}
+                onSignIn={() => {
+                  window.location.href = '/login';
+                }}
+              />
+            }
+          />
+          <Route path="login" element={<Login />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="admin/login" element={<AdminLogin />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Routes>
+      </BrowserRouter>
     );
   }
 
