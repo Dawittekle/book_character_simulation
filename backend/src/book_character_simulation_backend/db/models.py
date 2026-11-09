@@ -60,6 +60,8 @@ class UserSettings(IdentifierMixin, TimestampMixin, Base):
     enter_to_send: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     preferred_ui_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     preferred_conversation_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+    voice_vad_silence_ms: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
+    voice_auto_play: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     user: Mapped["UserAccount"] = relationship(back_populates="settings")
@@ -258,6 +260,8 @@ class CharacterProfileRecord(IdentifierMixin, TimestampMixin, Base):
     relationships: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    assigned_voice_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    voice_matching_confidence: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     book: Mapped["Book"] = relationship(back_populates="characters")
     chat_sessions: Mapped[list["ChatSession"]] = relationship(
@@ -346,6 +350,9 @@ class ChatSession(IdentifierMixin, TimestampMixin, Base):
     conversation_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     latest_psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     latest_emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    session_voice_override: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    is_speaking: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    active_playback_generation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     last_message_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,
@@ -372,6 +379,8 @@ class ChatMessage(IdentifierMixin, Base):
     input_modality: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
     language_code: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     citations: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    is_interrupted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    audio_storage_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,
@@ -458,6 +467,43 @@ class SystemSetting(IdentifierMixin, TimestampMixin, Base):
     key: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     value: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class VoiceCatalogItem(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "voice_catalog"
+
+    voice_id: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    provider: Mapped[str] = mapped_column(String(50), default="openai", nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    gender: Mapped[str] = mapped_column(String(30), default="neutral", nullable=False)
+    age_bracket: Mapped[str] = mapped_column(String(30), default="adult", nullable=False)
+    pitch: Mapped[str] = mapped_column(String(30), default="mid", nullable=False)
+    speaking_style: Mapped[str] = mapped_column(String(50), default="warm", nullable=False)
+    accent: Mapped[str] = mapped_column(String(50), default="neutral", nullable=False)
+    language_codes: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    sample_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preview_audio_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class VoiceUsageLog(IdentifierMixin, Base):
+    __tablename__ = "voice_usage_logs"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id: Mapped[str | None] = mapped_column(ForeignKey("chat_sessions.id", ondelete="SET NULL"), nullable=True)
+    character_id: Mapped[str | None] = mapped_column(ForeignKey("characters.id", ondelete="SET NULL"), nullable=True)
+    modality: Mapped[str] = mapped_column(String(20), default="voice_turn", nullable=False)
+    stt_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    stt_audio_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    tts_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    tts_character_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    voice_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["UserAccount"] = relationship(foreign_keys=[user_id])
+
 
 
 

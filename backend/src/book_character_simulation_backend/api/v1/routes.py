@@ -372,6 +372,7 @@ def create_character_conversation(character_id: str):
         spoiler_policy=body.get("spoiler_policy", "cautious"),
         reading_progress_chapter=int(body.get("reading_progress_chapter", 1)),
         conversation_language=body.get("conversation_language", "en"),
+        voice_override=body.get("voice_override"),
     )
     return jsonify(session_data), 201
 
@@ -414,6 +415,7 @@ def patch_conversation(session_id: str):
         spoiler_policy=body.get("spoiler_policy"),
         reading_progress_chapter=body.get("reading_progress_chapter"),
         conversation_language=body.get("conversation_language"),
+        voice_override=body.get("voice_override"),
     )
     return jsonify(res), 200
 
@@ -456,6 +458,7 @@ def get_message_audio(session_id: str, message_id: str):
         mimetype=mime_type,
         as_attachment=False,
         download_name=f"audio_{message_id}.wav",
+        conditional=True,
     )
 
 
@@ -507,6 +510,55 @@ def conversation_voice_turn(session_id: str):
         conversation_language=conversation_language,
     )
     return jsonify(result), 200
+
+
+@v1_blueprint.route("/conversations/<session_id>/interrupt", methods=["POST"])
+def interrupt_conversation(session_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    result = service.interrupt_conversation(user, session_id)
+    return jsonify(result), 200
+
+
+@v1_blueprint.route("/voices", methods=["GET"])
+def list_voices():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    provider = request.args.get("provider")
+    gender = request.args.get("gender")
+    language = request.args.get("language")
+    voices = service.list_voices(user, provider=provider, gender=gender, language=language)
+    return jsonify({"voices": voices}), 200
+
+
+@v1_blueprint.route("/voices/<voice_id>/preview", methods=["GET"])
+def get_voice_preview(voice_id: str):
+    service = _lorely_service()
+    audio_bytes, mime_type, _ = service.get_voice_preview(voice_id)
+    return send_file(
+        io.BytesIO(audio_bytes),
+        mimetype=mime_type,
+        as_attachment=False,
+        download_name=f"preview_{voice_id}.wav",
+        conditional=True,
+    )
+
+
+@v1_blueprint.route("/characters/<character_id>/matched-voice", methods=["GET"])
+def get_character_matched_voice(character_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    language = request.args.get("language", "en")
+    result = service.get_matched_voice(user, character_id, language=language)
+    return jsonify(result), 200
+
+
+@v1_blueprint.route("/me/voice-usage", methods=["GET"])
+def get_my_voice_usage():
+    user = _authenticated_user()
+    service = _lorely_service()
+    usage = service.get_user_voice_usage(user)
+    return jsonify(usage), 200
 
 
 @v1_blueprint.route("/conversations/<session_id>", methods=["DELETE"])

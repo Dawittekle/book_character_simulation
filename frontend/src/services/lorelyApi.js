@@ -283,6 +283,36 @@ export const lorelyApi = {
     });
   },
 
+  interruptConversation: async (sessionId, accessToken) => {
+    return request(`/conversations/${sessionId}/interrupt`, {
+      method: 'POST',
+      accessToken,
+    });
+  },
+
+  listVoices: async ({ provider, gender, language } = {}, accessToken) => {
+    const params = new URLSearchParams();
+    if (provider) params.append('provider', provider);
+    if (gender) params.append('gender', gender);
+    if (language) params.append('language', language);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return request(`/voices${queryString}`, { accessToken });
+  },
+
+  getVoicePreviewUrl: (voiceId) => {
+    return `${V1_URL}/voices/${voiceId}/preview`;
+  },
+
+  getMatchedVoice: async (characterId, { language = 'en' } = {}, accessToken) => {
+    return request(`/characters/${characterId}/matched-voice?language=${encodeURIComponent(language)}`, {
+      accessToken,
+    });
+  },
+
+  getVoiceUsage: async (accessToken) => {
+    return request('/me/voice-usage', { accessToken });
+  },
+
   // Document Ingestion & Classification Gate
   inspectSource: async ({ file, text, filename, llmProvider } = {}, accessToken) => {
     const headers = {};

@@ -8,6 +8,7 @@ import logging
 import re
 import time
 from typing import Any
+import uuid
 
 import jwt
 
@@ -38,6 +39,8 @@ from ..db.models import (
     UserCharacterState,
     UserRole,
     UserSettings,
+    VoiceCatalogItem,
+    VoiceUsageLog,
 )
 from ..db.session import DatabaseManager
 from ..errors import BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError
@@ -50,6 +53,7 @@ from ..schemas.character import CharacterProfile
 from ..simulation import PsiEngine, PerceivedObservation, clamp
 from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
+from ..voice import match_character_voice, sync_seed_voice_catalog
 from .classification_service import ClassificationService
 from .storage_service import StorageService
 from .voice_service import VoiceService
@@ -213,6 +217,8 @@ class LorelyService:
                 "enter_to_send": settings.enter_to_send,
                 "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") or "en",
                 "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") or "en",
+                "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if getattr(settings, "voice_vad_silence_ms", None) is not None else 1200,
+                "voice_auto_play": getattr(settings, "voice_auto_play", True) if getattr(settings, "voice_auto_play", None) is not None else True,
                 "preferences": settings.preferences or {},
             }
 
@@ -238,6 +244,14 @@ class LorelyService:
                 settings.preferred_ui_language = str(updates["preferred_ui_language"]).strip()[:10]
             if "preferred_conversation_language" in updates:
                 settings.preferred_conversation_language = str(updates["preferred_conversation_language"]).strip()[:10]
+            if "voice_vad_silence_ms" in updates:
+                try:
+                    val = int(updates["voice_vad_silence_ms"])
+                    settings.voice_vad_silence_ms = max(500, min(5000, val))
+                except (ValueError, TypeError):
+                    pass
+            if "voice_auto_play" in updates:
+                settings.voice_auto_play = bool(updates["voice_auto_play"])
             if "preferences" in updates and isinstance(updates["preferences"], dict):
                 settings.preferences = updates["preferences"]
 
@@ -248,6 +262,8 @@ class LorelyService:
                 "enter_to_send": settings.enter_to_send,
                 "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") or "en",
                 "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") or "en",
+                "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if getattr(settings, "voice_vad_silence_ms", None) is not None else 1200,
+                "voice_auto_play": getattr(settings, "voice_auto_play", True) if getattr(settings, "voice_auto_play", None) is not None else True,
                 "preferences": settings.preferences or {},
             }
 
@@ -901,6 +917,8 @@ class LorelyService:
                 "canonical_psi_parameters": char.psi_parameters or {},
                 "current_user_emotion_state": current_emotions or {},
                 "current_user_psi_parameters": current_psi or {},
+                "assigned_voice_id": getattr(char, "assigned_voice_id", None),
+                "voice_matching_confidence": getattr(char, "voice_matching_confidence", "neutral_fallback") or "neutral_fallback",
             }
 
     def get_character_state(
@@ -1066,6 +1084,9 @@ class LorelyService:
                     "character_avatar_asset_id": char.avatar_asset_id if char else None,
                     "spoiler_policy": s.spoiler_policy,
                     "conversation_language": getattr(s, "conversation_language", "en") or "en",
+                    "session_voice_override": getattr(s, "session_voice_override", None),
+                    "is_speaking": getattr(s, "is_speaking", False) or False,
+                    "active_playback_generation_id": getattr(s, "active_playback_generation_id", None),
                     "message_count": msg_count,
                     "latest_emotion_state": s.latest_emotion_state or {},
                     "last_message_at": s.last_message_at.isoformat() if s.last_message_at else None,
@@ -1082,6 +1103,7 @@ class LorelyService:
         spoiler_policy: str = "cautious",
         reading_progress_chapter: int = 1,
         conversation_language: str = "en",
+        voice_override: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
@@ -1117,6 +1139,7 @@ class LorelyService:
                 spoiler_policy=spoiler_policy,
                 reading_progress_chapter=reading_progress_chapter,
                 conversation_language=conversation_language[:10] if conversation_language else "en",
+                session_voice_override=voice_override.strip() if voice_override else None,
                 latest_psi_parameters=init_psi or {},
                 latest_emotion_state=init_emotions or {},
                 last_message_at=utc_now(),
@@ -1133,6 +1156,7 @@ class LorelyService:
                 "spoiler_policy": chat_session.spoiler_policy,
                 "reading_progress_chapter": chat_session.reading_progress_chapter,
                 "conversation_language": chat_session.conversation_language,
+                "session_voice_override": chat_session.session_voice_override,
                 "latest_emotion_state": chat_session.latest_emotion_state,
                 "created_at": chat_session.created_at.isoformat(),
             }
@@ -1146,6 +1170,7 @@ class LorelyService:
         spoiler_policy: str | None = None,
         reading_progress_chapter: int | None = None,
         conversation_language: str | None = None,
+        voice_override: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
@@ -1163,6 +1188,8 @@ class LorelyService:
                 chat_session.reading_progress_chapter = int(reading_progress_chapter)
             if conversation_language is not None:
                 chat_session.conversation_language = conversation_language.strip()[:10]
+            if voice_override is not None:
+                chat_session.session_voice_override = voice_override.strip() if voice_override.strip() else None
 
             session.flush()
             return {
@@ -1171,6 +1198,7 @@ class LorelyService:
                 "spoiler_policy": chat_session.spoiler_policy,
                 "reading_progress_chapter": chat_session.reading_progress_chapter,
                 "conversation_language": chat_session.conversation_language,
+                "session_voice_override": chat_session.session_voice_override,
                 "updated_at": chat_session.updated_at.isoformat() if chat_session.updated_at else None,
             }
 
@@ -1254,6 +1282,8 @@ class LorelyService:
                     "language_code": getattr(m, "language_code", "en") or "en",
                     "citations": m.citations or [],
                     "sequence_number": m.sequence_number,
+                    "is_interrupted": getattr(m, "is_interrupted", False) or False,
+                    "audio_storage_path": getattr(m, "audio_storage_path", None),
                     "created_at": m.created_at.isoformat() if m.created_at else None,
                 }
                 for m in messages
@@ -1645,7 +1675,11 @@ class LorelyService:
 
             char = session.get(CharacterProfileRecord, chat_session.character_id)
             voice = "nova"
-            if char and isinstance(char.psi_parameters, dict):
+            if chat_session.session_voice_override:
+                voice = chat_session.session_voice_override
+            elif char and char.assigned_voice_id:
+                voice = char.assigned_voice_id
+            elif char and isinstance(char.psi_parameters, dict):
                 voice = char.psi_parameters.get("voice", "nova")
 
             # Check if synthesized audio is already cached in object storage
@@ -1654,12 +1688,16 @@ class LorelyService:
             if cached_audio:
                 return cached_audio, "audio/wav", 0.0
 
-            audio_bytes, mime_type, duration = self.voice_service.synthesize_speech(msg.content, voice=voice)
+            audio_bytes, mime_type, duration = self.voice_service.synthesize_speech(
+                msg.content, voice=voice, language=getattr(msg, "language_code", "en") or "en"
+            )
 
             try:
                 self.storage_service.upload_file(
                     audio_storage_key, audio_bytes, content_type=mime_type
                 )
+                msg.audio_storage_path = audio_storage_key
+                session.flush()
             except Exception as exc:
                 logger.debug("Failed to cache audio in storage (%s): %s", audio_storage_key, exc)
 
@@ -1677,8 +1715,11 @@ class LorelyService:
         reading_progress_chapter: int | None = None,
         conversation_language: str | None = None,
     ) -> dict[str, Any]:
+        stt_seconds = 0.0
         transcript = (speech_text or "").strip()
         if not transcript and audio_bytes:
+            # Estimate audio duration: 16-bit 16kHz mono is ~32000 bytes/sec
+            stt_seconds = max(0.5, round(len(audio_bytes) / 32000.0, 2))
             transcript = self.voice_service.transcribe_audio(audio_bytes, filename=filename)
 
         if not transcript:
@@ -1694,25 +1735,280 @@ class LorelyService:
             conversation_language=conversation_language,
         )
 
-        lang = result.get("conversation_language") or "en"
-        if lang.lower().startswith("am"):
-            # Enforce Section 8.4 guardrail: No verified production Amharic TTS provider.
-            # Do NOT synthesize garbled English TTS on Amharic text.
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            chat_session = session.get(ChatSession, session_id)
+            if chat_session is None:
+                raise NotFoundError("Conversation session not found.")
+            char = session.get(CharacterProfileRecord, chat_session.character_id)
+
+            # Determine effective voice: session override > character assigned > psi parameter > fallback
+            effective_voice = "nova"
+            if chat_session.session_voice_override:
+                effective_voice = chat_session.session_voice_override
+            elif char and char.assigned_voice_id:
+                effective_voice = char.assigned_voice_id
+            elif char and isinstance(char.psi_parameters, dict) and char.psi_parameters.get("voice"):
+                effective_voice = char.psi_parameters.get("voice")
+
+            # Update playback state
+            playback_gen_id = uuid.uuid4().hex
+            chat_session.is_speaking = True
+            chat_session.active_playback_generation_id = playback_gen_id
+
+            assistant_msg_id = result.get("assistant_message_id")
+            audio_storage_key = f"audio/{session_id}/{assistant_msg_id}.wav" if assistant_msg_id else None
+            if assistant_msg_id:
+                asst_msg = session.get(ChatMessage, assistant_msg_id)
+                if asst_msg:
+                    asst_msg.audio_storage_path = audio_storage_key
+
+            lang = result.get("conversation_language") or "en"
+            if lang.lower().startswith("am"):
+                # Enforce Section 8.4 guardrail: No verified production Amharic TTS provider.
+                # Do NOT synthesize garbled English TTS on Amharic text.
+                chat_session.is_speaking = False
+                result["audio"] = {
+                    "status": "experimental_text_only",
+                    "voice_id": effective_voice,
+                    "playback_generation_id": playback_gen_id,
+                    "speech_text": transcript,
+                    "message": "Amharic voice output is under experimental evaluation. Text dialogue provided.",
+                }
+                return result
+
+            # Synthesize speech
+            reply_text = result["response"]
+            audio_bytes_out, mime_type, duration = self.voice_service.synthesize_speech(
+                reply_text, voice=effective_voice, language=lang
+            )
+
+            # Cache audio file
+            if audio_storage_key:
+                try:
+                    self.storage_service.upload_file(audio_storage_key, audio_bytes_out, content_type=mime_type)
+                except Exception as exc:
+                    logger.debug("Failed to cache audio in storage (%s): %s", audio_storage_key, exc)
+
+            # Log voice usage
+            cost = self.voice_service.estimate_cost(
+                stt_seconds=stt_seconds,
+                tts_chars=len(reply_text),
+            )
+            usage_log = VoiceUsageLog(
+                user_id=user.id,
+                session_id=chat_session.id,
+                character_id=char.id if char else None,
+                modality="voice_turn",
+                stt_provider=self.voice_service.stt_provider.provider_name if audio_bytes else None,
+                stt_audio_seconds=stt_seconds if audio_bytes else None,
+                tts_provider=self.voice_service.tts_provider.provider_name,
+                tts_character_count=len(reply_text),
+                voice_id=effective_voice,
+                cost_usd=cost,
+            )
+            session.add(usage_log)
+            session.flush()
+
             result["audio"] = {
-                "status": "experimental_text_only",
+                "status": "ready",
+                "voice_id": effective_voice,
+                "playback_generation_id": playback_gen_id,
+                "mime_type": mime_type,
+                "duration": duration,
+                "base64_data": base64.b64encode(audio_bytes_out).decode("ascii"),
+                "audio_url": f"/api/v1/conversations/{session_id}/messages/{assistant_msg_id}/audio" if assistant_msg_id else None,
                 "speech_text": transcript,
-                "message": "Amharic voice output is under experimental evaluation. Text dialogue provided.",
             }
             return result
 
-        audio_bytes_out, mime_type, duration = self.voice_service.synthesize_speech(result["response"])
-        result["audio"] = {
-            "mime_type": mime_type,
-            "duration": duration,
-            "base64_data": base64.b64encode(audio_bytes_out).decode("ascii"),
-            "speech_text": transcript,
-        }
-        return result
+    def list_voices(
+        self,
+        auth_user: AuthenticatedUser | None = None,
+        *,
+        provider: str | None = None,
+        gender: str | None = None,
+        language: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            sync_seed_voice_catalog(session)
+            query = select(VoiceCatalogItem).where(VoiceCatalogItem.is_active.is_(True))
+            if provider:
+                query = query.where(VoiceCatalogItem.provider == provider.strip())
+            if gender:
+                query = query.where(VoiceCatalogItem.gender == gender.strip())
+
+            voices = session.scalars(query.order_by(VoiceCatalogItem.name.asc())).all()
+
+            results = []
+            for v in voices:
+                langs = v.language_codes or []
+                if language and language.strip().lower() not in [l.lower() for l in langs]:
+                    continue
+                results.append({
+                    "id": v.id,
+                    "voice_id": v.voice_id,
+                    "provider": v.provider,
+                    "name": v.name,
+                    "gender": v.gender,
+                    "age_bracket": v.age_bracket,
+                    "pitch": v.pitch,
+                    "speaking_style": v.speaking_style,
+                    "accent": v.accent,
+                    "language_codes": langs,
+                    "sample_text": v.sample_text,
+                    "preview_audio_url": f"/api/v1/voices/{v.voice_id}/preview",
+                    "is_approved": v.is_approved,
+                    "is_active": v.is_active,
+                })
+            return results
+
+    def get_voice_preview(self, voice_id: str) -> tuple[bytes, str, float]:
+        with self.db.session_scope() as session:
+            sync_seed_voice_catalog(session)
+            v = session.scalar(
+                select(VoiceCatalogItem).where(VoiceCatalogItem.voice_id == voice_id)
+            )
+            if v is None:
+                raise NotFoundError(f"Voice '{voice_id}' not found in catalog.")
+
+            sample_text = v.sample_text or "Greetings from Lorely. This is a voice preview."
+            lang = v.language_codes[0] if v.language_codes else "en"
+            return self.voice_service.synthesize_speech(
+                sample_text,
+                voice=v.voice_id,
+                language=lang,
+            )
+
+    def get_matched_voice(
+        self,
+        auth_user: AuthenticatedUser | None,
+        character_id: str,
+        *,
+        language: str = "en",
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            char = session.get(CharacterProfileRecord, character_id)
+            if char is None:
+                char = session.scalar(
+                    select(CharacterProfileRecord).where(
+                        CharacterProfileRecord.stable_character_key == character_id
+                    )
+                )
+            if char is None:
+                raise NotFoundError("Character not found.")
+
+            book = session.get(Book, char.book_id)
+            if book and book.owner_user_id != user.id and book.visibility != "featured":
+                raise ForbiddenError("You do not have access to this character.")
+
+            sync_seed_voice_catalog(session)
+            voices = session.scalars(
+                select(VoiceCatalogItem).where(VoiceCatalogItem.is_active.is_(True))
+            ).all()
+
+            matched_voice, confidence, reasons = match_character_voice(
+                char, voices, conversation_language=language
+            )
+
+            # Persist assignment if not yet set
+            if not char.assigned_voice_id:
+                char.assigned_voice_id = matched_voice.voice_id
+                char.voice_matching_confidence = confidence
+                session.flush()
+
+            return {
+                "character_id": char.id,
+                "character_name": char.name,
+                "matched_voice_id": matched_voice.voice_id,
+                "voice_name": matched_voice.name,
+                "provider": matched_voice.provider,
+                "gender": matched_voice.gender,
+                "confidence": char.voice_matching_confidence or confidence,
+                "reasons": reasons,
+                "sample_text": matched_voice.sample_text,
+                "preview_audio_url": f"/api/v1/voices/{matched_voice.voice_id}/preview",
+            }
+
+    def interrupt_conversation(
+        self,
+        auth_user: AuthenticatedUser | None,
+        session_id: str,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            chat_session = session.get(ChatSession, session_id)
+            if chat_session is None:
+                raise NotFoundError("Conversation session not found.")
+            if chat_session.owner_user_id != user.id:
+                raise ForbiddenError("You cannot modify this conversation.")
+
+            new_gen_id = uuid.uuid4().hex
+            chat_session.is_speaking = False
+            chat_session.active_playback_generation_id = new_gen_id
+
+            # Find latest assistant message and mark interrupted
+            latest_assistant_msg = session.scalars(
+                select(ChatMessage)
+                .where(
+                    ChatMessage.session_id == chat_session.id,
+                    ChatMessage.role == ChatRole.assistant,
+                )
+                .order_by(ChatMessage.sequence_number.desc())
+            ).first()
+
+            interrupted_id = None
+            if latest_assistant_msg:
+                latest_assistant_msg.is_interrupted = True
+                interrupted_id = latest_assistant_msg.id
+
+            session.flush()
+            return {
+                "session_id": chat_session.id,
+                "status": "interrupted",
+                "is_speaking": False,
+                "active_playback_generation_id": new_gen_id,
+                "interrupted_message_id": interrupted_id,
+            }
+
+    def get_user_voice_usage(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            logs = session.scalars(
+                select(VoiceUsageLog)
+                .where(VoiceUsageLog.user_id == user.id)
+                .order_by(VoiceUsageLog.created_at.desc())
+            ).all()
+
+            total_stt_seconds = sum(l.stt_audio_seconds or 0.0 for l in logs)
+            total_tts_chars = sum(l.tts_character_count or 0 for l in logs)
+            total_cost_usd = sum(float(l.cost_usd or 0.0) for l in logs)
+
+            recent = [
+                {
+                    "id": l.id,
+                    "session_id": l.session_id,
+                    "character_id": l.character_id,
+                    "modality": l.modality,
+                    "stt_provider": l.stt_provider,
+                    "stt_audio_seconds": l.stt_audio_seconds,
+                    "tts_provider": l.tts_provider,
+                    "tts_character_count": l.tts_character_count,
+                    "voice_id": l.voice_id,
+                    "cost_usd": float(l.cost_usd or 0.0),
+                    "created_at": l.created_at.isoformat() if l.created_at else None,
+                }
+                for l in logs[:20]
+            ]
+
+            return {
+                "total_stt_seconds": round(total_stt_seconds, 2),
+                "total_tts_characters": total_tts_chars,
+                "total_cost_usd": round(total_cost_usd, 6),
+                "turn_count": len(logs),
+                "recent_logs": recent,
+            }
 
     def delete_conversation(self, auth_user: AuthenticatedUser | None, session_id: str) -> None:
         with self.db.session_scope() as session:
