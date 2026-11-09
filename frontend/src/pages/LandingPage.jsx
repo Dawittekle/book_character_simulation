@@ -1,7 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './LandingPage.css';
 import { BrandLogo, RadialGauge } from '../components/brand';
 import { lorelyApi } from '../services/lorelyApi';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { Globe, Sparkles } from 'lucide-react';
+
+function TwitterIcon({ className, size = 18 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ className, size = 18 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ className, size = 18 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function LinkedinIcon({ className, size = 18 }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  );
+}
 
 export default function LandingPage({ onGetStarted, onSignIn }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,6 +54,14 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
   const [currency, setCurrency] = useState('ETB'); // 'USD' | 'ETB'
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'yearly'
   const [selectedPlanId, setSelectedPlanId] = useState('scholar');
+
+  // Parallax Footer Scroll Tracking (Phase 5)
+  const parallaxRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: parallaxRef,
+    offset: ['start end', 'end start'],
+  });
+  const yForeground = useTransform(scrollYProgress, [0, 1], [-50, 150]);
 
   // Load Real Backend Plans & Payment Configuration
   useEffect(() => {
@@ -1100,6 +1146,129 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
             })}
           </div>
         </div>
+      </section>
+
+      {/* =========================================================================
+          FOOTER SECTION: SPACER ("VIEW BELOW") + MAIN PARALLAX CONTAINER
+          ========================================================================= */}
+      {/* 2. Top Spacer Section (View Below) */}
+      <section className="footer-top-spacer" data-testid="footer-top-spacer">
+        <motion.p
+          className="footer-spacer-text"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          VIEW BELOW
+        </motion.p>
+      </section>
+
+      {/* 3. Main Parallax Container */}
+      <section
+        ref={parallaxRef}
+        className="footer-parallax-section"
+        id="footer"
+        data-testid="footer-parallax-section"
+      >
+        {/* 4. The Top-Aligned Footer Card */}
+        <div className="footer-card-container">
+          <motion.div
+            className="footer-card"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          >
+            {/* Top Half */}
+            <div className="footer-top-half">
+              {/* Logo Area */}
+              <div className="footer-logo-block">
+                <div className="footer-brand-square">
+                  <BrandLogo size={28} variant="white" />
+                </div>
+                <div className="footer-brand-text-col">
+                  <span className="footer-brand-title">Lorely</span>
+                  <span className="footer-brand-tagline">
+                    Interactive Cognitive Casts. Step into the stories.
+                  </span>
+                </div>
+              </div>
+
+              {/* Links Area: 3 Columns */}
+              <div className="footer-links-grid">
+                <div className="footer-links-column">
+                  <h5 className="footer-column-heading">Platform</h5>
+                  <ul className="footer-column-list">
+                    <li><a href="#home" className="footer-link">Classical Library</a></li>
+                    <li><a href="#use-cases" className="footer-link">Character Salon</a></li>
+                    <li><a href="#features" className="footer-link">Cognitive Telemetry</a></li>
+                    <li><a href="#pricing" className="footer-link">Voice Studio</a></li>
+                  </ul>
+                </div>
+
+                <div className="footer-links-column">
+                  <h5 className="footer-column-heading">Ecosystem</h5>
+                  <ul className="footer-column-list">
+                    <li><a href="#use-cases" className="footer-link">Custom Book Ingestion</a></li>
+                    <li><a href="#faq" className="footer-link">Spoiler-Gate Protocol</a></li>
+                    <li><a href="#home" className="footer-link">Reader iOS & Android</a></li>
+                    <li><a href="#pricing" className="footer-link">API & Research</a></li>
+                  </ul>
+                </div>
+
+                <div className="footer-links-column">
+                  <h5 className="footer-column-heading">Governance</h5>
+                  <ul className="footer-column-list">
+                    <li><a href="#faq" className="footer-link">Editorial Principles</a></li>
+                    <li><a href="#faq" className="footer-link">Privacy Policy</a></li>
+                    <li><a href="#faq" className="footer-link">Terms of Dialogue</a></li>
+                    <li><a href="#faq" className="footer-link">Community Guidelines</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="footer-bottom-bar">
+              <span className="footer-copyright-text">
+                © 2026 Lorely Studio. All Rights Reserved
+              </span>
+
+              <div className="footer-social-icons">
+                {[
+                  { name: 'Twitter', Icon: TwitterIcon, href: 'https://twitter.com' },
+                  { name: 'Facebook', Icon: FacebookIcon, href: 'https://facebook.com' },
+                  { name: 'Instagram', Icon: InstagramIcon, href: 'https://instagram.com' },
+                  { name: 'LinkedIn', Icon: LinkedinIcon, href: 'https://linkedin.com' },
+                ].map(({ name, Icon, href }) => (
+                  <a
+                    key={name}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={name}
+                    className="footer-social-circle"
+                  >
+                    <Icon className="w-5 h-5" size={18} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* 5. Background Truck Parallax Layer */}
+        <motion.div
+          className="footer-parallax-foreground"
+          style={{ y: yForeground }}
+          aria-hidden="true"
+        >
+          <img
+            src="https://roof-wish-40038865.figma.site/_components/v2/f31fd17907ce60745d45e83a61d44fd3810d5f25/truck_1.8c4bff83.png"
+            alt="Foreground layer"
+            className="footer-foreground-img"
+            loading="lazy"
+          />
+        </motion.div>
       </section>
     </div>
   );

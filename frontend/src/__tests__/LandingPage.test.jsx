@@ -181,4 +181,34 @@ describe('LandingPage Component', () => {
 
     expect(screen.getByText(/Lorely employs strict chapter-gated spoiler boundaries/i)).toBeInTheDocument();
   });
+
+  it('renders the Parallax Footer with VIEW BELOW spacer, links, and social circles', () => {
+    render(<LandingPage />);
+
+    // Top spacer
+    expect(screen.getByTestId('footer-top-spacer')).toBeInTheDocument();
+    expect(screen.getByText('VIEW BELOW')).toBeInTheDocument();
+
+    // Parallax footer section
+    expect(screen.getByTestId('footer-parallax-section')).toBeInTheDocument();
+    expect(screen.getByText(/Interactive Cognitive Casts\. Step into the stories\./i)).toBeInTheDocument();
+
+    // 3 Link column headers
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('Ecosystem')).toBeInTheDocument();
+    expect(screen.getByText('Governance')).toBeInTheDocument();
+
+    // Copyright
+    expect(screen.getByText(/© 2026 Lorely Studio\. All Rights Reserved/i)).toBeInTheDocument();
+
+    // Social icons
+    expect(screen.getByLabelText('Twitter')).toBeInTheDocument();
+    expect(screen.getByLabelText('Facebook')).toBeInTheDocument();
+    expect(screen.getByLabelText('Instagram')).toBeInTheDocument();
+    expect(screen.getByLabelText('LinkedIn')).toBeInTheDocument();
+
+    // Foreground image
+    const foregroundImg = screen.getByAltText('Foreground layer');
+    expect(foregroundImg).toBeInTheDocument();
+  });
 });
