@@ -103,15 +103,23 @@ class StorageService:
             if metadata:
                 extra_args["Metadata"] = {k: str(v) for k, v in metadata.items()}
 
-            self._s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=clean_key,
-                Body=payload_bytes,
-                **extra_args,
-            )
-            return clean_key
+            try:
+                self._s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=clean_key,
+                    Body=payload_bytes,
+                    **extra_args,
+                )
+                return clean_key
+            except Exception as exc:
+                logger.warning(
+                    "Cloud storage put_object failed (%s on %s): %s. Falling back to local storage.",
+                    clean_key,
+                    self.bucket_name,
+                    exc,
+                )
 
-        # Local filesystem mode
+        # Local filesystem mode (or fallback when cloud bucket is unreachable)
         target_path = self.local_dir / clean_key
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_bytes(payload_bytes)
@@ -128,10 +136,9 @@ class StorageService:
                 )
                 return response["Body"].read()
             except Exception as exc:
-                logger.debug("Cloudflare R2 download_file not found or error (%s): %s", clean_key, exc)
-                return None
+                logger.debug("Cloudflare R2 download_file not found or error (%s): %s. Checking local fallback.", clean_key, exc)
 
-        # Local filesystem mode
+        # Local filesystem mode or fallback
         target_path = self.local_dir / clean_key
         if not target_path.is_file():
             return None
@@ -144,10 +151,8 @@ class StorageService:
         if self.is_cloud and self._s3_client is not None:
             try:
                 self._s3_client.delete_object(Bucket=self.bucket_name, Key=clean_key)
-                return True
             except Exception as exc:
                 logger.warning("Failed to delete object from Cloudflare R2 (%s): %s", clean_key, exc)
-                return False
 
         # Local filesystem mode
         target_path = self.local_dir / clean_key
@@ -168,7 +173,7 @@ class StorageService:
                 self._s3_client.head_object(Bucket=self.bucket_name, Key=clean_key)
                 return True
             except Exception:
-                return False
+                pass
 
         # Local filesystem mode
         target_path = self.local_dir / clean_key
@@ -178,22 +183,23 @@ class StorageService:
         """Generate a public URL or presigned download URL for an object."""
         clean_key = key.lstrip("/")
 
-        # If a public custom domain is configured on R2 (e.g. https://pub-xxxx.r2.dev or https://assets.lorely.app)
-        if self.settings.r2_public_url:
-            public_base = self.settings.r2_public_url.rstrip("/")
-            return f"{public_base}/{clean_key}"
+        if self.is_cloud:
+            # If a public custom domain is configured on R2 (e.g. https://pub-xxxx.r2.dev or https://assets.lorely.app)
+            if self.settings.r2_public_url:
+                public_base = self.settings.r2_public_url.rstrip("/")
+                return f"{public_base}/{clean_key}"
 
-        if self.is_cloud and self._s3_client is not None:
-            try:
-                url = self._s3_client.generate_presigned_url(
-                    "get_object",
-                    Params={"Bucket": self.bucket_name, "Key": clean_key},
-                    ExpiresIn=expires_in,
-                )
-                return str(url)
-            except Exception as exc:
-                logger.warning("Could not generate presigned URL for %s: %s", clean_key, exc)
-                return None
+            if self._s3_client is not None:
+                try:
+                    url = self._s3_client.generate_presigned_url(
+                        "get_object",
+                        Params={"Bucket": self.bucket_name, "Key": clean_key},
+                        ExpiresIn=expires_in,
+                    )
+                    return str(url)
+                except Exception as exc:
+                    logger.warning("Could not generate presigned URL for %s: %s", clean_key, exc)
+                    return None
 
         # Local mode: returns API endpoint reference or file path
         return f"/api/v1/storage/{clean_key}"

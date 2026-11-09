@@ -754,12 +754,27 @@ class LorelyService:
             mime_type = source.mime_type or "text/plain"
 
             if source.storage_path:
-                presigned_url = self.storage_service.get_url(source.storage_path, expires_in=3600)
+                # If cloud storage is available and file exists in R2, provide direct URL
+                if self.storage_service.is_cloud and self.storage_service._s3_client:
+                    try:
+                        self.storage_service._s3_client.head_object(
+                            Bucket=self.storage_service.bucket_name, Key=source.storage_path
+                        )
+                        presigned_url = self.storage_service.get_url(source.storage_path, expires_in=3600)
+                        return {
+                            "filename": filename,
+                            "mime_type": mime_type,
+                            "url": presigned_url,
+                            "content": None,
+                        }
+                    except Exception:
+                        pass
+
                 file_bytes = self.storage_service.download_file(source.storage_path)
                 return {
                     "filename": filename,
                     "mime_type": mime_type,
-                    "url": presigned_url if self.storage_service.is_cloud else None,
+                    "url": None,
                     "content": file_bytes or (source.extracted_text.encode("utf-8") if source.extracted_text else b""),
                 }
 

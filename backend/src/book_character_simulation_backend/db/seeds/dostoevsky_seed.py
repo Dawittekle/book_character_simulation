@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any
 
 from sqlalchemy import select
 
 from ...rag.embedding_provider import EmbeddingService
+from ...services.storage_service import StorageService
 from ..models import (
     Book,
     BookChunk,
@@ -458,6 +460,29 @@ def seed_dostoevsky_books(db: DatabaseManager, settings: Any) -> list[Book]:
                         embedding=vector,
                     )
                     session.add(chunk)
+
+                # Seed BookSource & Object Storage Files
+                full_book_text = "\n\n".join(text_content for _, _, text_content in book_info["chapters"])
+                clean_filename = f"{book.title.replace(' ', '_')}.txt"
+                text_storage_key = f"books/{book.id}/text/extracted.txt"
+                orig_storage_key = f"books/{book.id}/original/{clean_filename}"
+
+                storage = StorageService(settings)
+                storage.upload_file(text_storage_key, full_book_text, content_type="text/plain; charset=utf-8")
+                storage.upload_file(orig_storage_key, full_book_text.encode("utf-8"), content_type="text/plain; charset=utf-8")
+
+                text_bytes = full_book_text.encode("utf-8")
+                source = BookSource(
+                    book_id=book.id,
+                    original_filename=clean_filename,
+                    mime_type="text/plain",
+                    storage_bucket=storage.bucket_name,
+                    storage_path=orig_storage_key,
+                    extracted_text=full_book_text,
+                    extracted_text_hash=hashlib.sha256(text_bytes).hexdigest(),
+                    file_size_bytes=len(text_bytes),
+                )
+                session.add(source)
 
                 session.flush()
                 seeded_books.append(book)
