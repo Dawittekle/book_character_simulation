@@ -1,11 +1,126 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './LandingPage.css';
 import { BrandLogo, RadialGauge } from '../components/brand';
+import { lorelyApi } from '../services/lorelyApi';
 
 export default function LandingPage({ onGetStarted, onSignIn }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCard1Tab, setActiveCard1Tab] = useState('resonance'); // 'resonance' | 'turns'
   const [activeCard3Tab, setActiveCard3Tab] = useState('audio'); // 'audio' | 'text'
+
+  // Backend Plans & Currency Data Foundation (Phase 1)
+  const [plans, setPlans] = useState([]);
+  const [paymentConfig, setPaymentConfig] = useState({ usd_to_etb_rate: 135 });
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState(null);
+  const [currency, setCurrency] = useState('ETB'); // 'USD' | 'ETB'
+  const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'yearly'
+  const [selectedPlanId, setSelectedPlanId] = useState('scholar');
+
+  // Load Real Backend Plans & Payment Configuration
+  useEffect(() => {
+    let mounted = true;
+    async function loadLandingData() {
+      try {
+        setPlansLoading(true);
+        const [plansRes, configRes] = await Promise.allSettled([
+          lorelyApi.getPlans().catch(() => null),
+          lorelyApi.getPaymentConfig().catch(() => null),
+        ]);
+
+        if (!mounted) return;
+
+        if (plansRes.status === 'fulfilled' && plansRes.value?.plans && plansRes.value.plans.length > 0) {
+          setPlans(plansRes.value.plans);
+          const scholar = plansRes.value.plans.find(
+            (p) => p.id === 'scholar' || p.badge?.includes('POPULAR')
+          );
+          setSelectedPlanId(scholar ? scholar.id : plansRes.value.plans[0]?.id || 'scholar');
+        } else {
+          // Graceful fallback structure matching database schema
+          const fallbackPlans = [
+            {
+              id: 'free',
+              name: 'Free Reader',
+              price_monthly: 0,
+              badge: 'STARTER',
+              description: 'Introductory reading with classical dialogue limits.',
+              features: ['Unlimited everyday text chats', 'Access to standard classics', 'Limited memory and storage'],
+            },
+            {
+              id: 'scholar',
+              name: 'Literary Scholar (Plus)',
+              price_monthly: 20,
+              badge: 'MOST POPULAR',
+              description: 'Advanced cognitive simulations, unlimited shelf imports, HD speech synthesis.',
+              features: [
+                'Unlimited book shelf imports',
+                'Unlimited daily dialogue turns',
+                'HD Voice mode simulation',
+                'Dynamic emotional drift telemetry',
+              ],
+            },
+            {
+              id: 'pro',
+              name: 'Institutional Archive (Pro)',
+              price_monthly: 100,
+              badge: 'FRONTIER INTELLIGENCE',
+              description: 'Dedicated vector search namespace, multi-seat classroom access.',
+              features: [
+                'Isolated Chroma vector namespace',
+                'Multi-seat research access',
+                'Custom persona prompt fine-tuning',
+              ],
+            },
+          ];
+          setPlans(fallbackPlans);
+          setSelectedPlanId('scholar');
+        }
+
+        if (configRes.status === 'fulfilled' && configRes.value) {
+          setPaymentConfig((prev) => ({ ...prev, ...configRes.value }));
+        }
+      } catch (err) {
+        if (mounted) {
+          setPlansError(err.message || 'Unable to load plans');
+        }
+      } finally {
+        if (mounted) {
+          setPlansLoading(false);
+        }
+      }
+    }
+
+    loadLandingData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Live Currency & Pricing Calculator
+  const calculatePrice = (monthlyPrice) => {
+    const rate = Number(paymentConfig.usd_to_etb_rate || 135);
+    const isYearly = billingPeriod === 'yearly';
+    const discountFactor = isYearly ? 0.8 : 1.0;
+    const effectivePrice = Math.round(monthlyPrice * discountFactor);
+
+    if (currency === 'ETB') {
+      const etbVal = Math.round(effectivePrice * rate);
+      return {
+        amount: etbVal,
+        currency: 'ETB',
+        display: `${etbVal.toLocaleString()} ETB`,
+        period: isYearly ? '/ month (billed yearly)' : '/ month',
+      };
+    }
+
+    return {
+      amount: effectivePrice,
+      currency: 'USD',
+      display: `$${effectivePrice}`,
+      period: isYearly ? '/ month (billed yearly)' : '/ month',
+    };
+  };
 
   // Card 2 Form States
   const [cognitiveDepth, setCognitiveDepth] = useState('Deep Analysis');
