@@ -210,6 +210,30 @@ describe('Phase 3: Independent Authentication Pages', () => {
         expect(screen.getByRole('status')).toHaveTextContent(/Account created/i);
       });
     });
+
+    it('triggers OAuth flow on Google button click in Signup', async () => {
+      supabase.auth.signInWithOAuth.mockResolvedValueOnce({
+        data: { provider: 'google', url: 'https://accounts.google.com' },
+        error: null,
+      });
+
+      render(
+        <BrowserRouter>
+          <Signup />
+        </BrowserRouter>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+
+      await waitFor(() => {
+        expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+      });
+    });
   });
 
   describe('AdminLogin Page (Split-Screen Production Redesign)', () => {
