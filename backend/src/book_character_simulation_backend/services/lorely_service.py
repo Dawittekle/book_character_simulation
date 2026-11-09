@@ -211,6 +211,8 @@ class LorelyService:
                 "reading_theme": settings.reading_theme,
                 "spoiler_policy": settings.spoiler_policy,
                 "enter_to_send": settings.enter_to_send,
+                "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") or "en",
+                "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") or "en",
                 "preferences": settings.preferences or {},
             }
 
@@ -232,6 +234,10 @@ class LorelyService:
                 settings.spoiler_policy = str(updates["spoiler_policy"])
             if "enter_to_send" in updates:
                 settings.enter_to_send = bool(updates["enter_to_send"])
+            if "preferred_ui_language" in updates:
+                settings.preferred_ui_language = str(updates["preferred_ui_language"]).strip()[:10]
+            if "preferred_conversation_language" in updates:
+                settings.preferred_conversation_language = str(updates["preferred_conversation_language"]).strip()[:10]
             if "preferences" in updates and isinstance(updates["preferences"], dict):
                 settings.preferences = updates["preferences"]
 
@@ -240,6 +246,8 @@ class LorelyService:
                 "reading_theme": settings.reading_theme,
                 "spoiler_policy": settings.spoiler_policy,
                 "enter_to_send": settings.enter_to_send,
+                "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") or "en",
+                "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") or "en",
                 "preferences": settings.preferences or {},
             }
 
@@ -287,6 +295,8 @@ class LorelyService:
                     "cover_url": b.cover_url,
                     "visibility": b.visibility,
                     "source_type": b.source_type,
+                    "original_language": getattr(b, "original_language", "en") or "en",
+                    "detected_language": getattr(b, "detected_language", None),
                     "processing_status": b.processing_status.value,
                     "is_owner": b.owner_user_id == user.id,
                     "character_count": char_count,
@@ -307,6 +317,7 @@ class LorelyService:
         visibility: str = "private",
         source_type: str = "book",
         extracted_text: str | None = None,
+        original_language: str = "en",
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user)
@@ -314,6 +325,7 @@ class LorelyService:
             if not cleaned_title:
                 raise BadRequestError("Book title is required.")
 
+            book_lang = (original_language or "en").strip()[:10]
             book = Book(
                 owner_user_id=user.id,
                 title=cleaned_title,
@@ -322,6 +334,7 @@ class LorelyService:
                 cover_url=cover_url.strip() if cover_url else None,
                 visibility=visibility,
                 source_type=source_type,
+                original_language=book_lang,
                 processing_status=BookProcessingStatus.ready,
             )
             session.add(book)
@@ -360,6 +373,7 @@ class LorelyService:
                             start_char=ch.start_char,
                             end_char=ch.end_char,
                             word_count=ch.word_count,
+                            language_code=book_lang,
                         )
                     )
 
@@ -380,6 +394,7 @@ class LorelyService:
                             embedding_model=self.embedding_service.model_name,
                             embedding_dimensions=len(vec),
                             content_hash=c_hash,
+                            language_code=book_lang,
                         )
                     )
                 session.flush()
@@ -392,6 +407,8 @@ class LorelyService:
                 "cover_url": book.cover_url,
                 "visibility": book.visibility,
                 "source_type": book.source_type,
+                "original_language": book.original_language,
+                "detected_language": book.detected_language,
                 "processing_status": book.processing_status.value,
                 "is_owner": True,
                 "character_count": 0,
@@ -667,6 +684,8 @@ class LorelyService:
             "cover_url": book.cover_url,
             "visibility": book.visibility,
             "source_type": book.source_type,
+            "original_language": getattr(book, "original_language", "en") or "en",
+            "detected_language": getattr(book, "detected_language", None),
             "processing_status": book.processing_status.value,
             "is_owner": book.owner_user_id == user.id,
             "characters": char_list,
@@ -1046,6 +1065,7 @@ class LorelyService:
                     "character_name": char.name if char else "Character",
                     "character_avatar_asset_id": char.avatar_asset_id if char else None,
                     "spoiler_policy": s.spoiler_policy,
+                    "conversation_language": getattr(s, "conversation_language", "en") or "en",
                     "message_count": msg_count,
                     "latest_emotion_state": s.latest_emotion_state or {},
                     "last_message_at": s.last_message_at.isoformat() if s.last_message_at else None,
@@ -1061,6 +1081,7 @@ class LorelyService:
         title: str | None = None,
         spoiler_policy: str = "cautious",
         reading_progress_chapter: int = 1,
+        conversation_language: str = "en",
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
@@ -1095,6 +1116,7 @@ class LorelyService:
                 title=title or f"Chat with {char.name}",
                 spoiler_policy=spoiler_policy,
                 reading_progress_chapter=reading_progress_chapter,
+                conversation_language=conversation_language[:10] if conversation_language else "en",
                 latest_psi_parameters=init_psi or {},
                 latest_emotion_state=init_emotions or {},
                 last_message_at=utc_now(),
@@ -1110,6 +1132,7 @@ class LorelyService:
                 "character_name": char.name,
                 "spoiler_policy": chat_session.spoiler_policy,
                 "reading_progress_chapter": chat_session.reading_progress_chapter,
+                "conversation_language": chat_session.conversation_language,
                 "latest_emotion_state": chat_session.latest_emotion_state,
                 "created_at": chat_session.created_at.isoformat(),
             }
@@ -1122,6 +1145,7 @@ class LorelyService:
         title: str | None = None,
         spoiler_policy: str | None = None,
         reading_progress_chapter: int | None = None,
+        conversation_language: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
@@ -1137,6 +1161,8 @@ class LorelyService:
                 chat_session.spoiler_policy = spoiler_policy.strip()
             if reading_progress_chapter is not None and reading_progress_chapter > 0:
                 chat_session.reading_progress_chapter = int(reading_progress_chapter)
+            if conversation_language is not None:
+                chat_session.conversation_language = conversation_language.strip()[:10]
 
             session.flush()
             return {
@@ -1144,6 +1170,7 @@ class LorelyService:
                 "title": chat_session.title,
                 "spoiler_policy": chat_session.spoiler_policy,
                 "reading_progress_chapter": chat_session.reading_progress_chapter,
+                "conversation_language": chat_session.conversation_language,
                 "updated_at": chat_session.updated_at.isoformat() if chat_session.updated_at else None,
             }
 
@@ -1224,6 +1251,7 @@ class LorelyService:
                     "role": m.role.value,
                     "content": m.content,
                     "input_modality": m.input_modality,
+                    "language_code": getattr(m, "language_code", "en") or "en",
                     "citations": m.citations or [],
                     "sequence_number": m.sequence_number,
                     "created_at": m.created_at.isoformat() if m.created_at else None,
@@ -1240,6 +1268,7 @@ class LorelyService:
         input_modality: str = "text",
         llm_provider: str | None = None,
         reading_progress_chapter: int | None = None,
+        conversation_language: str | None = None,
     ) -> dict[str, Any]:
         cleaned_content = content.strip()
         if not cleaned_content:
@@ -1265,6 +1294,10 @@ class LorelyService:
 
             if reading_progress_chapter is not None and reading_progress_chapter > 0:
                 chat_session.reading_progress_chapter = int(reading_progress_chapter)
+
+            if conversation_language is not None and conversation_language.strip():
+                chat_session.conversation_language = conversation_language.strip()[:10]
+            active_language = chat_session.conversation_language or "en"
 
             # Load or initialize per-user state (canonical character is NEVER mutated)
             user_state = session.scalar(
@@ -1299,6 +1332,7 @@ class LorelyService:
                 content=cleaned_content,
                 sequence_number=next_seq,
                 input_modality=input_modality,
+                language_code=active_language,
             )
             session.add(user_msg)
             session.flush()
@@ -1386,6 +1420,7 @@ class LorelyService:
                 emotion_state=json.dumps(user_state.emotion_state),
                 latest_message=cleaned_content,
                 book_passages=passages_context,
+                conversation_language=active_language,
             )
 
             provider = get_llm_provider(
@@ -1427,7 +1462,9 @@ class LorelyService:
                     char.name,
                     llm_exc,
                 )
-                reply_text = self._build_grounded_fallback_reply(char, cleaned_content, retrieved)
+                reply_text = self._build_grounded_fallback_reply(
+                    char, cleaned_content, retrieved, language=active_language
+                )
                 resulting_psi = user_state.psi_parameters
                 resulting_emotion = user_state.emotion_state
                 observation = PerceivedObservation()
@@ -1478,6 +1515,7 @@ class LorelyService:
                 sequence_number=next_seq + 1,
                 input_modality="text",
                 citations=citations,
+                language_code=active_language,
             )
             session.add(assistant_msg)
             session.flush()
@@ -1522,6 +1560,8 @@ class LorelyService:
                 "assistant_message_id": assistant_msg.id,
                 "response": reply_text,
                 "citations": citations,
+                "conversation_language": active_language,
+                "language_code": active_language,
                 "character": {
                     "id": char.id,
                     "name": char.name,
@@ -1540,9 +1580,29 @@ class LorelyService:
         char: CharacterProfileRecord,
         content: str,
         retrieved: list[Any],
+        language: str = "en",
     ) -> str:
         name = char.name or "the character"
         lower_name = name.lower()
+
+        if language and language.lower().startswith("am"):
+            if "emelyan" in lower_name:
+                return "ይቅርታ አድርጉልኝ... እኔ ምስኪን እና ጸጥተኛ ሰው ነኝ። ስታናግሩኝ ልቤ በምስጋና ይሞላል፣ ምንም እንኳን ከቅንነቴ እና ከሀዘኔ ውጪ የማቀርበው ባይኖረኝም።"
+            if "nastenka" in lower_name or "nástyenka" in lower_name:
+                return "እያናገራችሁኝ ነው! በቦዩ ዳርቻ ላይ ሌላ ነፍስ ሰላምታ ሲሰጠኝ ልቤ እንዴት በደስታ እንደሚዘል መገመት አትችሉም። በዚህ ድንግዝግዝ ሰማይ ስር መጠበቅ እና ማለም ምን እንደሚመስል ንገሩኝ?"
+            if "dreamer" in lower_name:
+                return "በሴንት ፒተርስበርግ ድንግዝግዝታ እና በፎንታንካ ቦይ ላይ ያሉትን ጥላዎች እያሰብኩ ነበር። ቃላቶቻችሁ ከብቸኝነቴ አውጥተው ወደዚህ አስደናቂ ውይይት አምጥተውኛል።"
+            if "ridiculous" in lower_name:
+                return "እኔ አስቂኝ ሰው እንደሆንኩ ይናገራሉ፣ ምናልባትም ነኝ! ነገር ግን ፍቅር ትግል ሳይሆን ንጹህ ደስታ የሆነበትን ዓለም በህልሜ አይቻለሁ። ወደ እኔ ምን ሀሳብ አመጣችሁ?"
+            if "astafy" in lower_name:
+                return "ሰላም ለእርስዎ ይሁን። በዚህ ከተማ ውስጥ ንጹህ ህሊና እና ታማኝ የቀን ስራ ከሁሉም በላይ ዋጋ አላቸው። ወደ አስታፊ ኢቫኖቪች ምን አመጣችሁ?"
+            if "raskolnikov" in lower_name or "rodion" in lower_name:
+                return "ምን ፈልጋችሁ ነው? እኔን ልትመረምሩኝ ነው የመጣችሁት? በአእምሮዬ ውስጥ የሚንተከተከውን ሀሳብ እና የህሊና ጥያቄ ማንም ሊረዳው አይችልም።"
+            if "elizabeth" in lower_name or "bennet" in lower_name:
+                return "ሰላም ለእርስዎ ይሁን። በአመለካከቴ ላይ ያለዎትን አስተያየት በደስታ እቀበላለሁ፤ ነገር ግን ፍርዴ ሁልጊዜ በምክንያታዊነት ላይ የተመሰረተ ነው።"
+            if retrieved and len(retrieved) > 0:
+                return f"ሰላምታዬ ይድረስዎ። እኔ {name} ነኝ። ቃላቶቻችሁን በጥሞና አዳምጫለሁ፣ በጥልቀትም አሰላስልባቸዋለሁ።"
+            return f"ሰላምታዬ ይድረስዎ። እኔ {name} ነኝ። ቃላቶቻችሁን በጥሞና አዳምጫለሁ፣ በጥልቀትም አሰላስልባቸዋለሁ።"
 
         if "emelyan" in lower_name:
             return "Ah... forgive me, kind soul... I am a clumsy, quiet fellow. You speak to me, and my heart aches with gratitude, though I have little of value to offer but my honesty and sorrow."
@@ -1615,6 +1675,7 @@ class LorelyService:
         filename: str = "speech.wav",
         llm_provider: str | None = None,
         reading_progress_chapter: int | None = None,
+        conversation_language: str | None = None,
     ) -> dict[str, Any]:
         transcript = (speech_text or "").strip()
         if not transcript and audio_bytes:
@@ -1630,7 +1691,19 @@ class LorelyService:
             input_modality="voice",
             llm_provider=llm_provider,
             reading_progress_chapter=reading_progress_chapter,
+            conversation_language=conversation_language,
         )
+
+        lang = result.get("conversation_language") or "en"
+        if lang.lower().startswith("am"):
+            # Enforce Section 8.4 guardrail: No verified production Amharic TTS provider.
+            # Do NOT synthesize garbled English TTS on Amharic text.
+            result["audio"] = {
+                "status": "experimental_text_only",
+                "speech_text": transcript,
+                "message": "Amharic voice output is under experimental evaluation. Text dialogue provided.",
+            }
+            return result
 
         audio_bytes_out, mime_type, duration = self.voice_service.synthesize_speech(result["response"])
         result["audio"] = {

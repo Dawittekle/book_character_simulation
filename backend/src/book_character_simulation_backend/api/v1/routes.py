@@ -187,6 +187,7 @@ def create_book():
         visibility=body.get("visibility", "private"),
         source_type=body.get("source_type", "book"),
         extracted_text=body.get("text") or body.get("extracted_text"),
+        original_language=body.get("original_language", "en"),
     )
     return jsonify(book), 201
 
@@ -370,6 +371,7 @@ def create_character_conversation(character_id: str):
         title=body.get("title"),
         spoiler_policy=body.get("spoiler_policy", "cautious"),
         reading_progress_chapter=int(body.get("reading_progress_chapter", 1)),
+        conversation_language=body.get("conversation_language", "en"),
     )
     return jsonify(session_data), 201
 
@@ -411,6 +413,7 @@ def patch_conversation(session_id: str):
         title=body.get("title"),
         spoiler_policy=body.get("spoiler_policy"),
         reading_progress_chapter=body.get("reading_progress_chapter"),
+        conversation_language=body.get("conversation_language"),
     )
     return jsonify(res), 200
 
@@ -438,6 +441,7 @@ def send_conversation_message(session_id: str):
         input_modality=body.get("input_modality", "text"),
         llm_provider=body.get("llm_provider"),
         reading_progress_chapter=body.get("reading_progress_chapter"),
+        conversation_language=body.get("conversation_language"),
     )
     return jsonify(result), 201
 
@@ -464,12 +468,14 @@ def conversation_voice_turn(session_id: str):
     audio_bytes = None
     filename = "speech.wav"
     llm_provider = None
+    conversation_language = None
 
     reading_progress_chapter = None
     if request.is_json:
         body = request.get_json(silent=True) or {}
         speech_text = body.get("speech_text") or body.get("content")
         reading_progress_chapter = body.get("reading_progress_chapter")
+        conversation_language = body.get("conversation_language")
         raw_b64 = body.get("audio_base64")
         if raw_b64:
             try:
@@ -480,6 +486,7 @@ def conversation_voice_turn(session_id: str):
     elif request.files:
         speech_text = request.form.get("speech_text")
         reading_progress_chapter = request.form.get("reading_progress_chapter")
+        conversation_language = request.form.get("conversation_language")
         llm_provider = request.form.get("llm_provider")
         file = request.files.get("audio") or request.files.get("file")
         if file:
@@ -497,6 +504,7 @@ def conversation_voice_turn(session_id: str):
         filename=filename,
         llm_provider=llm_provider,
         reading_progress_chapter=int(reading_progress_chapter) if reading_progress_chapter is not None else None,
+        conversation_language=conversation_language,
     )
     return jsonify(result), 200
 

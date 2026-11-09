@@ -58,6 +58,8 @@ class UserSettings(IdentifierMixin, TimestampMixin, Base):
     reading_theme: Mapped[str] = mapped_column(String(50), default="parchment", nullable=False)
     spoiler_policy: Mapped[str] = mapped_column(String(50), default="cautious", nullable=False)
     enter_to_send: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    preferred_ui_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+    preferred_conversation_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     user: Mapped["UserAccount"] = relationship(back_populates="settings")
@@ -160,6 +162,8 @@ class Book(IdentifierMixin, TimestampMixin, Base):
     )
     visibility: Mapped[str] = mapped_column(String(50), default="private", nullable=False)
     source_type: Mapped[str] = mapped_column(String(50), default="book", nullable=False)
+    original_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+    detected_language: Mapped[str | None] = mapped_column(String(10), nullable=True)
     cover_url: Mapped[str | None] = mapped_column(Text)
 
     owner: Mapped["UserAccount"] = relationship(back_populates="books")
@@ -189,6 +193,7 @@ class BookChapter(IdentifierMixin, Base):
     )
     chapter_order: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    language_code: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     start_char: Mapped[int | None] = mapped_column(Integer, nullable=True)
     end_char: Mapped[int | None] = mapped_column(Integer, nullable=True)
     word_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -225,6 +230,7 @@ class BookChunk(IdentifierMixin, Base):
     chapter_title: Mapped[str | None] = mapped_column(String(255))
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    language_code: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector())
     embedding_provider: Mapped[str] = mapped_column(String(50), default="gemini", nullable=False)
     embedding_model: Mapped[str] = mapped_column(String(100), default="text-embedding-004", nullable=False)
@@ -337,6 +343,7 @@ class ChatSession(IdentifierMixin, TimestampMixin, Base):
     title: Mapped[str | None] = mapped_column(String(255))
     spoiler_policy: Mapped[str] = mapped_column(String(50), default="cautious", nullable=False)
     reading_progress_chapter: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    conversation_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     latest_psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     latest_emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     last_message_at: Mapped[datetime | None] = mapped_column(
@@ -363,6 +370,7 @@ class ChatMessage(IdentifierMixin, Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False)
     input_modality: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
+    language_code: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     citations: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

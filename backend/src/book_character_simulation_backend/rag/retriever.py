@@ -20,10 +20,39 @@ class RetrievedPassage:
     rrf_score: float = 0.0
 
 
+AMHARIC_LITERARY_DICTIONARY: dict[str, list[str]] = {
+    "ናስቴንካ": ["nastenka", "nástyenka"],
+    "ህልመኛው": ["dreamer", "the dreamer"],
+    "ነጭ ሌሊቶች": ["white nights"],
+    "ሴንት ፒተርስበርግ": ["st. petersburg", "petersburg"],
+    "ራስኮልኒኮቭ": ["raskolnikov", "rodion"],
+    "ወንጀልና ቅጣት": ["crime and punishment"],
+    "ኤሜልያን": ["emelyan", "ilyitch"],
+    "አስታፊ": ["astafy", "ivanovich"],
+    "ታማኝ ሌባ": ["honest thief"],
+    "ሱሪ": ["riding breeches", "breeches"],
+    "ቀሚስ": ["dress", "skirt"],
+    "ድልድይ": ["bridge"],
+    "ቦይ": ["canal"],
+    "ደብዳቤ": ["letter"],
+    "ጉዞ": ["journey", "train"],
+    "ቁልፍ": ["key"],
+    "ምስጢር": ["secret", "vault"],
+}
+
+
+def expand_query_cross_lingual(query: str) -> list[str]:
+    expanded: list[str] = []
+    for amh_key, eng_terms in AMHARIC_LITERARY_DICTIONARY.items():
+        if amh_key in query:
+            expanded.extend(eng_terms)
+    return expanded
+
+
 def compute_lexical_score(text: str, query: str) -> float:
     """
     Computes a fast, robust lexical relevance score using token coverage,
-    frequency weighting, and exact phrase matching.
+    frequency weighting, and exact phrase matching with bilingual Amharic-English support.
     """
     text_lower = text.lower()
     query_lower = query.lower().strip()
@@ -37,6 +66,17 @@ def compute_lexical_score(text: str, query: str) -> float:
         score += 3.0
 
     tokens = [t for t in re.findall(r"\w+", query_lower) if len(t) >= 2]
+
+    # Cross-lingual expansion for Amharic literary terms against English source chunks
+    cross_expansions = expand_query_cross_lingual(query)
+    for phrase in cross_expansions:
+        if phrase in text_lower:
+            score += 2.5
+        for t in phrase.split():
+            clean_t = t.lower()
+            if clean_t not in tokens and len(clean_t) >= 2:
+                tokens.append(clean_t)
+
     if not tokens:
         return score
 
@@ -124,6 +164,6 @@ class SpoilerAwareRetriever:
                 )
             )
 
-        # Sort by RRF rank
-        candidates.sort(key=lambda x: x.rrf_score, reverse=True)
+        # Sort by RRF rank with lexical and vector tie-breakers
+        candidates.sort(key=lambda x: (x.rrf_score, x.lexical_score, x.similarity), reverse=True)
         return candidates[:top_k]

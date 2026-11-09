@@ -54,15 +54,31 @@ def chat_prompt(
     emotion_state: str,
     latest_message: str,
     book_passages: str = "",
+    conversation_language: str = "en",
 ) -> tuple[str, str]:
+    is_amharic = conversation_language.lower().startswith("am")
+
     system_prompt = (
-        "You are roleplaying as a book character. "
+        "You are roleplaying as a book character in Amharic (አማርኛ). "
         "Stay in character and return only valid JSON."
+        if is_amharic
+        else "You are roleplaying as a book character. Stay in character and return only valid JSON."
     )
 
     passages_section = (
         f"\nRelevant source book passages (ground your memories, facts, and tone in these events):\n{book_passages}\n"
         if book_passages
+        else ""
+    )
+
+    language_instruction = (
+        "\nIMPORTANT CONVERSATION LANGUAGE REQUIREMENT:\n"
+        "The conversation language is Amharic (አማርኛ). You MUST formulate your 'reply' naturally, "
+        "authentically, and exclusively in Amharic (using proper Ge'ez script).\n"
+        "- Base your thoughts, memories, and persona faithfully on the character details and source book passages (even though they are in English).\n"
+        "- Maintain consistent character names and place names (e.g. St. Petersburg / ሴንት ፒተርስበርግ, Nástyenka / ናስቴንካ, The Dreamer / ህልመኛው, Raskolnikov / ራስኮልኒኮቭ).\n"
+        "- Embody the character's unique voice, emotional state, and psychological depth in rich Amharic dialogue.\n"
+        if is_amharic
         else ""
     )
 
@@ -84,7 +100,7 @@ Current emotion state:
 
 Latest user message:
 "{latest_message}"
-
+{language_instruction}
 Return a JSON object with this exact structure:
 {{
   "reply": "character response",
