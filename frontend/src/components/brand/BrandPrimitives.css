@@ -1,0 +1,309 @@
+/**
+ * Brand Primitives Stylesheet
+ * Atomic components: BrandLogo, PillButton, BadgePill, RadialGauge, StatSparkline
+ */
+
+/* ==========================================================================
+   Brand Logo
+   ========================================================================== */
+.brand-logo-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  user-select: none;
+}
+
+.brand-logo-mark {
+  flex-shrink: 0;
+  display: block;
+  transition: transform 200ms ease;
+}
+
+.brand-logo-container:hover .brand-logo-mark {
+  transform: rotate(22.5deg);
+}
+
+.brand-logo-text-group {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-logo-title {
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--brand-text-strong, #0b0f1a);
+}
+
+.brand-logo-tagline {
+  font-size: 0.72rem;
+  color: var(--brand-text-muted, #6b7280);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Pill Button
+   ========================================================================== */
+.brand-pill-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: var(--brand-radius-pill, 9999px);
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+  white-space: nowrap;
+  outline: none;
+}
+
+.brand-pill-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Sizes */
+.brand-pill-button.size-sm {
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.875rem;
+  min-height: 2rem;
+}
+
+.brand-pill-button.size-md {
+  font-size: 0.875rem; /* 14px */
+  padding: 0.5rem 1.25rem;
+  min-height: 2.625rem;
+}
+
+.brand-pill-button.size-lg {
+  font-size: 0.9375rem;
+  padding: 0.75rem 1.75rem;
+  min-height: 3rem;
+}
+
+/* Trailing Chevron padding adjustment */
+.brand-pill-button.has-trailing-chevron.size-md {
+  padding-right: 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.brand-pill-button.has-trailing-chevron.size-lg {
+  padding-right: 0.625rem;
+  padding-left: 1.5rem;
+}
+
+/* Chevron Glyph container */
+.brand-pill-chevron-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+  margin-left: 0.25rem;
+  transition: transform 160ms ease;
+}
+
+.brand-pill-button:hover:not(:disabled) .brand-pill-chevron-container {
+  transform: translateX(2px);
+}
+
+/* Variants */
+.brand-pill-button.variant-orange {
+  background-color: var(--brand-orange, #ef4d23);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 77, 35, 0.2);
+}
+
+.brand-pill-button.variant-orange:hover:not(:disabled) {
+  background-color: var(--brand-orange-hover, #d9421a);
+  box-shadow: 0 4px 14px rgba(239, 77, 35, 0.32);
+  transform: translateY(-1px);
+}
+
+.brand-pill-button.variant-orange:active:not(:disabled) {
+  background-color: var(--brand-orange-active, #bf3814);
+  transform: translateY(0);
+}
+
+.brand-pill-button.variant-dark {
+  background-color: var(--brand-obsidian, #0b0f1a);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(11, 15, 26, 0.15);
+}
+
+.brand-pill-button.variant-dark .brand-pill-chevron-container {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.brand-pill-button.variant-dark:hover:not(:disabled) {
+  background-color: var(--brand-obsidian-hover, #171c2d);
+  box-shadow: 0 4px 14px rgba(11, 15, 26, 0.25);
+  transform: translateY(-1px);
+}
+
+.brand-pill-button.variant-white {
+  background-color: #ffffff;
+  color: var(--brand-text-strong, #0b0f1a);
+  border-color: var(--brand-border, #e5e5e5);
+  box-shadow: var(--brand-shadow-pill, 0 2px 8px rgba(0, 0, 0, 0.04));
+}
+
+.brand-pill-button.variant-white:hover:not(:disabled) {
+  border-color: var(--brand-border-subtle, #d4d4d8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.brand-pill-button.variant-ghost {
+  background-color: transparent;
+  color: var(--brand-text-muted, #6b7280);
+}
+
+.brand-pill-button.variant-ghost:hover:not(:disabled) {
+  color: var(--brand-text-strong, #0b0f1a);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.brand-pill-button.variant-danger {
+  background-color: var(--brand-red-negative-bg, #fef2f2);
+  color: var(--brand-red-negative, #ef4444);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.brand-pill-button.variant-danger:hover:not(:disabled) {
+  background-color: #fee2e2;
+}
+
+/* ==========================================================================
+   Badge Pill
+   ========================================================================== */
+.brand-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--brand-radius-pill, 9999px);
+  padding: 0.375rem 1rem;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 500;
+  box-shadow: var(--brand-shadow-pill, 0 2px 8px rgba(0, 0, 0, 0.04));
+  user-select: none;
+  width: fit-content;
+}
+
+.brand-badge-pill.variant-white {
+  background-color: #ffffff;
+  color: var(--brand-text-strong, #0b0f1a);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.brand-badge-pill.variant-translucent {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  color: var(--brand-text-strong, #0b0f1a);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.brand-badge-pill.variant-muted {
+  background-color: var(--brand-tray-bg, #f5f2ee);
+  color: var(--brand-text-muted, #6b7280);
+}
+
+.brand-badge-pill.variant-orange {
+  background-color: var(--brand-orange-soft, rgba(239, 77, 35, 0.08));
+  color: var(--brand-orange, #ef4d23);
+  border: 1px solid var(--brand-orange-border, rgba(239, 77, 35, 0.25));
+}
+
+.brand-badge-dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.brand-badge-dot.is-pulsing {
+  animation: brand-dot-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes brand-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* ==========================================================================
+   Radial Gauge (180° Arc)
+   ========================================================================== */
+.brand-radial-gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.brand-radial-gauge-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  display: block;
+}
+
+.brand-radial-gauge-center-text {
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  fill: var(--brand-text-strong, #0b0f1a);
+}
+
+.brand-radial-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 0.6875rem; /* 11px */
+  color: var(--brand-text-muted, #6b7280);
+  margin-top: 0.25rem;
+  padding: 0 0.5rem;
+}
+
+.brand-radial-gauge-sublabel {
+  color: var(--brand-text-subtle, #9ca3af);
+  font-size: 0.625rem;
+}
+
+/* ==========================================================================
+   Stat Sparkline
+   ========================================================================== */
+.brand-sparkline-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-sparkline-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}

@@ -1,0 +1,75 @@
+/**
+ * Lorely Design System Tokens
+ * Canonical CSS Custom Properties for Brand Redesign
+ */
+
+:root {
+  /* ==========================================================================
+     Colors
+     ========================================================================== */
+  --brand-orange: #ef4d23;
+  --brand-orange-hover: #d9421a;
+  --brand-orange-active: #bf3814;
+  --brand-orange-soft: rgba(239, 77, 35, 0.08);
+  --brand-orange-border: rgba(239, 77, 35, 0.25);
+  --brand-orange-glow: rgba(239, 77, 35, 0.35);
+
+  --brand-obsidian: #0b0f1a;
+  --brand-obsidian-hover: #171c2d;
+  --brand-obsidian-soft: rgba(11, 15, 26, 0.06);
+
+  --brand-page-bg: #ededed;
+  --brand-hero-bg: #d9d9d9;
+  --brand-tray-bg: #f5f2ee;
+  --brand-surface: #ffffff;
+  --brand-surface-elevated: #ffffff;
+
+  --brand-text-strong: #0b0f1a;
+  --brand-text-base: #374151;
+  --brand-text-muted: #6b7280;
+  --brand-text-subtle: #9ca3af;
+
+  --brand-border: #e5e5e5;
+  --brand-border-subtle: #d4d4d8;
+  --brand-border-hero: rgba(0, 0, 0, 0.06);
+
+  /* Status Accents */
+  --brand-sky-bg: #eff6ff;
+  --brand-sky-card: #e0f2fe;
+  --brand-sky-text: #0284c7;
+  --brand-sky-chart: #38bdf8;
+
+  --brand-red-negative: #ef4444;
+  --brand-red-negative-bg: #fef2f2;
+  --brand-green-positive: #10b981;
+  --brand-green-positive-bg: #ecfdf5;
+  --brand-amber-warning: #f59e0b;
+  --brand-amber-warning-bg: #fffbeb;
+
+  /* ==========================================================================
+     Typography
+     ========================================================================== */
+  --brand-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --brand-font-serif: 'Instrument Serif', Georgia, serif;
+  --brand-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* ==========================================================================
+     Border Radii
+     ========================================================================== */
+  --brand-radius-sm: 8px;
+  --brand-radius-md: 12px;
+  --brand-radius-lg: 16px;
+  --brand-radius-xl: 20px;
+  --brand-radius-2xl: 24px;
+  --brand-radius-3xl: 32px;
+  --brand-radius-pill: 9999px;
+
+  /* ==========================================================================
+     Shadows
+     ========================================================================== */
+  --brand-shadow-pill: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --brand-shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --brand-shadow-card-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.08);
+  --brand-shadow-modal: 0 24px 64px -12px rgba(11, 15, 26, 0.16);
+  --brand-shadow-orange: 0 4px 14px rgba(239, 77, 35, 0.28);
+}
