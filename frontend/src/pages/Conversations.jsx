@@ -9,12 +9,14 @@ import './Conversations.css';
 export default function Conversations() {
   const { accessToken } = useOutletContext();
   const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
     async function loadConversations() {
       try {
+        setLoading(true);
         const list = await lorelyApi.listConversations(accessToken);
         if (mounted) {
           setConversations(Array.isArray(list) ? list : []);
@@ -22,6 +24,10 @@ export default function Conversations() {
       } catch (err) {
         if (mounted) {
           setConversations([]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
         }
       }
     }
@@ -56,7 +62,9 @@ export default function Conversations() {
           <div className="conversations-title-lockup">
             <h1 className="conversations-title">Your Conversations</h1>
             <BadgePill variant="orange" dotColor="#ef4d23" className="conversations-count-badge">
-              {conversations.length} Active {conversations.length === 1 ? 'Bond' : 'Bonds'}
+              {loading
+                ? 'Syncing...'
+                : `${conversations.length} Active ${conversations.length === 1 ? 'Bond' : 'Bonds'}`}
             </BadgePill>
           </div>
           <p className="conversations-subtitle">
@@ -65,7 +73,22 @@ export default function Conversations() {
         </div>
       </header>
 
-      {conversations.length === 0 ? (
+      {loading ? (
+        <div className="conversations-skeleton-list" aria-label="Loading your conversations" data-testid="conversations-loading-skeleton">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="conversation-row-card skeleton-conv-card">
+              <div className="skeleton-avatar skeleton-shimmer" />
+              <div className="skeleton-conv-info">
+                <div className="skeleton-line skeleton-line-title skeleton-shimmer" />
+                <div className="skeleton-line skeleton-line-sub skeleton-shimmer" />
+              </div>
+              <div className="skeleton-conv-meta">
+                <div className="skeleton-line skeleton-line-badge skeleton-shimmer" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : conversations.length === 0 ? (
         <div className="conversations-empty-state">
           <div className="empty-icon-bubble">💬</div>
           <h3>No Conversations Yet</h3>

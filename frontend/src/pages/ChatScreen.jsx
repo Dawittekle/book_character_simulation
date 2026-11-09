@@ -27,6 +27,7 @@ export default function ChatScreen() {
   const navigate = useNavigate();
 
   const [character, setCharacter] = useState(INITIAL_EMPTY_CHARACTER);
+  const [loadingChat, setLoadingChat] = useState(Boolean(characterId));
   const [sessionId, setSessionId] = useState(paramSessionId || null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -53,9 +54,13 @@ export default function ChatScreen() {
   useEffect(() => {
     let mounted = true;
     async function initConversation() {
-      if (!characterId) return;
+      if (!characterId) {
+        setLoadingChat(false);
+        return;
+      }
 
       try {
+        setLoadingChat(true);
         // Fetch character dossier
         const dossier = await lorelyApi.getCharacterDossier(characterId, accessToken);
         if (mounted && dossier) {
@@ -111,6 +116,10 @@ export default function ChatScreen() {
         }
       } catch (err) {
         console.error('Failed to initialize conversation session:', err);
+      } finally {
+        if (mounted) {
+          setLoadingChat(false);
+        }
       }
     }
     initConversation();
@@ -334,11 +343,19 @@ export default function ChatScreen() {
                 <span className="chat-header-status-dot" />
               </div>
               <div className="chat-header-text">
-                <h2 className="chat-header-name">{character.name}</h2>
+                <h2 className="chat-header-name">
+                  {loadingChat ? 'Synchronizing Cast...' : character.name}
+                </h2>
                 <div className="chat-header-subline">
-                  <span className="chat-header-book">{character.book_title || 'The Midnight Letters'}</span>
+                  <span className="chat-header-book">
+                    {loadingChat
+                      ? 'Restoring persona & memories'
+                      : (character.book_title || '')}
+                  </span>
                   <span className="chat-status-dot">●</span>
-                  <span className="chat-status-text">Online</span>
+                  <span className="chat-status-text">
+                    {loadingChat ? 'Connecting' : 'Online'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -364,18 +381,36 @@ export default function ChatScreen() {
 
         {/* Message Thread */}
         <div className="chat-message-stream" data-testid="chat-message-stream">
-          {messages.length === 0 ? (
+          {loadingChat ? (
+            <div className="chat-loading-cast-state" aria-label="Summoning cognitive cast">
+              <div className="chat-cast-loader-visual">
+                <div className="chat-cast-pulse-ring" />
+                <div className="chat-cast-core-node">✦</div>
+              </div>
+              <h3 className="chat-cast-loader-title">Summoning Cognitive Cast</h3>
+              <p className="chat-cast-loader-sub">
+                Restoring character persona, memories, and conversational tone...
+              </p>
+              <div className="chat-cast-shimmer-stack">
+                <div className="chat-bubble-skeleton bubble-skeleton-left" />
+                <div className="chat-bubble-skeleton bubble-skeleton-right" />
+                <div className="chat-bubble-skeleton bubble-skeleton-left-short" />
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="chat-welcome-banner" data-testid="chat-welcome-banner">
               <div className="chat-welcome-avatar-wrap">
                 <img src={characterAvatar} alt={character.name} className="chat-welcome-avatar" />
               </div>
               <h2 className="chat-welcome-name">{character.name}</h2>
-              <p className="chat-welcome-book">{character.book_title || 'Fyodor Dostoevsky Collection'}</p>
+              {character.book_title && (
+                <p className="chat-welcome-book">{character.book_title}</p>
+              )}
               {character.personality && (
                 <p className="chat-welcome-bio">{character.personality}</p>
               )}
               <div className="chat-welcome-prompt">
-                <span>Begin your dialogue with {character.name}. Ask about their story in St. Petersburg, their convictions, or their memories.</span>
+                <span>Begin your dialogue with {character.name}. Ask about their story, their convictions, or their memories.</span>
               </div>
             </div>
           ) : (

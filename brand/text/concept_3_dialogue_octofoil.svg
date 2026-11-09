@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-label="Lorely Dialogue Octofoil - Concept 3">
+  <!-- Concept 3: The Dialogue Octofoil
+       8 Conversational Quote / Dialogue Nodes orbiting an Editorial Codex Spark
+       Represents meaningful back-and-forth dialogue with literary characters.
+       Maintains the 8-circle silhouette while introducing conversational glyphs. -->
+
+  <defs>
+    <!-- Dialogue Quotation Seed Unit -->
+    <g id="dialogue-seed">
+      <!-- Outer circle dot (radius 5.5 at (32, 12)) -->
+      <circle cx="32" cy="12" r="5.5" fill="#ef4d23" />
+      <!-- Subtle quotation tail curving inwards clockwise -->
+      <path
+        d="M32 17.5 C34 18.5 35 21 34 23 C33 21.5 31.5 19.5 30 18.5 Z"
+        fill="#ef4d23"
+      />
+    </g>
+  </defs>
+
+  <!-- 8 Rotated Dialogue Nodes -->
+  <use href="#dialogue-seed" transform="rotate(0, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(45, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(90, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(135, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(180, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(225, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(270, 32, 32)" />
+  <use href="#dialogue-seed" transform="rotate(315, 32, 32)" />
+
+  <!-- Center: Editorial Codex Spark & Book Nexus -->
+  <circle cx="32" cy="32" r="4" fill="#ef4d23" />
+  <!-- Radiant cross rays (editorial chapter ornament) -->
+  <path
+    d="M32 23 L32.8 30 L39 30.8 L33.5 32 L39 33.2 L32.8 34 L32 41 L31.2 34 L25 33.2 L30.5 32 L25 30.8 L31.2 30 Z"
+    fill="#ffffff"
+  />
+</svg>

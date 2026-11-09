@@ -414,6 +414,129 @@
   letter-spacing: 0.04em;
 }
 
+/* Loading Cast Summoning Animation */
+.chat-loading-cast-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 56px 20px;
+  gap: 12px;
+}
+
+.chat-cast-loader-visual {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.chat-cast-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(239, 77, 35, 0.4);
+  animation: castPulseRing 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes castPulseRing {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.chat-cast-core-node {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff3ed;
+  border: 1px solid #ffd4be;
+  color: var(--brand-orange, #ef4d23);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(239, 77, 35, 0.2);
+}
+
+.chat-cast-loader-title {
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--brand-obsidian, #0b0f1a);
+  margin: 0;
+}
+
+.chat-cast-loader-sub {
+  font-size: 13px;
+  color: #6b7280;
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.chat-cast-shimmer-stack {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.chat-bubble-skeleton {
+  height: 38px;
+  border-radius: 18px;
+  background: linear-gradient(
+    90deg,
+    #f3f0ec 0%,
+    #faf8f5 50%,
+    #f3f0ec 100%
+  );
+  background-size: 200% 100%;
+  animation: castSkeletonShimmer 1.5s infinite linear;
+}
+
+@keyframes castSkeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.bubble-skeleton-left {
+  width: 75%;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.bubble-skeleton-right {
+  width: 65%;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.bubble-skeleton-left-short {
+  width: 45%;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
 /* ==========================================================================
    Typing Indicator
    ========================================================================== */

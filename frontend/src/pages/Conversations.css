@@ -252,3 +252,86 @@
 .empty-cta-btn {
   margin-top: 8px;
 }
+
+/* ==========================================================================
+   Loading Skeleton
+   ========================================================================== */
+.conversations-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-conv-card {
+  cursor: default;
+  pointer-events: none;
+}
+
+.skeleton-conv-card:hover {
+  transform: none;
+  border-color: var(--brand-border, #e5e5e5);
+  box-shadow: 0 1px 3px rgba(11, 15, 26, 0.04);
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-conv-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.skeleton-line {
+  border-radius: 4px;
+}
+
+.skeleton-line-title {
+  width: 35%;
+  height: 16px;
+}
+
+.skeleton-line-sub {
+  width: 65%;
+  height: 12px;
+}
+
+.skeleton-conv-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.skeleton-line-badge {
+  width: 60px;
+  height: 18px;
+  border-radius: 9999px;
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f3f0ec 0%,
+    #faf8f5 50%,
+    #f3f0ec 100%
+  );
+  background-size: 200% 100%;
+  animation: convSkeletonShimmer 1.5s infinite linear;
+}
+
+@keyframes convSkeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

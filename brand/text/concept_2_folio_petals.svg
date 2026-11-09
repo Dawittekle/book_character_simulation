@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-label="Lorely Folio Petals - Concept 2">
+  <!-- Concept 2: The Folio Petals Rosette
+       8 Blooming Book Leaves radiating around a Central Character Mind
+       Each petal is sculpted as an open book / manuscript page curve,
+       blending the organic flower geometry with classical book arts. -->
+
+  <defs>
+    <!-- Single Open Book Leaf / Petal unit pointing North -->
+    <g id="folio-petal">
+      <!-- Left Page -->
+      <path
+        d="M31.2 7 C26.5 11 25.5 16.5 27 20 C29 18.5 30.8 18.2 31.2 18.8 Z"
+        fill="#ef4d23"
+      />
+      <!-- Right Page -->
+      <path
+        d="M32.8 7 C37.5 11 38.5 16.5 37 20 C35 18.5 33.2 18.2 32.8 18.8 Z"
+        fill="#ef4d23"
+      />
+      <!-- Outer Tip Accent Dot (echoing the original petal circle) -->
+      <circle cx="32" cy="7" r="2.2" fill="#ef4d23" />
+    </g>
+  </defs>
+
+  <!-- 8 Rotated Folio Petals -->
+  <use href="#folio-petal" transform="rotate(0, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(45, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(90, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(135, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(180, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(225, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(270, 32, 32)" />
+  <use href="#folio-petal" transform="rotate(315, 32, 32)" />
+
+  <!-- Center Core: Cognitive Mind Node with Golden Ratio Ring -->
+  <circle cx="32" cy="32" r="5.5" fill="#ef4d23" />
+  <circle cx="32" cy="32" r="2" fill="#ffffff" />
+</svg>

@@ -620,7 +620,7 @@ export default function PricingModal({
                       {/* Admin Account Callout Box */}
                       <div className="etb-account-card">
                         <div className="etb-account-badge">
-                          {etbMethod === 'telebirr' ? '📱 TELEBIRR ACCOUNT' : '🏦 CBE ACCOUNT'}
+                          <span>{etbMethod === 'telebirr' ? '📱 Telebirr Official Account' : '🏦 CBE Bank Account'}</span>
                         </div>
 
                         <div className="account-details-group">
