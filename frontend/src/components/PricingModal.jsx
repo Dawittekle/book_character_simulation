@@ -780,7 +780,7 @@ export default function PricingModal({
               Your payment for <strong>{selectedPlan?.name}</strong> has been safely recorded with reference ID{' '}
               <code>{submittedPayment?.id?.slice(0, 16)}...</code>.
               <br />
-              An administrator will verify your transaction shortly in the Operations Console. You will receive an in-app notification upon activation.
+              An administrator will verify your transaction shortly. You will receive an in-app notification once active.
             </p>
             <button
               type="button"

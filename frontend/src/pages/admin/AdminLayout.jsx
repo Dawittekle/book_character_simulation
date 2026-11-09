@@ -27,10 +27,10 @@ export default function AdminLayout() {
           <BrandLogo size={28} variant="orange" />
           <div className="admin-badge">
             <span className="admin-badge-dot" />
-            <span className="admin-badge-text">Operations Console</span>
+            <span className="admin-badge-text">Admin</span>
           </div>
           <span className="admin-header-sep">/</span>
-          <span className="admin-header-title">Lorely Administration</span>
+          <span className="admin-header-title">Management</span>
         </div>
 
         <nav className="admin-nav-tabs">

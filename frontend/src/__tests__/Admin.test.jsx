@@ -108,8 +108,7 @@ describe('Admin Portal & Route Guard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('System Health & Telemetry')).toBeInTheDocument();
-      expect(screen.getByText('All Services Operational')).toBeInTheDocument();
+      expect(screen.getByText('System Overview')).toBeInTheDocument();
       expect(screen.getByText('14')).toBeInTheDocument();
       expect(screen.getByText('The Clockmaker Dilemma')).toBeInTheDocument();
       expect(screen.getByText('failed')).toBeInTheDocument();

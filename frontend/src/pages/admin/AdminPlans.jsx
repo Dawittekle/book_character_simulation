@@ -57,9 +57,9 @@ export default function AdminPlans() {
   const cachedPlans = getStoredAdminData('plans');
   const cachedUsers = getStoredAdminData('users');
 
-  const [plans, setPlans] = useState(cachedPlans || DEFAULT_PLANS);
+  const [plans, setPlans] = useState(cachedPlans || []);
   const [users, setUsers] = useState(cachedUsers || []);
-  const [loading, setLoading] = useState(!cachedUsers || cachedUsers.length === 0);
+  const [loading, setLoading] = useState(!cachedPlans || cachedPlans.length === 0);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [editingPlan, setEditingPlan] = useState(null);
@@ -70,20 +70,13 @@ export default function AdminPlans() {
     async function loadData() {
       try {
         const [plansRes, usersRes] = await Promise.all([
-          lorelyApi.adminGetPlans(accessToken).catch(() => ({ plans: DEFAULT_PLANS })),
+          lorelyApi.adminGetPlans(accessToken).catch(() => ({ plans: [] })),
           lorelyApi.adminListUsers(accessToken).catch(() => []),
         ]);
         if (mounted) {
-          if (plansRes?.plans?.length) {
-            const mappedPlans = plansRes.plans.map((p) => ({
-              ...p,
-              features: DEFAULT_PLANS.find((dp) => dp.id === p.id)?.features || [
-                `Book quota: ${p.book_quota}`,
-                `Daily messages: ${p.daily_messages}`,
-              ],
-            }));
-            setPlans(mappedPlans);
-            setStoredAdminData('plans', mappedPlans);
+          if (plansRes?.plans && Array.isArray(plansRes.plans)) {
+            setPlans(plansRes.plans);
+            setStoredAdminData('plans', plansRes.plans);
           }
           if (usersRes && Array.isArray(usersRes)) {
             setUsers(usersRes);
@@ -179,8 +172,19 @@ export default function AdminPlans() {
       )}
 
       {/* Plan Tier Cards */}
-      <div className="plans-tier-grid">
-        {plans.map((plan) => (
+      {loading && plans.length === 0 ? (
+        <div className="plans-tier-grid">
+          {[1, 2, 3].map((idx) => (
+            <div key={idx} className="plan-card skeleton-metric-card" style={{ minHeight: '260px' }}>
+              <div className="skeleton-line skeleton-title" />
+              <div className="skeleton-line skeleton-val" />
+              <div className="skeleton-line skeleton-sub" style={{ marginTop: '12px' }} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="plans-tier-grid">
+          {plans.map((plan) => (
           <div key={plan.id} className={`plan-card ${plan.id === 'scholar' ? 'featured-plan' : ''}`}>
             {plan.id === 'scholar' && <span className="plan-badge">Most Popular</span>}
             <h3 className="plan-card-name">{plan.name}</h3>
@@ -221,6 +225,7 @@ export default function AdminPlans() {
           </div>
         ))}
       </div>
+      )}
 
       {/* User Allocations Section */}
       <section className="plans-user-section">

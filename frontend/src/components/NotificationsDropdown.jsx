@@ -154,36 +154,37 @@ export default function NotificationsDropdown({ isOpen, onClose, accessToken, on
       </div>
 
       {/* Notification Stream */}
-      <div className="notif-items-list">
+      <div className="notif-list-container">
         {loading && notifications.length === 0 ? (
           <p className="notif-empty-state">Loading notifications...</p>
         ) : filtered.length === 0 ? (
           <div className="notif-empty-state">
-            <span>✨</span>
-            <p>You’re all caught up! No recent notifications.</p>
+            <span className="notif-empty-icon">✨</span>
+            <p className="notif-empty-text">You’re all caught up!</p>
+            <span className="notif-empty-sub">No recent notifications.</span>
           </div>
         ) : (
           filtered.map((n) => (
             <div
               key={n.id}
-              className={`notif-item-row ${!n.is_read ? 'unread' : 'read'}`}
+              className={`notif-item ${!n.is_read ? 'is-unread' : 'is-read'}`}
               onClick={() => handleNotificationClick(n)}
               role="article"
               tabIndex={0}
             >
-              <span className="notif-cat-icon">{getCategoryIcon(n.category)}</span>
-              <div className="notif-content-col">
-                <div className="notif-title-row">
+              <div className="notif-item-icon-box">{getCategoryIcon(n.category)}</div>
+              <div className="notif-item-content">
+                <div className="notif-item-title-row">
                   <h4 className="notif-item-title">{n.title}</h4>
-                  {!n.is_read && <span className="unread-dot" />}
+                  {!n.is_read && <span className="notif-unread-dot" />}
                 </div>
-                <p className="notif-item-desc">{n.message}</p>
-                <div className="notif-meta-row">
-                  <span className="notif-timestamp">{formatRelativeDate(n.created_at)}</span>
+                <p className="notif-item-message">{n.message}</p>
+                <div className="notif-item-footer">
+                  <span className="notif-item-time">{formatRelativeDate(n.created_at)}</span>
                   {!n.is_read && (
                     <button
                       type="button"
-                      className="notif-read-btn"
+                      className="notif-item-read-action"
                       onClick={(e) => handleMarkRead(e, n.id)}
                     >
                       Mark read

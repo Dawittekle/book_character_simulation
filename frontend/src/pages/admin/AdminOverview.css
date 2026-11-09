@@ -469,3 +469,62 @@
 .admin-login-retry-btn:hover {
   background: var(--brand-orange-hover, #d9421a);
 }
+
+/* Skeleton Loading Animation */
+@keyframes skeletonPulse {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.overview-skeleton-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.skeleton-metric-card {
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.skeleton-line {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.skeleton-title {
+  width: 220px;
+  height: 28px;
+}
+
+.skeleton-sub {
+  width: 380px;
+  max-width: 90%;
+  height: 14px;
+}
+
+.skeleton-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.skeleton-val {
+  width: 60px;
+  height: 24px;
+  margin-bottom: 6px;
+}
+
+.skeleton-lbl {
+  width: 120px;
+  height: 12px;
+}

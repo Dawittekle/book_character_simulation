@@ -66,7 +66,7 @@ export default function AdminUsers() {
         <div>
           <h1 className="users-title">User Roles & Access Control</h1>
           <p className="users-sub">
-            Authoritative platform access control. Primary admin (admin@lorely.app) is protected and cannot be deleted or demoted.
+            Platform access control and permissions. Primary administrator (admin@lorely.app) is protected.
           </p>
         </div>
       </header>

@@ -27,12 +27,12 @@ export default function AdminSubscribers() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState({
-    telebirr_phone: '+251 91 123 4567',
-    telebirr_name: 'Dawit (Lorely Admin)',
-    cbe_account: '1000123456789',
-    cbe_name: 'Dawit (Lorely Admin)',
+    telebirr_phone: '',
+    telebirr_name: '',
+    cbe_account: '',
+    cbe_name: '',
     etb_rate: 135.0,
-    instructions: 'Please transfer the exact amount and input the transaction reference number.',
+    instructions: '',
   });
 
   // Receipt image zoom modal state

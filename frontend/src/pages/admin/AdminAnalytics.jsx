@@ -34,7 +34,7 @@ export default function AdminAnalytics() {
     return (
       <div className="analytics-loading-box" data-testid="analytics-loading">
         <div className="analytics-spinner" />
-        <p>Synthesizing neural telemetry & cognitive metrics...</p>
+        <p>Loading analytics...</p>
       </div>
     );
   }
@@ -183,7 +183,7 @@ export default function AdminAnalytics() {
             <span className="kpi-icon">📚</span>
             <span className="kpi-trend positive">+100% Featured</span>
           </div>
-          <div className="kpi-value">{telemetry.total_books || 3}</div>
+          <div className="kpi-value">{telemetry.total_books ?? 0}</div>
           <div className="kpi-label">Literary Classics</div>
           <div className="kpi-detail">Fyodor Dostoevsky Complete Shelf</div>
         </div>
@@ -211,7 +211,7 @@ export default function AdminAnalytics() {
         <div className="telemetry-kpi-card">
           <div className="kpi-icon-row">
             <span className="kpi-icon">⚡</span>
-            <span className="kpi-trend neutral">{telemetry.avg_retrieval_latency_ms || 22}ms</span>
+            <span className="kpi-trend neutral">{telemetry.avg_retrieval_latency_ms ?? 0}ms</span>
           </div>
           <div className="kpi-value">{telemetry.llm_provider?.toUpperCase() || 'GEMINI'}</div>
           <div className="kpi-label">Active Inference Engine</div>
@@ -427,7 +427,7 @@ export default function AdminAnalytics() {
                 />
               </svg>
               <div className="radial-center-stats">
-                <span className="radial-total">{telemetry.total_users || 1}</span>
+                <span className="radial-total">{telemetry.total_users ?? 0}</span>
                 <span className="radial-label">Readers</span>
               </div>
             </div>

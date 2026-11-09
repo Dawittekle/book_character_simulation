@@ -23,6 +23,7 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminPlans from './pages/admin/AdminPlans';
 import AdminSubscribers from './pages/admin/AdminSubscribers';
 import AdminSettings from './pages/admin/AdminSettings';
+import BrandLogo from './components/brand/BrandLogo';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { lorelyApi } from './services/lorelyApi';
 
@@ -183,11 +184,22 @@ function App() {
     return (
       <div className="app-loading-screen">
         <div className="app-loading-card">
-          <span className="app-loading-badge">Preparing Lorely</span>
-          <h1>Entering the Stories</h1>
-          <p>
+          <div className="app-loading-logo-wrap">
+            <BrandLogo size={42} variant="orange" />
+          </div>
+          <div className="app-loading-badge">
+            <span className="app-loading-badge-dot" />
+            <span>Preparing Lorely</span>
+          </div>
+          <h1 className="app-loading-title">
+            Entering the <span className="app-loading-serif">Stories</span>
+          </h1>
+          <p className="app-loading-subtitle">
             Restoring your reader session and preparing the literary salon.
           </p>
+          <div className="app-loading-bar-track">
+            <div className="app-loading-bar-fill" />
+          </div>
         </div>
       </div>
     );

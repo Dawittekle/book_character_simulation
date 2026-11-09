@@ -78,7 +78,7 @@ export default function AdminJobs() {
       </header>
 
       {loading ? (
-        <p className="admin-subtext">Loading jobs telemetry...</p>
+        <p className="admin-subtext">Loading extraction jobs...</p>
       ) : jobs.length === 0 ? (
         <p className="admin-subtext">No jobs found matching "{filter}".</p>
       ) : (

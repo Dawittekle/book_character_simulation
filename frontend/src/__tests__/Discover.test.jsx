@@ -18,15 +18,13 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('Discover Page', () => {
-  it('renders hero title, timeless classics banner, and literary books', () => {
+  it('renders hero timeless classics banner and literary books', () => {
     render(
       <BrowserRouter>
         <Discover />
       </BrowserRouter>,
     );
 
-    expect(screen.getByText('Lorely')).toBeInTheDocument();
-    expect(screen.getByText('Step into the stories.')).toBeInTheDocument();
     expect(screen.getByText('Timeless Classics')).toBeInTheDocument();
     expect(screen.getByText('White Nights')).toBeInTheDocument();
     expect(screen.getByText('The Dream of a Ridiculous Man')).toBeInTheDocument();

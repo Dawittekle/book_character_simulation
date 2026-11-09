@@ -34,9 +34,22 @@ export default function AdminOverview() {
 
   if (loading) {
     return (
-      <div className="admin-loading-indicator">
-        <div className="admin-spinner" />
-        <p>Loading real-time operational telemetry...</p>
+      <div className="admin-overview-view admin-loading-state" data-testid="admin-overview-loading">
+        <div className="overview-skeleton-header">
+          <div className="skeleton-line skeleton-title" />
+          <div className="skeleton-line skeleton-sub" />
+        </div>
+        <div className="admin-metrics-grid">
+          {[1, 2, 3, 4, 5, 6].map((idx) => (
+            <div key={idx} className="admin-metric-card skeleton-metric-card">
+              <div className="skeleton-circle" />
+              <div className="metric-info">
+                <div className="skeleton-line skeleton-val" />
+                <div className="skeleton-line skeleton-lbl" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -93,9 +106,9 @@ export default function AdminOverview() {
     <div className="admin-overview-view" data-testid="admin-overview">
       <header className="overview-header-row">
         <div>
-          <h1 className="overview-title">System Health & Telemetry</h1>
+          <h1 className="overview-title">System Overview</h1>
           <p className="overview-sub">
-            Authoritative status across Postgres cloud persistence, LLM extraction pipelines, and active readers.
+            Platform activity, library books, active readers, and processing queue.
           </p>
         </div>
 
@@ -107,11 +120,6 @@ export default function AdminOverview() {
           >
             📢 Broadcast to Readers
           </button>
-
-          <div className="system-status-indicator">
-            <span className="status-indicator-dot" />
-            <span className="status-indicator-text">All Services Operational</span>
-          </div>
         </div>
       </header>
 

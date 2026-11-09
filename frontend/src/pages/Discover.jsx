@@ -72,23 +72,6 @@ export default function Discover() {
     <div className="lorely-discover-page" data-testid="discover-page">
       {/* Top Banner Tagline */}
       <section className="discover-hero-banner">
-        <div className="banner-editorial-header">
-          <div className="banner-brand-lockup">
-            <BrandLogo size="md" showTagline={false} />
-            <h1 className="banner-main-title">Lorely</h1>
-          </div>
-          <div className="banner-divider" />
-          <div className="banner-taglines">
-            <BadgePill variant="white" dotColor="#ef4d23" className="banner-badge">
-              Interactive Cognitive Casts
-            </BadgePill>
-            <h2 className="banner-headline">Step into the stories.</h2>
-            <p className="banner-subtext">
-              Explore books. Meet characters. Have meaningful conversations.
-            </p>
-          </div>
-        </div>
-
         {/* Hero Feature Card: Timeless Classics */}
         <div className="hero-feature-card">
           <div className="hero-feature-content">

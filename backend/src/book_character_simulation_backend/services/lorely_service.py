@@ -102,6 +102,11 @@ class LorelyService:
         email = auth_user.email or f"supabase-{auth_user.subject}@lorely.app"
         display_name = auth_user.display_name or (email.split("@")[0] if "@" in email else "Reader")
 
+        is_admin_identity = (
+            auth_user.role == "admin"
+            or email.lower() == getattr(self.settings, "admin_email", "admin@lorely.app").lower()
+        )
+
         if user is None:
             user = UserAccount(
                 supabase_user_id=auth_user.subject,
@@ -113,11 +118,20 @@ class LorelyService:
             session.flush()
 
             # Create default settings and role
-            role = UserRole(user_id=user.id, role="user")
+            role = UserRole(user_id=user.id, role="admin" if is_admin_identity else "user")
             settings = UserSettings(user_id=user.id, preferences={"plan_tier": "scholar"})
             session.add_all([role, settings])
             session.flush()
             return user
+
+        if is_admin_identity:
+            role_record = session.scalar(
+                select(UserRole).where(UserRole.user_id == user.id)
+            )
+            if role_record:
+                role_record.role = "admin"
+            else:
+                session.add(UserRole(user_id=user.id, role="admin"))
 
         user.supabase_user_id = auth_user.subject
         user.email = email
