@@ -156,4 +156,29 @@ describe('LandingPage Component', () => {
     fireEvent.click(masterCta);
     expect(handleGetStarted).toHaveBeenCalled();
   });
+
+  it('renders the FAQ "THE NOSY SECTION" with framed tabs and expandable accordions', () => {
+    render(<LandingPage />);
+
+    expect(screen.getByTestId('landing-faq-section')).toBeInTheDocument();
+    expect(screen.getByText('ask away')).toBeInTheDocument();
+    expect(screen.getByText('THE NOSY SECTION')).toBeInTheDocument();
+    expect(screen.getByText(/everything you'd grill us on a call, minus the call./i)).toBeInTheDocument();
+
+    // 5 framed tab badges
+    expect(screen.getByText('HOW-IT-WORKS.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('NEED-FOR-SPEED.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('THE-FIREHOSE.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('THE-WHOLE-THING.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('THE-DO-OVER.FRAME')).toBeInTheDocument();
+
+    // Item 0 is expanded by default
+    expect(screen.getByText(/Lorely ingests classical literature and segments the text/i)).toBeInTheDocument();
+
+    // Click item 1 to expand spoiler boundary question
+    const item1 = screen.getByTestId('faq-item-1');
+    fireEvent.click(item1);
+
+    expect(screen.getByText(/Lorely employs strict chapter-gated spoiler boundaries/i)).toBeInTheDocument();
+  });
 });

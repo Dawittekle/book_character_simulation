@@ -145,6 +145,51 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
   const [contextTokensTarget, setContextTokensTarget] = useState(8192);
   const [formSaved, setFormSaved] = useState(false);
 
+  // FAQ Accordion States
+  const [expandedFaq, setExpandedFaq] = useState(0);
+  const toggleFaq = (index) => {
+    setExpandedFaq((prev) => (prev === index ? null : index));
+  };
+
+  const faqItems = [
+    {
+      frame: 'HOW-IT-WORKS.FRAME',
+      number: '01',
+      question: 'Okay, how does this cognitive simulation thing work?',
+      answer:
+        'Lorely ingests classical literature and segments the text into semantic chapter chunks. Our cognitive engine maps psychological traits, interpersonal dynamics, moral baselines, and historical vernacular into persistent character dossiers. When you converse, every response balances grounding vector retrieval with real-time emotional drift to remain completely authentic to the author’s voice.',
+    },
+    {
+      frame: 'NEED-FOR-SPEED.FRAME',
+      number: '02',
+      question: 'Will the character spoil the plot or ending for me?',
+      hasUserTag: true,
+      answer:
+        'Never, unless you intentionally choose to unlock future chapters. Lorely employs strict chapter-gated spoiler boundaries. If you specify that you are reading Chapter 5, the character is cognitively quarantined from knowing any events, deaths, reconciliations, or revelations occurring in Chapter 6 and beyond.',
+    },
+    {
+      frame: 'THE-FIREHOSE.FRAME',
+      number: '03',
+      question: 'Can I upload my own custom EPUBs, PDFs, and books?',
+      answer:
+        'Yes! Explorer, Scholar, and Archive members can ingest personal files (EPUB, PDF, TXT) into isolated vector namespaces. Our narrative classifier analyzes chapters, extracts characters, and constructs cognitive dossiers automatically in seconds.',
+    },
+    {
+      frame: 'THE-WHOLE-THING.FRAME',
+      number: '04',
+      question: 'Is it just text, or can I speak with characters using voice?',
+      answer:
+        'Lorely provides full real-time HD Voice dialogue. Powered by neural speech synthesis and microphone transcription, you can listen to natural acoustic voice streams and verbally converse with literary minds with near-zero latency.',
+    },
+    {
+      frame: 'THE-DO-OVER.FRAME',
+      number: '05',
+      question: 'What payment methods are supported for subscriptions?',
+      answer:
+        'We support international credit/debit cards (Visa, Mastercard, Amex), PayPal, and Ethiopian local payment methods including Telebirr and Commercial Bank of Ethiopia (CBE) with rapid admin verification.',
+    },
+  ];
+
   const handleCtaClick = () => {
     if (typeof onGetStarted === 'function') {
       onGetStarted();
@@ -222,6 +267,9 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 </a>
                 <a href="#pricing" className="landing-nav-link">
                   Pricing
+                </a>
+                <a href="#faq" className="landing-nav-link">
+                  FAQ
                 </a>
                 <a href="#features" className="landing-nav-link">
                   Features
@@ -341,6 +389,13 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Pricing
+                  </a>
+                  <a
+                    href="#faq"
+                    className="landing-mobile-link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    FAQ
                   </a>
                   <a
                     href="#features"
@@ -973,6 +1028,76 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 })}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          FAQ SECTION: "THE NOSY SECTION"
+          ========================================================================= */}
+      <section className="landing-faq-section" id="faq" data-testid="landing-faq-section">
+        {/* Soft Dreamy Floating Sky Clouds matching Image 1 */}
+        <div className="sky-cloud sky-cloud-faq-1" aria-hidden="true" />
+        <div className="sky-cloud sky-cloud-faq-2" aria-hidden="true" />
+        <div className="sky-cloud sky-cloud-faq-3" aria-hidden="true" />
+
+        <div className="landing-faq-container">
+          <div className="landing-section-header faq-header">
+            <span className="landing-script-tag">ask away</span>
+            <h2 className="landing-section-title">THE NOSY SECTION</h2>
+            <div className="landing-taped-pill">
+              <span>everything you'd grill us on a call, minus the call.</span>
+            </div>
+          </div>
+
+          <div className="landing-faq-list">
+            {faqItems.map((item, idx) => {
+              const isExpanded = expandedFaq === idx;
+              return (
+                <div key={item.frame} className={`faq-card-group ${isExpanded ? 'is-expanded' : ''}`}>
+                  <div className="faq-frame-tab">
+                    <span className="frame-bracket">[ ]</span>
+                    <span className="frame-text">{item.frame}</span>
+                  </div>
+                  <div
+                    className="faq-card"
+                    onClick={() => toggleFaq(idx)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleFaq(idx);
+                      }
+                    }}
+                    aria-expanded={isExpanded}
+                    data-testid={`faq-item-${idx}`}
+                  >
+                    <div className="faq-card-header">
+                      <div className="faq-card-left">
+                        <span className="faq-num">{item.number}</span>
+                        <span className="faq-question">{item.question}</span>
+                        {item.hasUserTag && (
+                          <span className="faq-user-badge" title="Live interaction">
+                            <span className="badge-arrow">↖</span> You
+                          </span>
+                        )}
+                      </div>
+                      <div className="faq-card-toggle">
+                        <span className="faq-toggle-icon">{isExpanded ? '−' : '+'}</span>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="faq-card-body">
+                        <div className="faq-divider" />
+                        <p className="faq-answer-text">{item.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
