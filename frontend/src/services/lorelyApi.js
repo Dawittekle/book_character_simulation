@@ -313,6 +313,86 @@ export const lorelyApi = {
     return request('/me/voice-usage', { accessToken });
   },
 
+  // Real-time Voice (Phase 6)
+  createRealtimeSession: async (sessionId, { voiceOverride } = {}, accessToken) => {
+    return request(`/conversations/${sessionId}/realtime-session`, {
+      method: 'POST',
+      body: { voice_override: voiceOverride },
+      accessToken,
+    });
+  },
+
+  executeRealtimeToolCall: async (sessionId, { readerMessage } = {}, accessToken) => {
+    return request(`/conversations/${sessionId}/realtime-tool-call`, {
+      method: 'POST',
+      body: { reader_message: readerMessage },
+      accessToken,
+    });
+  },
+
+  getVoiceBenchmark: async () => {
+    return request('/voice/benchmark');
+  },
+
+  // Reusable Avatar Library (Phase 7)
+  listAvatars: async ({ gender, artStyle, periodEra } = {}) => {
+    const params = new URLSearchParams();
+    if (gender) params.append('gender', gender);
+    if (artStyle) params.append('art_style', artStyle);
+    if (periodEra) params.append('period_era', periodEra);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return request(`/avatars${queryString}`);
+  },
+
+  getMatchedAvatar: async (characterId, accessToken) => {
+    return request(`/characters/${characterId}/matched-avatar`, { accessToken });
+  },
+
+  updateCharacterAvatar: async (characterId, avatarAssetId, accessToken) => {
+    return request(`/characters/${characterId}/avatar`, {
+      method: 'PATCH',
+      body: { avatar_asset_id: avatarAssetId },
+      accessToken,
+    });
+  },
+
+  // Public Featured Catalogue (Phase 7)
+  listFeaturedCatalog: async ({ language, genre } = {}) => {
+    const params = new URLSearchParams();
+    if (language) params.append('language', language);
+    if (genre) params.append('genre', genre);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return request(`/catalog/featured${queryString}`);
+  },
+
+  addCatalogBookToLibrary: async (bookId, { readingProgressChapter = 1 } = {}, accessToken) => {
+    return request(`/catalog/books/${bookId}/add-to-library`, {
+      method: 'POST',
+      body: { reading_progress_chapter: readingProgressChapter },
+      accessToken,
+    });
+  },
+
+  adminPublishCatalogBook: async (bookId, data, accessToken) => {
+    return request(`/admin/books/${bookId}/publish`, {
+      method: 'PATCH',
+      body: data,
+      accessToken,
+    });
+  },
+
+  // Privacy & Data Portability (Phase 7)
+  exportAccountData: async (accessToken) => {
+    return request('/me/export', { accessToken });
+  },
+
+  deleteAccount: async (accessToken) => {
+    return request('/me', {
+      method: 'DELETE',
+      accessToken,
+    });
+  },
+
   // Document Ingestion & Classification Gate
   inspectSource: async ({ file, text, filename, llmProvider } = {}, accessToken) => {
     const headers = {};

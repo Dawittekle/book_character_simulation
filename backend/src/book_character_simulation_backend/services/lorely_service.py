@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from ..auth import AuthenticatedUser
 from ..db.base import utc_now
 from ..db.models import (
+    AvatarAsset,
     Book,
     BookChapter,
     BookChunk,
@@ -37,6 +38,7 @@ from ..db.models import (
     SystemSetting,
     UserAccount,
     UserCharacterState,
+    UserLibraryBook,
     UserRole,
     UserSettings,
     VoiceCatalogItem,
@@ -53,7 +55,15 @@ from ..schemas.character import CharacterProfile
 from ..simulation import PsiEngine, PerceivedObservation, clamp
 from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
+from ..avatars import match_character_avatar, sync_seed_avatar_catalog
 from ..voice import match_character_voice, sync_seed_voice_catalog
+from ..voice.realtime import (
+    REALTIME_SUPPORTED_VOICES,
+    build_controlled_tools,
+    build_realtime_instructions,
+    generate_ephemeral_realtime_grant,
+)
+from ..voice.realtime_benchmark import RealtimeVoiceBenchmark
 from .classification_service import ClassificationService
 from .storage_service import StorageService
 from .voice_service import VoiceService
@@ -219,6 +229,7 @@ class LorelyService:
                 "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") or "en",
                 "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if getattr(settings, "voice_vad_silence_ms", None) is not None else 1200,
                 "voice_auto_play": getattr(settings, "voice_auto_play", True) if getattr(settings, "voice_auto_play", None) is not None else True,
+                "voice_save_audio_recordings": getattr(settings, "voice_save_audio_recordings", False) if getattr(settings, "voice_save_audio_recordings", None) is not None else False,
                 "preferences": settings.preferences or {},
             }
 
@@ -252,6 +263,8 @@ class LorelyService:
                     pass
             if "voice_auto_play" in updates:
                 settings.voice_auto_play = bool(updates["voice_auto_play"])
+            if "voice_save_audio_recordings" in updates:
+                settings.voice_save_audio_recordings = bool(updates["voice_save_audio_recordings"])
             if "preferences" in updates and isinstance(updates["preferences"], dict):
                 settings.preferences = updates["preferences"]
 
@@ -264,6 +277,7 @@ class LorelyService:
                 "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") or "en",
                 "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if getattr(settings, "voice_vad_silence_ms", None) is not None else 1200,
                 "voice_auto_play": getattr(settings, "voice_auto_play", True) if getattr(settings, "voice_auto_play", None) is not None else True,
+                "voice_save_audio_recordings": getattr(settings, "voice_save_audio_recordings", False) if getattr(settings, "voice_save_audio_recordings", None) is not None else False,
                 "preferences": settings.preferences or {},
             }
 
@@ -2009,6 +2023,481 @@ class LorelyService:
                 "turn_count": len(logs),
                 "recent_logs": recent,
             }
+
+    # --- Phase 6: Real-time Voice (Session Credentials & Controlled Tool Delegation) ---
+
+    def create_realtime_session(
+        self,
+        auth_user: AuthenticatedUser | None,
+        session_id: str,
+        *,
+        voice_override: str | None = None,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            chat_session = session.get(ChatSession, session_id)
+            if chat_session is None:
+                raise NotFoundError("Conversation session not found.")
+            if chat_session.owner_user_id != user.id:
+                raise ForbiddenError("You cannot access this conversation.")
+
+            char = session.get(CharacterProfileRecord, chat_session.character_id)
+            if char is None:
+                raise NotFoundError("Character not found.")
+
+            target_voice = voice_override or chat_session.session_voice_override or char.assigned_voice_id or "nova"
+            effective_voice = REALTIME_SUPPORTED_VOICES.get(target_voice.lower(), "alloy")
+
+            instructions = build_realtime_instructions(char, chat_session)
+            tools = build_controlled_tools()
+            grant = generate_ephemeral_realtime_grant(
+                self.settings,
+                user_id=user.id,
+                session_id=chat_session.id,
+                voice_id=effective_voice,
+                ttl_seconds=60,
+            )
+
+            user_settings = session.scalar(select(UserSettings).where(UserSettings.user_id == user.id))
+            silence_ms = getattr(user_settings, "voice_vad_silence_ms", 1200) if user_settings else 1200
+
+            return {
+                "session_id": chat_session.id,
+                "character_id": char.id,
+                "character_name": char.name,
+                "realtime_voice": effective_voice,
+                "instructions": instructions,
+                "tools": tools,
+                "turn_detection": {
+                    "type": "server_vad",
+                    "threshold": 0.5,
+                    "silence_duration_ms": silence_ms,
+                },
+                "ephemeral_grant": grant,
+                "endpoint_url": "https://api.openai.com/v1/realtime",
+                "controlled_tool_callback_url": f"/api/v1/conversations/{chat_session.id}/realtime-tool-call",
+            }
+
+    def execute_realtime_tool_call(
+        self,
+        auth_user: AuthenticatedUser | None,
+        session_id: str,
+        *,
+        reader_message: str,
+    ) -> dict[str, Any]:
+        """
+        Executes controlled backend tool delegation for real-time speech sessions.
+        Ensures spoiler-gated context, PSI evolution, and message persistence.
+        """
+        result = self.send_message(
+            auth_user,
+            session_id,
+            content=reader_message,
+            input_modality="voice",
+        )
+        return {
+            "session_id": session_id,
+            "response_text": result["response"],
+            "citations": result.get("citations", []),
+            "character_state_version": result.get("character_state_version"),
+        }
+
+    # --- Phase 7: Reusable Character Avatar Library ---
+
+    def list_avatars(
+        self,
+        *,
+        gender: str | None = None,
+        art_style: str | None = None,
+        period_era: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            sync_seed_avatar_catalog(session)
+            query = select(AvatarAsset).where(AvatarAsset.is_active.is_(True))
+            if gender:
+                query = query.where(AvatarAsset.gender == gender.strip())
+            if art_style:
+                query = query.where(AvatarAsset.art_style == art_style.strip())
+            if period_era:
+                query = query.where(AvatarAsset.period_era == period_era.strip())
+
+            avatars = session.scalars(query.order_by(AvatarAsset.name.asc())).all()
+            return [
+                {
+                    "id": a.id,
+                    "asset_id": a.asset_id,
+                    "name": a.name,
+                    "image_url": a.image_url,
+                    "art_style": a.art_style,
+                    "gender": a.gender,
+                    "apparent_age": a.apparent_age,
+                    "period_era": a.period_era,
+                    "tags": a.tags or [],
+                    "source_type": a.source_type,
+                    "licence": a.licence,
+                    "is_fallback": a.is_fallback,
+                }
+                for a in avatars
+            ]
+
+    def get_matched_avatar(
+        self,
+        auth_user: AuthenticatedUser | None,
+        character_id: str,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            char = session.get(CharacterProfileRecord, character_id)
+            if char is None:
+                char = session.scalar(
+                    select(CharacterProfileRecord).where(
+                        CharacterProfileRecord.stable_character_key == character_id
+                    )
+                )
+            if char is None:
+                raise NotFoundError("Character not found.")
+
+            sync_seed_avatar_catalog(session)
+            avatars = session.scalars(
+                select(AvatarAsset).where(AvatarAsset.is_active.is_(True))
+            ).all()
+
+            matched, confidence, reasons = match_character_avatar(char, avatars)
+
+            # Persist assignment if not yet set
+            if not char.avatar_asset_id:
+                char.avatar_asset_id = matched.asset_id
+                session.flush()
+
+            return {
+                "character_id": char.id,
+                "character_name": char.name,
+                "avatar_asset_id": matched.asset_id,
+                "avatar_name": matched.name,
+                "image_url": matched.image_url,
+                "art_style": matched.art_style,
+                "gender": matched.gender,
+                "apparent_age": matched.apparent_age,
+                "confidence": confidence,
+                "reasons": reasons,
+            }
+
+    def update_character_avatar(
+        self,
+        auth_user: AuthenticatedUser | None,
+        character_id: str,
+        avatar_asset_id: str,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            char = session.get(CharacterProfileRecord, character_id)
+            if char is None:
+                char = session.scalar(
+                    select(CharacterProfileRecord).where(
+                        CharacterProfileRecord.stable_character_key == character_id
+                    )
+                )
+            if char is None:
+                raise NotFoundError("Character not found.")
+
+            book = session.get(Book, char.book_id)
+            role_record = session.scalar(select(UserRole).where(UserRole.user_id == user.id))
+            is_admin = bool(role_record and role_record.role == "admin")
+            if book and book.owner_user_id != user.id and not is_admin:
+                raise ForbiddenError("You cannot modify this character's avatar.")
+
+            avatar = session.scalar(
+                select(AvatarAsset).where(AvatarAsset.asset_id == avatar_asset_id.strip())
+            )
+            if avatar is None:
+                raise NotFoundError(f"Avatar asset '{avatar_asset_id}' not found.")
+
+            char.avatar_asset_id = avatar.asset_id
+            session.flush()
+            return {
+                "character_id": char.id,
+                "avatar_asset_id": char.avatar_asset_id,
+                "avatar_name": avatar.name,
+                "image_url": avatar.image_url,
+            }
+
+    # --- Phase 7: Featured Catalogue & Personal Library Separation ---
+
+    def list_featured_catalog(
+        self,
+        auth_user: AuthenticatedUser | None = None,
+        *,
+        language: str | None = None,
+        genre: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            query = select(Book).where(Book.visibility == "featured")
+            if language:
+                query = query.where(
+                    or_(
+                        Book.original_language == language.strip().lower(),
+                        Book.detected_language == language.strip().lower(),
+                    )
+                )
+
+            books = session.scalars(query.order_by(Book.title.asc())).all()
+            results = []
+            for b in books:
+                chapter_count = session.scalar(
+                    select(func.count(BookChapter.id)).where(BookChapter.book_id == b.id)
+                ) or 0
+                characters = session.scalars(
+                    select(CharacterProfileRecord).where(CharacterProfileRecord.book_id == b.id)
+                ).all()
+
+                results.append({
+                    "id": b.id,
+                    "title": b.title,
+                    "author": b.author,
+                    "summary": b.summary,
+                    "cover_url": b.cover_url,
+                    "original_language": b.original_language,
+                    "detected_language": b.detected_language,
+                    "edition_notes": getattr(b, "edition_notes", None),
+                    "rights_basis": getattr(b, "rights_basis", "Public Domain (US / Life+70)"),
+                    "file_provenance": getattr(b, "file_provenance", None),
+                    "cover_art_licence": getattr(b, "cover_art_licence", "Public Domain / CC0"),
+                    "chapter_count": chapter_count,
+                    "characters": [
+                        {
+                            "id": c.id,
+                            "name": c.name,
+                            "role": c.role,
+                            "avatar_asset_id": c.avatar_asset_id,
+                        }
+                        for c in characters
+                    ],
+                })
+            return results
+
+    def add_catalog_book_to_library(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+        *,
+        reading_progress_chapter: int = 1,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None or book.visibility != "featured":
+                raise NotFoundError("Featured catalogue book not found.")
+
+            existing_entry = session.scalar(
+                select(UserLibraryBook).where(
+                    UserLibraryBook.user_id == user.id,
+                    UserLibraryBook.book_id == book.id,
+                )
+            )
+            if existing_entry is None:
+                entry = UserLibraryBook(
+                    user_id=user.id,
+                    book_id=book.id,
+                    reading_progress_chapter=max(1, reading_progress_chapter),
+                )
+                session.add(entry)
+            else:
+                entry = existing_entry
+                if reading_progress_chapter > 0:
+                    entry.reading_progress_chapter = reading_progress_chapter
+
+            # Initialize user-specific character states for this featured book
+            characters = session.scalars(
+                select(CharacterProfileRecord).where(CharacterProfileRecord.book_id == book.id)
+            ).all()
+            for char in characters:
+                user_state = session.scalar(
+                    select(UserCharacterState).where(
+                        UserCharacterState.user_id == user.id,
+                        UserCharacterState.character_id == char.id,
+                    )
+                )
+                if user_state is None:
+                    session.add(
+                        UserCharacterState(
+                            user_id=user.id,
+                            character_id=char.id,
+                            emotion_state=dict(char.emotion_state or {}),
+                            psi_parameters=dict(char.psi_parameters or {}),
+                        )
+                    )
+
+            session.flush()
+            return {
+                "id": entry.id,
+                "book_id": book.id,
+                "title": book.title,
+                "author": book.author,
+                "reading_progress_chapter": entry.reading_progress_chapter,
+                "added_at": entry.added_at.isoformat() if entry.added_at else None,
+                "message": f"Added '{book.title}' to your personal library.",
+            }
+
+    def admin_publish_catalog_book(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+        *,
+        edition_notes: str | None = None,
+        rights_basis: str | None = None,
+        file_provenance: str | None = None,
+        cover_art_licence: str | None = None,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            self.require_admin(session, user)
+
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            book.visibility = "featured"
+            if edition_notes is not None:
+                book.edition_notes = edition_notes.strip()
+            if rights_basis is not None:
+                book.rights_basis = rights_basis.strip()
+            if file_provenance is not None:
+                book.file_provenance = file_provenance.strip()
+            if cover_art_licence is not None:
+                book.cover_art_licence = cover_art_licence.strip()
+
+            session.flush()
+            return {
+                "id": book.id,
+                "title": book.title,
+                "visibility": book.visibility,
+                "rights_basis": book.rights_basis,
+                "edition_notes": book.edition_notes,
+                "file_provenance": book.file_provenance,
+                "cover_art_licence": book.cover_art_licence,
+                "status": "published_featured",
+            }
+
+    # --- Phase 7: GDPR / Privacy Account Data Export & Deletion ---
+
+    def export_user_account_data(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            settings = session.scalar(select(UserSettings).where(UserSettings.user_id == user.id))
+            role_record = session.scalar(select(UserRole).where(UserRole.user_id == user.id))
+
+            personal_books = session.scalars(select(Book).where(Book.owner_user_id == user.id)).all()
+            library_entries = session.scalars(select(UserLibraryBook).where(UserLibraryBook.user_id == user.id)).all()
+
+            chat_sessions = session.scalars(select(ChatSession).where(ChatSession.owner_user_id == user.id)).all()
+            sessions_data = []
+            for s in chat_sessions:
+                messages = session.scalars(
+                    select(ChatMessage).where(ChatMessage.session_id == s.id).order_by(ChatMessage.sequence_number.asc())
+                ).all()
+                sessions_data.append({
+                    "id": s.id,
+                    "title": s.title,
+                    "character_id": s.character_id,
+                    "spoiler_policy": s.spoiler_policy,
+                    "reading_progress_chapter": s.reading_progress_chapter,
+                    "conversation_language": s.conversation_language,
+                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                    "messages": [
+                        {
+                            "id": m.id,
+                            "role": m.role.value,
+                            "content": m.content,
+                            "input_modality": m.input_modality,
+                            "citations": m.citations or [],
+                            "sequence_number": m.sequence_number,
+                            "created_at": m.created_at.isoformat() if m.created_at else None,
+                        }
+                        for m in messages
+                    ],
+                })
+
+            memories = session.scalars(select(CharacterMemory).where(CharacterMemory.owner_user_id == user.id)).all()
+            usage_logs = session.scalars(select(VoiceUsageLog).where(VoiceUsageLog.user_id == user.id)).all()
+
+            return {
+                "export_version": "1.0",
+                "exported_at": utc_now().isoformat(),
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "display_name": user.display_name,
+                    "role": role_record.role if role_record else "reader",
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                },
+                "settings": {
+                    "reading_theme": settings.reading_theme if settings else "parchment",
+                    "spoiler_policy": settings.spoiler_policy if settings else "cautious",
+                    "enter_to_send": settings.enter_to_send if settings else True,
+                    "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") if settings else "en",
+                    "preferred_conversation_language": getattr(settings, "preferred_conversation_language", "en") if settings else "en",
+                    "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if settings else 1200,
+                    "voice_auto_play": getattr(settings, "voice_auto_play", True) if settings else True,
+                    "voice_save_audio_recordings": getattr(settings, "voice_save_audio_recordings", False) if settings else False,
+                },
+                "personal_books": [
+                    {
+                        "id": b.id,
+                        "title": b.title,
+                        "author": b.author,
+                        "summary": b.summary,
+                        "visibility": b.visibility,
+                        "original_language": b.original_language,
+                        "created_at": b.created_at.isoformat() if b.created_at else None,
+                    }
+                    for b in personal_books
+                ],
+                "library_books": [
+                    {
+                        "book_id": entry.book_id,
+                        "reading_progress_chapter": entry.reading_progress_chapter,
+                        "added_at": entry.added_at.isoformat() if entry.added_at else None,
+                    }
+                    for entry in library_entries
+                ],
+                "conversations": sessions_data,
+                "character_memories": [
+                    {
+                        "id": m.id,
+                        "character_id": m.character_id,
+                        "fact": m.fact,
+                        "spoiler_chapter": m.spoiler_chapter,
+                        "provenance": m.provenance,
+                        "created_at": m.created_at.isoformat() if m.created_at else None,
+                    }
+                    for m in memories
+                ],
+                "voice_usage_logs": [
+                    {
+                        "id": l.id,
+                        "session_id": l.session_id,
+                        "voice_id": l.voice_id,
+                        "modality": l.modality,
+                        "cost_usd": float(l.cost_usd or 0.0),
+                        "created_at": l.created_at.isoformat() if l.created_at else None,
+                    }
+                    for l in usage_logs
+                ],
+            }
+
+    def delete_user_account(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            chat_sessions = session.scalars(select(ChatSession).where(ChatSession.owner_user_id == user.id)).all()
+            for s in chat_sessions:
+                try:
+                    self.storage_service.delete_file(f"audio/{s.id}")
+                except Exception:
+                    pass
+
+            session.delete(user)
+            session.flush()
+            return {"status": "deleted", "message": "User account and all associated data permanently erased."}
 
     def delete_conversation(self, auth_user: AuthenticatedUser | None, session_id: str) -> None:
         with self.db.session_scope() as session:

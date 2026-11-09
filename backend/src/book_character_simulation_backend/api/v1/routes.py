@@ -11,6 +11,7 @@ from flask import Blueprint, current_app, jsonify, redirect, request, send_file
 from ...auth import AuthenticatedUser
 from ...errors import AppError, BadRequestError, NotFoundError, UnauthorizedError
 from ...services.lorely_service import LorelyService
+from ...voice.realtime_benchmark import RealtimeVoiceBenchmark
 
 logger = logging.getLogger(__name__)
 
@@ -559,6 +560,126 @@ def get_my_voice_usage():
     service = _lorely_service()
     usage = service.get_user_voice_usage(user)
     return jsonify(usage), 200
+
+
+# --- Phase 6: Real-time Voice (WebRTC Ephemeral Session & Controlled Tool Delegation) ---
+
+@v1_blueprint.route("/conversations/<session_id>/realtime-session", methods=["POST"])
+def create_realtime_session(session_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    session_data = service.create_realtime_session(
+        user, session_id, voice_override=body.get("voice_override")
+    )
+    return jsonify(session_data), 200
+
+
+@v1_blueprint.route("/conversations/<session_id>/realtime-tool-call", methods=["POST"])
+def execute_realtime_tool_call(session_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    reader_message = body.get("reader_message") or body.get("message")
+    if not reader_message:
+        raise BadRequestError("reader_message parameter is required for controlled tool delegation.")
+    result = service.execute_realtime_tool_call(user, session_id, reader_message=reader_message)
+    return jsonify(result), 200
+
+
+@v1_blueprint.route("/voice/benchmark", methods=["GET"])
+def get_voice_benchmark():
+    stage_a = RealtimeVoiceBenchmark.evaluate_stage_a()
+    stage_b = RealtimeVoiceBenchmark.evaluate_stage_b()
+    return jsonify({"stage_a": stage_a, "stage_b": stage_b}), 200
+
+
+# --- Phase 7: Reusable Character Avatar Library ---
+
+@v1_blueprint.route("/avatars", methods=["GET"])
+def list_avatars():
+    service = _lorely_service()
+    gender = request.args.get("gender")
+    art_style = request.args.get("art_style")
+    period_era = request.args.get("period_era")
+    avatars = service.list_avatars(gender=gender, art_style=art_style, period_era=period_era)
+    return jsonify({"avatars": avatars}), 200
+
+
+@v1_blueprint.route("/characters/<character_id>/matched-avatar", methods=["GET"])
+def get_character_matched_avatar(character_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    result = service.get_matched_avatar(user, character_id)
+    return jsonify(result), 200
+
+
+@v1_blueprint.route("/characters/<character_id>/avatar", methods=["PATCH"])
+def patch_character_avatar(character_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    avatar_asset_id = body.get("avatar_asset_id")
+    if not avatar_asset_id:
+        raise BadRequestError("avatar_asset_id is required.")
+    result = service.update_character_avatar(user, character_id, avatar_asset_id=avatar_asset_id)
+    return jsonify(result), 200
+
+
+# --- Phase 7: Featured Public Catalogue & Library Separation ---
+
+@v1_blueprint.route("/catalog/featured", methods=["GET"])
+def list_featured_catalog():
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    language = request.args.get("language")
+    genre = request.args.get("genre")
+    books = service.list_featured_catalog(user, language=language, genre=genre)
+    return jsonify({"books": books}), 200
+
+
+@v1_blueprint.route("/catalog/books/<book_id>/add-to-library", methods=["POST"])
+def add_catalog_book_to_library(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    progress = int(body.get("reading_progress_chapter", 1))
+    result = service.add_catalog_book_to_library(user, book_id, reading_progress_chapter=progress)
+    return jsonify(result), 201
+
+
+@v1_blueprint.route("/admin/books/<book_id>/publish", methods=["PATCH"])
+def admin_publish_catalog_book(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    result = service.admin_publish_catalog_book(
+        user,
+        book_id,
+        edition_notes=body.get("edition_notes"),
+        rights_basis=body.get("rights_basis"),
+        file_provenance=body.get("file_provenance"),
+        cover_art_licence=body.get("cover_art_licence"),
+    )
+    return jsonify(result), 200
+
+
+# --- Phase 7: Account Data Export & Deletion (GDPR & Privacy Compliance) ---
+
+@v1_blueprint.route("/me/export", methods=["GET"])
+def export_my_account_data():
+    user = _authenticated_user()
+    service = _lorely_service()
+    data = service.export_user_account_data(user)
+    return jsonify(data), 200
+
+
+@v1_blueprint.route("/me", methods=["DELETE"])
+def delete_my_account():
+    user = _authenticated_user()
+    service = _lorely_service()
+    result = service.delete_user_account(user)
+    return jsonify(result), 200
 
 
 @v1_blueprint.route("/conversations/<session_id>", methods=["DELETE"])

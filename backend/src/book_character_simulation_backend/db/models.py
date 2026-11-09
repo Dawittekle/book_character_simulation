@@ -62,6 +62,7 @@ class UserSettings(IdentifierMixin, TimestampMixin, Base):
     preferred_conversation_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     voice_vad_silence_ms: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
     voice_auto_play: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    voice_save_audio_recordings: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     user: Mapped["UserAccount"] = relationship(back_populates="settings")
@@ -167,6 +168,10 @@ class Book(IdentifierMixin, TimestampMixin, Base):
     original_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     detected_language: Mapped[str | None] = mapped_column(String(10), nullable=True)
     cover_url: Mapped[str | None] = mapped_column(Text)
+    edition_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rights_basis: Mapped[str | None] = mapped_column(String(100), default="Public Domain (US / Life+70)", nullable=True)
+    file_provenance: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cover_art_licence: Mapped[str | None] = mapped_column(String(100), default="Public Domain / CC0", nullable=True)
 
     owner: Mapped["UserAccount"] = relationship(back_populates="books")
     sources: Mapped[list["BookSource"]] = relationship(back_populates="book", cascade="all, delete-orphan")
@@ -503,6 +508,39 @@ class VoiceUsageLog(IdentifierMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     user: Mapped["UserAccount"] = relationship(foreign_keys=[user_id])
+
+
+class AvatarAsset(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "avatar_assets"
+
+    asset_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    storage_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    art_style: Mapped[str] = mapped_column(String(50), default="illustrated", nullable=False)
+    gender: Mapped[str] = mapped_column(String(20), default="neutral", nullable=False)
+    apparent_age: Mapped[str] = mapped_column(String(50), default="adult", nullable=False)
+    period_era: Mapped[str] = mapped_column(String(50), default="19th_century", nullable=False)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(50), default="synthetic_approved", nullable=False)
+    licence: Mapped[str] = mapped_column(String(100), default="Public Domain / CC0", nullable=False)
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_fallback: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class UserLibraryBook(IdentifierMixin, Base):
+    __tablename__ = "user_library_books"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    reading_progress_chapter: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["UserAccount"] = relationship()
+    book: Mapped["Book"] = relationship()
+
+
 
 
 
