@@ -111,6 +111,12 @@ class Settings:
     gemini_model: str
     admin_email: str = "admin@lorely.app"
     admin_password: str = "LorelyAdmin2026!Secure"
+    r2_account_id: str | None = None
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: str | None = None
+    r2_bucket_name: str = "lorely-books"
+    r2_public_url: str | None = None
+    storage_local_dir: Path | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -121,6 +127,10 @@ class Settings:
         chroma_db_path = Path(os.getenv("CHROMA_DB_PATH", str(default_chroma_path)))
         if not chroma_db_path.is_absolute():
             chroma_db_path = backend_dir / chroma_db_path
+
+        storage_local_path = Path(os.getenv("STORAGE_LOCAL_DIR", "storage"))
+        if not storage_local_path.is_absolute():
+            storage_local_path = backend_dir / storage_local_path
 
         return cls(
             app_env=os.getenv("APP_ENV", "development"),
@@ -155,4 +165,10 @@ class Settings:
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
             admin_email=os.getenv("ADMIN_EMAIL", "admin@lorely.app").strip(),
             admin_password=os.getenv("ADMIN_PASSWORD", "LorelyAdmin2026!Secure").strip(),
+            r2_account_id=_clean_value(os.getenv("R2_ACCOUNT_ID")),
+            r2_access_key_id=_clean_value(os.getenv("R2_ACCESS_KEY_ID")),
+            r2_secret_access_key=_clean_value(os.getenv("R2_SECRET_ACCESS_KEY")),
+            r2_bucket_name=os.getenv("R2_BUCKET_NAME", "lorely-books").strip(),
+            r2_public_url=_clean_value(os.getenv("R2_PUBLIC_URL")),
+            storage_local_dir=storage_local_path,
         )

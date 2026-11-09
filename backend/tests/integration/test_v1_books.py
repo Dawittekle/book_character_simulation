@@ -132,3 +132,20 @@ def test_delete_book_cascade(db_client: FlaskClient):
     # Subsequent GET returns 404
     res = db_client.get(f"/api/v1/books/{book_id}", headers=headers)
     assert res.status_code == 404
+
+
+def test_download_book_source(db_client: FlaskClient):
+    headers = {"X-Test-User-Id": "downloader-dave"}
+    create_res = db_client.post(
+        "/api/v1/books",
+        json={"title": "Moby Dick", "extracted_text": "Call me Ishmael. Some years ago..."},
+        headers=headers,
+    )
+    assert create_res.status_code == 201
+    book_id = create_res.get_json()["id"]
+
+    # Download book file
+    dl_res = db_client.get(f"/api/v1/books/{book_id}/download", headers=headers)
+    assert dl_res.status_code == 200
+    assert b"Call me Ishmael." in dl_res.data
+    assert "attachment" in dl_res.headers.get("Content-Disposition", "")

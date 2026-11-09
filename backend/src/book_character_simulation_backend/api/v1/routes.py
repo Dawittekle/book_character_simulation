@@ -4,10 +4,10 @@ import base64
 import io
 import logging
 
-from flask import Blueprint, current_app, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, redirect, request, send_file
 
 from ...auth import AuthenticatedUser
-from ...errors import AppError, BadRequestError, UnauthorizedError
+from ...errors import AppError, BadRequestError, NotFoundError, UnauthorizedError
 from ...services.lorely_service import LorelyService
 
 logger = logging.getLogger(__name__)
@@ -180,7 +180,7 @@ def create_book():
         cover_url=body.get("cover_url"),
         visibility=body.get("visibility", "private"),
         source_type=body.get("source_type", "book"),
-        extracted_text=body.get("text"),
+        extracted_text=body.get("text") or body.get("extracted_text"),
     )
     return jsonify(book), 201
 
@@ -213,6 +213,34 @@ def list_book_characters(book_id: str):
     user = _optional_authenticated_user()
     service = _lorely_service()
     return jsonify({"characters": service.list_characters(user, book_id)})
+
+
+@v1_blueprint.route("/books/<book_id>/download", methods=["GET"])
+def download_book(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    info = service.get_book_download(user, book_id)
+    if info.get("url"):
+        return redirect(info["url"])
+    return send_file(
+        io.BytesIO(info["content"]),
+        mimetype=info.get("mime_type", "application/octet-stream"),
+        as_attachment=True,
+        download_name=info.get("filename", "book.txt"),
+    )
+
+
+@v1_blueprint.route("/storage/<path:storage_key>", methods=["GET"])
+def get_stored_file(storage_key: str):
+    service = _lorely_service()
+    data = service.storage_service.download_file(storage_key)
+    if data is None:
+        raise NotFoundError("Stored object not found.")
+    filename = storage_key.rsplit("/", 1)[-1]
+    return send_file(
+        io.BytesIO(data),
+        download_name=filename,
+    )
 
 
 # --- Characters ---

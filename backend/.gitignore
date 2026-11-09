@@ -7,3 +7,4 @@ chroma_db/
 .ruff_cache/
 .mypy_cache/
 *.egg-info/
+storage/

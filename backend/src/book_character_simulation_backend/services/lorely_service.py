@@ -47,19 +47,26 @@ from ..schemas.character import CharacterProfile
 from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
 from .classification_service import ClassificationService
+from .storage_service import StorageService
 from .voice_service import VoiceService
 
 logger = logging.getLogger(__name__)
 
 
 class LorelyService:
-    def __init__(self, database_manager: DatabaseManager, settings: Any):
+    def __init__(
+        self,
+        database_manager: DatabaseManager,
+        settings: Any,
+        storage_service: StorageService | None = None,
+    ):
         self.db = database_manager
         self.settings = settings
         self.classifier = ClassificationService(settings)
         self.embedding_service = EmbeddingService(settings)
         self.retriever = SpoilerAwareRetriever(self.embedding_service)
         self.voice_service = VoiceService(settings)
+        self.storage_service = storage_service or StorageService(settings)
 
     # --- User & Account helpers ---
 
@@ -308,12 +315,24 @@ class LorelyService:
             session.flush()
 
             if extracted_text:
+                storage_text_key = f"books/{book.id}/text/extracted.txt"
+                try:
+                    self.storage_service.upload_file(
+                        storage_text_key, extracted_text, content_type="text/plain; charset=utf-8"
+                    )
+                except Exception as exc:
+                    logger.warning("Failed to upload book text to storage: %s", exc)
+
+                text_bytes = extracted_text.encode("utf-8")
                 source = BookSource(
                     book_id=book.id,
                     original_filename=f"{cleaned_title}.txt",
                     mime_type="text/plain",
+                    storage_bucket=self.storage_service.bucket_name,
+                    storage_path=storage_text_key,
                     extracted_text=extracted_text,
-                    file_size_bytes=len(extracted_text.encode("utf-8")),
+                    extracted_text_hash=hashlib.sha256(text_bytes).hexdigest(),
+                    file_size_bytes=len(text_bytes),
                 )
                 session.add(source)
                 chunks = build_semantic_chunks(extracted_text)
@@ -386,18 +405,39 @@ class LorelyService:
                 confidence=classification.confidence,
                 inferred_title=classification.title,
                 inferred_author=classification.author,
-                job_metadata={
-                    "text": doc.text,
-                    "filename": filename,
-                    "format": doc.format,
-                    "page_count": doc.page_count,
-                    "word_count": doc.word_count,
-                    "is_narrative": classification.is_narrative,
-                    "warning": classification.warning,
-                    "reasoning": classification.reasoning,
-                },
+                job_metadata={},
             )
             session.add(job)
+            session.flush()
+
+            # Upload original file and extracted text to object storage (Cloudflare R2 / Local fallback)
+            upload_filename = filename or "upload.txt"
+            temp_storage_key = f"temp_uploads/{job.id}/{upload_filename}"
+            temp_text_key = f"temp_uploads/{job.id}/extracted.txt"
+            raw_bytes = file_bytes if file_bytes else (clean_text.encode("utf-8") if raw_text else b"")
+            try:
+                if raw_bytes:
+                    self.storage_service.upload_file(temp_storage_key, raw_bytes)
+                self.storage_service.upload_file(
+                    temp_text_key, doc.text, content_type="text/plain; charset=utf-8"
+                )
+            except Exception as exc:
+                logger.warning("Failed to upload temporary file to storage (%s): %s", job.id, exc)
+
+            job.job_metadata = {
+                "text": doc.text,
+                "filename": filename,
+                "format": doc.format,
+                "page_count": doc.page_count,
+                "word_count": doc.word_count,
+                "is_narrative": classification.is_narrative,
+                "warning": classification.warning,
+                "reasoning": classification.reasoning,
+                "storage_path": temp_storage_key,
+                "text_storage_path": temp_text_key,
+                "file_size_bytes": len(raw_bytes),
+                "storage_bucket": self.storage_service.bucket_name,
+            }
             session.flush()
 
             return {
@@ -446,6 +486,11 @@ class LorelyService:
             session.flush()
 
             extracted_text = job.job_metadata.get("text", "")
+            if not extracted_text and job.job_metadata.get("text_storage_path"):
+                downloaded = self.storage_service.download_file(job.job_metadata["text_storage_path"])
+                if downloaded:
+                    extracted_text = downloaded.decode("utf-8", errors="replace")
+
             final_title = (title or job.inferred_title or "Untitled Book").strip()
             final_author = (author or job.inferred_author or "").strip() or None
 
@@ -461,18 +506,49 @@ class LorelyService:
             session.add(book)
             session.flush()
 
+            # Save permanent assets to object storage (Cloudflare R2 / Local fallback)
+            orig_filename = job.job_metadata.get("filename") or f"{final_title}.txt"
+            perm_text_key = f"books/{book.id}/text/extracted.txt"
+            perm_orig_key = f"books/{book.id}/original/{orig_filename}"
+
+            try:
+                self.storage_service.upload_file(
+                    perm_text_key, extracted_text, content_type="text/plain; charset=utf-8"
+                )
+                temp_storage_key = job.job_metadata.get("storage_path")
+                if temp_storage_key and self.storage_service.file_exists(temp_storage_key):
+                    raw_data = self.storage_service.download_file(temp_storage_key)
+                    if raw_data:
+                        self.storage_service.upload_file(perm_orig_key, raw_data)
+                else:
+                    self.storage_service.upload_file(
+                        perm_orig_key, extracted_text.encode("utf-8"), content_type="text/plain"
+                    )
+            except Exception as exc:
+                logger.warning("Failed to store permanent files for book %s: %s", book.id, exc)
+
+            text_bytes = extracted_text.encode("utf-8")
             source = BookSource(
                 book_id=book.id,
-                original_filename=job.job_metadata.get("filename"),
+                original_filename=orig_filename,
                 mime_type=f"application/{job.job_metadata.get('format', 'text')}",
+                storage_bucket=self.storage_service.bucket_name,
+                storage_path=perm_orig_key,
                 extracted_text=extracted_text,
-                file_size_bytes=len(extracted_text.encode("utf-8")),
+                extracted_text_hash=hashlib.sha256(text_bytes).hexdigest(),
+                file_size_bytes=len(text_bytes),
             )
             session.add(source)
             job.book_id = book.id
             job.stage = "extracting_characters"
             job.progress = 60
             session.flush()
+
+            # Clean up temp upload files for this job
+            try:
+                self.storage_service.delete_prefix(f"temp_uploads/{job.id}/")
+            except Exception as exc:
+                logger.debug("Failed cleaning temp storage for job %s: %s", job.id, exc)
 
             # Extract characters with LLM
             characters = []
@@ -617,6 +693,20 @@ class LorelyService:
             )
         ) or 0
 
+        source = session.scalar(
+            select(BookSource).where(BookSource.book_id == book.id).order_by(BookSource.created_at.asc())
+        )
+        source_info = None
+        if source:
+            source_info = {
+                "original_filename": source.original_filename,
+                "mime_type": source.mime_type,
+                "file_size_bytes": source.file_size_bytes,
+                "storage_bucket": source.storage_bucket,
+                "storage_path": source.storage_path,
+                "has_stored_file": bool(source.storage_path),
+            }
+
         return {
             "id": book.id,
             "title": book.title,
@@ -630,6 +720,7 @@ class LorelyService:
             "characters": char_list,
             "character_count": len(char_list),
             "conversation_count": conv_count,
+            "source": source_info,
             "created_at": book.created_at.isoformat() if book.created_at else None,
             "updated_at": book.updated_at.isoformat() if book.updated_at else None,
         }
@@ -640,6 +731,45 @@ class LorelyService:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
             return self._get_book_details_in_session(session, user, book_id)
+
+    def get_book_download(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            if book.owner_user_id != user.id and book.visibility != "featured":
+                raise ForbiddenError("You do not have permission to download this book.")
+
+            source = session.scalar(
+                select(BookSource).where(BookSource.book_id == book.id).order_by(BookSource.created_at.asc())
+            )
+            if source is None:
+                raise NotFoundError("No source file associated with this book.")
+
+            filename = source.original_filename or f"{book.title}.txt"
+            mime_type = source.mime_type or "text/plain"
+
+            if source.storage_path:
+                presigned_url = self.storage_service.get_url(source.storage_path, expires_in=3600)
+                file_bytes = self.storage_service.download_file(source.storage_path)
+                return {
+                    "filename": filename,
+                    "mime_type": mime_type,
+                    "url": presigned_url if self.storage_service.is_cloud else None,
+                    "content": file_bytes or (source.extracted_text.encode("utf-8") if source.extracted_text else b""),
+                }
+
+            content = (source.extracted_text or "").encode("utf-8")
+            return {
+                "filename": filename,
+                "mime_type": mime_type,
+                "url": None,
+                "content": content,
+            }
 
     def update_book(
         self, auth_user: AuthenticatedUser | None, book_id: str, updates: dict[str, Any]
@@ -679,6 +809,12 @@ class LorelyService:
 
             session.delete(book)
             session.flush()
+
+        # Delete all stored files for this book in Cloudflare R2 / local storage
+        try:
+            self.storage_service.delete_prefix(f"books/{book_id}/")
+        except Exception as exc:
+            logger.warning("Failed to clean up storage objects for deleted book %s: %s", book_id, exc)
 
     # --- Characters ---
 
@@ -1290,7 +1426,22 @@ class LorelyService:
             if char and isinstance(char.psi_parameters, dict):
                 voice = char.psi_parameters.get("voice", "nova")
 
-            return self.voice_service.synthesize_speech(msg.content, voice=voice)
+            # Check if synthesized audio is already cached in object storage
+            audio_storage_key = f"audio/{session_id}/{message_id}.wav"
+            cached_audio = self.storage_service.download_file(audio_storage_key)
+            if cached_audio:
+                return cached_audio, "audio/wav", 0.0
+
+            audio_bytes, mime_type, duration = self.voice_service.synthesize_speech(msg.content, voice=voice)
+
+            try:
+                self.storage_service.upload_file(
+                    audio_storage_key, audio_bytes, content_type=mime_type
+                )
+            except Exception as exc:
+                logger.debug("Failed to cache audio in storage (%s): %s", audio_storage_key, exc)
+
+            return audio_bytes, mime_type, duration
 
     def execute_voice_turn(
         self,
