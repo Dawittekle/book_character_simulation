@@ -117,6 +117,24 @@ function App() {
 
     let isMounted = true;
 
+    // Detect and handle any OAuth error params returned from Supabase/Google
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const queryParams = new URLSearchParams(search);
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+      const oauthError =
+        queryParams.get('error_description') ||
+        hashParams.get('error_description') ||
+        queryParams.get('error') ||
+        hashParams.get('error');
+
+      if (oauthError) {
+        console.warn('OAuth redirect returned error:', oauthError);
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+
     supabase.auth
       .getSession()
       .then(({ data, error }) => {
@@ -142,8 +160,14 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession ?? null);
+      // Clean up OAuth code or token fragments from the address bar on successful sign-in
+      if (event === 'SIGNED_IN' && typeof window !== 'undefined') {
+        if (window.location.search.includes('code=') || window.location.hash.includes('access_token=')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }
     });
 
     return () => {

@@ -25,6 +25,11 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     (user?.email ? user.email.split('@')[0] : 'Reader');
+  const userAvatar =
+    profile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture ||
+    '/avatars/user_avatar.svg';
 
   useEffect(() => {
     let mounted = true;
@@ -181,7 +186,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
               aria-label="User account menu"
             >
               <img
-                src="/avatars/user_avatar.svg"
+                src={userAvatar}
                 alt={displayName}
                 className="sidebar-user-avatar"
               />
@@ -290,7 +295,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             />
 
             <img
-              src="/avatars/user_avatar.svg"
+              src={userAvatar}
               alt={displayName}
               className="header-avatar"
               onClick={() => navigate('/settings')}

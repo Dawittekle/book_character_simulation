@@ -176,8 +176,9 @@ class SupabaseAuthService:
             email=payload.get("email"),
             display_name=metadata.get("full_name")
             or metadata.get("name")
+            or metadata.get("user_name")
             or payload.get("email"),
-            avatar_url=metadata.get("avatar_url"),
+            avatar_url=metadata.get("avatar_url") or metadata.get("picture"),
             role=payload.get("role"),
             claims=payload,
         )
@@ -194,8 +195,9 @@ class SupabaseAuthService:
             email=payload.get("email"),
             display_name=metadata.get("full_name")
             or metadata.get("name")
+            or metadata.get("user_name")
             or payload.get("email"),
-            avatar_url=metadata.get("avatar_url"),
+            avatar_url=metadata.get("avatar_url") or metadata.get("picture"),
             role=payload.get("role"),
             claims=payload,
         )

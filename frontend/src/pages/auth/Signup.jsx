@@ -58,12 +58,13 @@ export default function Signup({ onBack }) {
 
   const handleOAuthSignIn = async (provider) => {
     if (!isSupabaseConfigured || supabase === null) {
-      setErrorMessage(`Cannot sign up with ${provider}: Supabase is not configured.`);
+      setErrorMessage(`Cannot sign up with ${provider}: Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.`);
       return;
     }
 
     try {
       setSubmitting(true);
+      setErrorMessage('');
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -73,7 +74,14 @@ export default function Signup({ onBack }) {
 
       if (error) throw error;
     } catch (err) {
-      setErrorMessage(err.message || `Failed to sign up with ${provider}.`);
+      const msg = err.message || `Failed to sign up with ${provider}.`;
+      if (msg.includes('not enabled') || msg.includes('Unsupported provider')) {
+        setErrorMessage(
+          'Google Sign-In is not enabled yet in your Supabase project. Enable Google under Authentication > Providers in your Supabase Dashboard.'
+        );
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setSubmitting(false);
     }
