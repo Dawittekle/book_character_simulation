@@ -307,10 +307,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
     };
   };
 
-  // Filter out free tier for landing subscription cards (paid upgrade tiers only)
-  const paidPlans = plans.filter((p) => p.id !== 'free' && (p.price_monthly > 0 || p.price > 0));
-  const effectivePlans = paidPlans.length > 0 ? paidPlans : plans.filter((p) => p.id !== 'free');
-  const selectedPlan = effectivePlans.find((p) => p.id === selectedPlanId) || effectivePlans[0] || {
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || plans[0] || {
     id: 'scholar',
     name: 'Literary Scholar (Plus)',
     price_monthly: 20,
@@ -608,29 +605,6 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
             <p className="landing-hero-subtitle">
               The Cognitive Simulation & Voice Dialogue Platform Bringing Literary Minds to Life
             </p>
-
-            {/* Hero Dark Obsidian CTA Button */}
-            <button
-              type="button"
-              className="landing-hero-cta"
-              onClick={handleCtaClick}
-            >
-              <span>Start Exploring</span>
-              <span className="landing-hero-cta-chevron-circle">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </span>
-            </button>
           </div>
 
           {/* Bottom Dashboard Preview Tray */}
@@ -1154,9 +1128,15 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
               </div>
 
               <div className="pricing-tiers-grid">
-                {effectivePlans.map((p) => {
+                {plans.map((p) => {
                   const pPrice = calculatePrice(p.price_monthly || 0);
                   const isCurrent = p.id === selectedPlanId;
+                  const displayBadge =
+                    p.badge && p.badge !== 'YOUR CURRENT PLAN'
+                      ? p.badge
+                      : p.id === 'free'
+                        ? 'STARTER'
+                        : null;
                   return (
                     <div
                       key={p.id}
@@ -1170,9 +1150,9 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                         }
                       }}
                     >
-                      {p.badge && (
+                      {displayBadge && (
                         <div className="tier-pill-badge">
-                          <span>{p.badge}</span>
+                          <span>{displayBadge}</span>
                         </div>
                       )}
                       <h4 className="tier-card-heading">{p.name}</h4>
@@ -1189,7 +1169,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                           setSelectedPlanId(p.id);
                         }}
                       >
-                        {isCurrent ? '✓ Active Plan' : 'Select Tier'}
+                        {isCurrent ? 'Selected Tier' : 'Inspect Tier'}
                       </button>
                     </div>
                   );

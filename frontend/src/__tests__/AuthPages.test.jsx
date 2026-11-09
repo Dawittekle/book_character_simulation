@@ -31,7 +31,7 @@ describe('Phase 3: Independent Authentication Pages', () => {
   });
 
   describe('Login Page', () => {
-    it('renders split-screen layout with email, password, OAuth options, and back button', () => {
+    it('renders split-screen layout with email, password, Google OAuth, and back button without Microsoft or admin portal leaks', () => {
       render(
         <BrowserRouter>
           <Login />
@@ -40,16 +40,42 @@ describe('Phase 3: Independent Authentication Pages', () => {
 
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Welcome to Lorely/i);
       expect(screen.getByLabelText(/Email address/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /continue with microsoft/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /continue with microsoft/i })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /go back/i })).toBeInTheDocument();
 
-      // Right side metrics panel
-      expect(screen.getByText('Improvement rate')).toBeInTheDocument();
-      expect(screen.getAllByText('126.6%').length).toBeGreaterThan(0);
-      expect(screen.getByText('A Unified Hub for Smarter Literary Cognition')).toBeInTheDocument();
+      // Ensure secret admin portal link is NOT present on reader login
+      expect(screen.queryByText(/staff portal/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/curator or administrator/i)).not.toBeInTheDocument();
+
+      // Right side literary cognition metrics panel
+      expect(screen.getByText('Rodion Raskolnikov')).toBeInTheDocument();
+      expect(screen.getByText('Crime and Punishment')).toBeInTheDocument();
+      expect(screen.getByText('96.8%')).toBeInTheDocument();
+      expect(screen.getByText('Resonance')).toBeInTheDocument();
+      expect(screen.getByText('Elizabeth Bennet')).toBeInTheDocument();
+      expect(screen.getByText('Step Into the Minds of Literature')).toBeInTheDocument();
+    });
+
+    it('toggles password visibility when the eye button is clicked', () => {
+      render(
+        <BrowserRouter>
+          <Login />
+        </BrowserRouter>,
+      );
+
+      const passwordInput = screen.getByLabelText(/^password$/i);
+      expect(passwordInput).toHaveAttribute('type', 'password');
+
+      const toggleBtn = screen.getByRole('button', { name: /show password/i });
+      fireEvent.click(toggleBtn);
+      expect(passwordInput).toHaveAttribute('type', 'text');
+
+      const hideBtn = screen.getByRole('button', { name: /hide password/i });
+      fireEvent.click(hideBtn);
+      expect(passwordInput).toHaveAttribute('type', 'password');
     });
 
     it('submits login form and calls supabase signInWithPassword', async () => {
@@ -67,7 +93,7 @@ describe('Phase 3: Independent Authentication Pages', () => {
       fireEvent.change(screen.getByLabelText(/Email address/i), {
         target: { value: 'reader@lorely.ai' },
       });
-      fireEvent.change(screen.getByLabelText(/Password/i), {
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
         target: { value: 'secretPass123' },
       });
 
@@ -96,7 +122,7 @@ describe('Phase 3: Independent Authentication Pages', () => {
       fireEvent.change(screen.getByLabelText(/Email address/i), {
         target: { value: 'wrong@example.com' },
       });
-      fireEvent.change(screen.getByLabelText(/Password/i), {
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
         target: { value: 'badpass' },
       });
 
@@ -133,7 +159,7 @@ describe('Phase 3: Independent Authentication Pages', () => {
   });
 
   describe('Signup Page', () => {
-    it('renders display name field and handles registration', async () => {
+    it('renders display name field and handles registration without Microsoft OAuth', async () => {
       supabase.auth.signUp.mockResolvedValueOnce({
         data: { session: null, user: { id: 'new-user-123' } },
         error: null,
@@ -147,6 +173,16 @@ describe('Phase 3: Independent Authentication Pages', () => {
 
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Create Lorely account/i);
       expect(screen.getByLabelText(/Display name/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Email address/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /continue with microsoft/i })).not.toBeInTheDocument();
+
+      // Test password visibility toggle on signup
+      const passwordInput = screen.getByLabelText(/^password$/i);
+      expect(passwordInput).toHaveAttribute('type', 'password');
+      const toggleBtn = screen.getByRole('button', { name: /show password/i });
+      fireEvent.click(toggleBtn);
+      expect(passwordInput).toHaveAttribute('type', 'text');
 
       fireEvent.change(screen.getByLabelText(/Display name/i), {
         target: { value: 'Dawit Teklebrhan' },
@@ -154,7 +190,7 @@ describe('Phase 3: Independent Authentication Pages', () => {
       fireEvent.change(screen.getByLabelText(/Email address/i), {
         target: { value: 'dawit@lorely.ai' },
       });
-      fireEvent.change(screen.getByLabelText(/Password/i), {
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
         target: { value: 'NewSecurePass2026!' },
       });
 
@@ -175,8 +211,8 @@ describe('Phase 3: Independent Authentication Pages', () => {
     });
   });
 
-  describe('AdminLogin Page (Editorial Redesign)', () => {
-    it('renders flower logo, administrative title, and inputs', () => {
+  describe('AdminLogin Page (Split-Screen Production Redesign)', () => {
+    it('renders administrative title, restricted tag, inputs, and password toggle', () => {
       render(
         <BrowserRouter>
           <AdminLogin />
@@ -189,23 +225,19 @@ describe('Phase 3: Independent Authentication Pages', () => {
       expect(screen.getByLabelText(/Administrator Email/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Security Password/i)).toBeInTheDocument();
       expect(screen.getByTestId('admin-login-btn')).toBeInTheDocument();
+
+      // Quick fill button removed for production
+      expect(screen.queryByRole('button', { name: /quick fill/i })).not.toBeInTheDocument();
+
+      // Password toggle works
+      const passwordInput = screen.getByLabelText(/Security Password/i);
+      expect(passwordInput).toHaveAttribute('type', 'password');
+      const toggleBtn = screen.getByRole('button', { name: /show password/i });
+      fireEvent.click(toggleBtn);
+      expect(passwordInput).toHaveAttribute('type', 'text');
     });
 
-    it('populates fields when Quick Fill button is clicked', () => {
-      render(
-        <BrowserRouter>
-          <AdminLogin />
-        </BrowserRouter>,
-      );
-
-      const quickFillBtn = screen.getByRole('button', { name: /quick fill/i });
-      fireEvent.click(quickFillBtn);
-
-      expect(screen.getByLabelText(/Administrator Email/i)).toHaveValue('admin@lorely.app');
-      expect(screen.getByLabelText(/Security Password/i)).toHaveValue('LorelyAdmin2026!Secure');
-    });
-
-    it('authenticates admin successfully via lorelyApi', async () => {
+    it('authenticates admin successfully via lorelyApi with entered credentials', async () => {
       lorelyApi.adminLogin.mockResolvedValueOnce({
         token: 'admin-jwt-token',
         user: { role: 'admin' },
@@ -217,7 +249,12 @@ describe('Phase 3: Independent Authentication Pages', () => {
         </BrowserRouter>,
       );
 
-      fireEvent.click(screen.getByRole('button', { name: /quick fill/i }));
+      fireEvent.change(screen.getByLabelText(/Administrator Email/i), {
+        target: { value: 'admin@lorely.app' },
+      });
+      fireEvent.change(screen.getByLabelText(/Security Password/i), {
+        target: { value: 'LorelyAdmin2026!Secure' },
+      });
       fireEvent.click(screen.getByTestId('admin-login-btn'));
 
       await waitFor(() => {

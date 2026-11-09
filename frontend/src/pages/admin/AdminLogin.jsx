@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { lorelyApi } from '../../services/lorelyApi';
 import { translateErrorMessage } from '../../lib/errorUtils';
 import { BrandLogo } from '../../components/brand';
+import AuthLayout from '../../components/auth/AuthLayout';
 import './AdminLogin.css';
 
-export default function AdminLogin() {
+export default function AdminLogin({ onBack }) {
   const navigate = useNavigate();
-  const defaultEmail = import.meta.env.VITE_DEFAULT_ADMIN_EMAIL || 'admin@lorely.app';
+  const defaultEmail = import.meta.env.VITE_DEFAULT_ADMIN_EMAIL || '';
 
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -42,51 +45,120 @@ export default function AdminLogin() {
     }
   };
 
-  return (
-    <div className="admin-login-viewport" data-testid="admin-login-page">
-      <div className="admin-login-card">
-        <div className="admin-login-header">
-          <div className="admin-logo-mark-wrap">
-            <BrandLogo size={42} variant="orange" />
+  const adminRightPanel = (
+    <>
+      <div className="auth-telemetry-stack">
+        {/* Admin Metric Card 1: System Telemetry */}
+        <div className="auth-metric-card-primary">
+          <div className="auth-telemetry-header">
+            <div className="auth-telemetry-subject">
+              <span className="auth-telemetry-avatar" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+                SYS
+              </span>
+              <div>
+                <span className="auth-telemetry-character">Neural & RAG Engine</span>
+                <span className="auth-telemetry-work">Core Cluster &bull; v2.4</span>
+              </div>
+            </div>
+            <div className="auth-telemetry-score-badge">
+              <span className="auth-telemetry-score-val" style={{ color: '#10b981' }}>99.9%</span>
+              <span className="auth-telemetry-score-lbl">Uptime</span>
+            </div>
           </div>
-          <div className="admin-portal-tag">
+
+          <div className="auth-telemetry-quote-box" style={{ borderLeftColor: '#10b981' }}>
+            <p className="auth-telemetry-quote">
+              142 Canonical Works Indexed &bull; 2.4M Embeddings &bull; Zero Hallucination Vector Filters
+            </p>
+          </div>
+
+          <div className="auth-telemetry-tags">
+            <span className="auth-pill-tag tag-active">
+              ● RAG Pipeline Active
+            </span>
+            <span className="auth-pill-tag tag-spoiler">
+              🛡 Spoiler Protocol Enforced
+            </span>
+          </div>
+        </div>
+
+        {/* Admin Metric Card 2: Security & Governance */}
+        <div className="auth-metric-card-secondary">
+          <div className="auth-telemetry-header">
+            <div className="auth-telemetry-subject">
+              <span className="auth-telemetry-avatar avatar-salon">ADM</span>
+              <div>
+                <span className="auth-telemetry-character">Curator Operations</span>
+                <span className="auth-telemetry-work">Role-Based Access Control</span>
+              </div>
+            </div>
+            <div className="auth-telemetry-stat-badge">
+              <span className="stat-count">12</span>
+              <span className="stat-sub">Pods</span>
+            </div>
+          </div>
+
+          <div className="auth-telemetry-memory-snippet">
+            <span className="memory-prefix">Audit Status:</span>
+            <p className="memory-text">
+              Multi-tenant isolation verified. Audit logging stream active.
+            </p>
+          </div>
+
+          <div className="auth-telemetry-tags">
+            <span className="auth-pill-tag tag-voice">
+              🔐 Encrypted Session
+            </span>
+            <span className="auth-pill-tag tag-tension">
+              Administrative Sphere
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="auth-visual-editorial">
+        <h3 className="auth-editorial-title">
+          Administrative Core & Governance
+        </h3>
+        <p className="auth-editorial-text">
+          Curator oversight for literary knowledge ingestion, persona calibration, RAG retrieval boundaries, and system-wide dialogue moderation.
+        </p>
+      </div>
+    </>
+  );
+
+  return (
+    <div data-testid="admin-login-page">
+      <AuthLayout onBack={onBack} backUrl="/" rightPanel={adminRightPanel}>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'inline-flex', marginBottom: '0.75rem' }}>
+            <BrandLogo size={36} variant="orange" />
+          </div>
+          <div className="admin-portal-tag" style={{ display: 'flex', width: 'fit-content', marginBottom: '0.75rem' }}>
             <span className="admin-portal-tag-dot" />
             <span>Restricted Access</span>
           </div>
-          <h1 className="admin-login-title">Administrative Console</h1>
-          <p className="admin-login-subtitle">
+          <h1 className="auth-form-heading">Administrative Console</h1>
+          <p className="auth-form-subtext">
             Curator operations, user catalog governance, and system-wide RAG oversight.
           </p>
         </div>
 
         {errorMessage && (
-          <div className="admin-login-error" role="alert" data-testid="admin-login-error">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="admin-error-icon"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span className="error-text">{errorMessage}</span>
+          <div className="auth-alert-banner" role="alert" data-testid="admin-login-error">
+            {errorMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="admin-login-form">
-          <div className="admin-input-group">
-            <label htmlFor="admin-email" className="admin-label">
+        <form onSubmit={handleSubmit} className="auth-form-body">
+          <div className="auth-field-group">
+            <label htmlFor="admin-email" className="auth-field-label">
               Administrator Email
             </label>
             <input
               id="admin-email"
               type="email"
-              className="admin-input"
+              className="auth-field-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@lorely.app"
@@ -96,59 +168,51 @@ export default function AdminLogin() {
             />
           </div>
 
-          <div className="admin-input-group">
-            <label htmlFor="admin-password" className="admin-label">
+          <div className="auth-field-group">
+            <label htmlFor="admin-password" className="auth-field-label">
               Security Password
             </label>
-            <input
-              id="admin-password"
-              type="password"
-              className="admin-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              autoComplete="current-password"
-              required
-              disabled={submitting}
-            />
+            <div className="auth-password-wrapper">
+              <input
+                id="admin-password"
+                type={showPassword ? 'text' : 'password'}
+                className="auth-field-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+                required
+                disabled={submitting}
+              />
+              <button
+                type="button"
+                className="auth-password-toggle-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={0}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
-            className="admin-login-submit-btn"
+            className="auth-primary-submit-btn"
             disabled={submitting}
             data-testid="admin-login-btn"
+            style={{ marginTop: '0.75rem' }}
           >
-            {submitting ? (
-              <>
-                <span className="admin-spinner" />
-                <span>Verifying Credentials...</span>
-              </>
-            ) : (
-              <span>Authenticate Portal →</span>
-            )}
+            {submitting ? 'Verifying Credentials...' : 'Authenticate Portal →'}
           </button>
 
-          <div className="admin-quickfill-container">
-            <button
-              type="button"
-              className="admin-fill-credentials-btn"
-              onClick={() => {
-                setEmail('admin@lorely.app');
-                setPassword('LorelyAdmin2026!Secure');
-              }}
-            >
-              🔑 Quick Fill Administrator Credentials
-            </button>
+          <div className="auth-switch-link-wrapper" style={{ marginTop: '1.5rem' }}>
+            <Link to="/" className="auth-switch-action" style={{ color: 'var(--brand-text-muted, #6b7280)', fontWeight: 500 }}>
+              ← Return to Home
+            </Link>
           </div>
         </form>
-
-        <div className="admin-login-footer">
-          <Link to="/" className="admin-back-link">
-            ← Return to Home
-          </Link>
-        </div>
-      </div>
+      </AuthLayout>
     </div>
   );
 }

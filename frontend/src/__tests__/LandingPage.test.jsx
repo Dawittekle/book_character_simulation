@@ -57,11 +57,6 @@ describe('LandingPage Component', () => {
     expect(navCta).toBeInTheDocument();
     fireEvent.click(navCta);
     expect(handleGetStarted).toHaveBeenCalledTimes(1);
-
-    // Hero dark CTA
-    const heroCta = screen.getByRole('button', { name: /start exploring/i });
-    fireEvent.click(heroCta);
-    expect(handleGetStarted).toHaveBeenCalledTimes(2);
   });
 
   it('triggers onSignIn when Sign In nav button is clicked', () => {

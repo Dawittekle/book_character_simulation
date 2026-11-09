@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '../../components/auth/AuthLayout';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
@@ -7,6 +8,7 @@ export default function Login({ onBack }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
@@ -105,16 +107,27 @@ export default function Login({ onBack }) {
           <label className="auth-field-label" htmlFor="login-password">
             Password
           </label>
-          <input
-            id="login-password"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="auth-field-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-          />
+          <div className="auth-password-wrapper">
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              autoComplete="current-password"
+              className="auth-field-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+            />
+            <button
+              type="button"
+              className="auth-password-toggle-btn"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              tabIndex={0}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <button
@@ -153,22 +166,6 @@ export default function Login({ onBack }) {
             </svg>
             <span>Continue with Google</span>
           </button>
-
-          <button
-            type="button"
-            className="auth-oauth-btn"
-            onClick={() => handleOAuthSignIn('azure')}
-            disabled={submitting}
-          >
-            {/* Microsoft 4-Color Grid SVG */}
-            <svg className="auth-oauth-icon" viewBox="0 0 21 21">
-              <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-              <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-              <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-              <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-            </svg>
-            <span>Continue with Microsoft</span>
-          </button>
         </div>
 
         <p className="auth-disclaimer-text">
@@ -180,13 +177,6 @@ export default function Login({ onBack }) {
           <span>Don't have an account?</span>
           <Link to="/signup" className="auth-switch-action">
             Sign up
-          </Link>
-        </div>
-
-        <div className="auth-switch-link-wrapper" style={{ marginTop: '6px' }}>
-          <span>Curator or Administrator?</span>
-          <Link to="/admin/login" className="auth-switch-action">
-            Staff Portal &rarr;
           </Link>
         </div>
       </form>
