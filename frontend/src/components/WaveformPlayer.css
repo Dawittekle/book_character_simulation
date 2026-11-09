@@ -1,38 +1,49 @@
 .waveform-player {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: rgba(240, 233, 222, 0.7);
-  border: 1px solid rgba(200, 157, 92, 0.25);
-  border-radius: 24px;
-  padding: 8px 16px;
-  margin-top: 10px;
+  background: var(--brand-tray-bg, #f5f2ee);
+  border: 1px solid var(--brand-border, #e5e5e5);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  margin-top: 8px;
   max-width: 380px;
-  backdrop-filter: blur(4px);
+  width: fit-content;
+  box-shadow: 0 1px 3px rgba(11, 15, 26, 0.04);
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  user-select: none;
 }
 
 .waveform-play-button {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--lorely-sidebar, #1C2E24);
-  color: #FFFDF7;
+  background: var(--brand-obsidian, #0b0f1a);
+  color: #ffffff;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.2s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(11, 15, 26, 0.2);
 }
 
 .waveform-play-button:hover {
-  transform: scale(1.05);
-  background: #263D31;
+  transform: scale(1.08);
+  background: var(--brand-orange, #ef4d23);
 }
 
-.waveform-icon {
-  font-size: 11px;
+.waveform-play-button:active {
+  transform: scale(0.96);
+}
+
+.waveform-play-svg {
+  display: block;
+}
+
+.waveform-play-svg.play-arrow {
   margin-left: 2px;
 }
 
@@ -40,19 +51,20 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  height: 24px;
+  height: 22px;
   flex: 1;
+  min-width: 120px;
 }
 
 .waveform-bar {
   width: 3px;
-  background: #C4B9A7;
+  background: #d4d4d8;
   border-radius: 2px;
   transition: background-color 0.2s ease, height 0.2s ease;
 }
 
 .waveform-bar.played {
-  background: var(--lorely-sidebar, #1C2E24);
+  background: var(--brand-orange, #ef4d23);
 }
 
 @keyframes pulse-wave {
@@ -60,7 +72,7 @@
     transform: scaleY(1);
   }
   50% {
-    transform: scaleY(1.4);
+    transform: scaleY(1.5);
   }
 }
 
@@ -69,10 +81,10 @@
 }
 
 .waveform-timestamp {
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
   font-size: 11px;
   font-weight: 600;
-  color: #7A7065;
+  color: #6b7280;
   white-space: nowrap;
 }
 
@@ -80,14 +92,15 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #7A7065;
-  font-size: 14px;
+  color: #9ca3af;
+  font-size: 13px;
   padding: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: color 0.15s ease;
 }
 
 .waveform-speaker-button:hover {
-  color: var(--lorely-sidebar, #1C2E24);
+  color: var(--brand-obsidian, #0b0f1a);
 }

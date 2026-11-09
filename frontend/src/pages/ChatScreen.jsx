@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import CharacterDetailsDrawer from '../components/CharacterDetailsDrawer';
 import WaveformPlayer from '../components/WaveformPlayer';
+import BadgePill from '../components/brand/BadgePill';
 import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl } from '../lib/formatters';
 import './ChatScreen.css';
@@ -313,32 +314,40 @@ export default function ChatScreen() {
       <div className="chat-conversation-column">
         {/* Top Header Bar */}
         <header className="chat-screen-header">
-          <button
-            type="button"
-            className="chat-back-btn"
-            onClick={() => navigate(-1)}
-            aria-label="Back to library"
-          >
-            ← Back
-          </button>
+          <div className="chat-header-left">
+            <button
+              type="button"
+              className="chat-back-btn"
+              onClick={() => navigate(-1)}
+              aria-label="Back to library"
+            >
+              ← Back
+            </button>
 
-          <div className="chat-header-character-info">
-            <img
-              src={characterAvatar}
-              alt={character.name}
-              className="chat-header-avatar"
-            />
-            <div className="chat-header-text">
-              <h2 className="chat-header-name">{character.name}</h2>
-              <div className="chat-header-subline">
-                <span className="chat-header-book">{character.book_title || 'The Midnight Letters'}</span>
-                <span className="chat-status-dot">●</span>
-                <span className="chat-status-text">Online</span>
+            <div className="chat-header-character-info">
+              <div className="chat-header-avatar-wrap">
+                <img
+                  src={characterAvatar}
+                  alt={character.name}
+                  className="chat-header-avatar"
+                />
+                <span className="chat-header-status-dot" />
+              </div>
+              <div className="chat-header-text">
+                <h2 className="chat-header-name">{character.name}</h2>
+                <div className="chat-header-subline">
+                  <span className="chat-header-book">{character.book_title || 'The Midnight Letters'}</span>
+                  <span className="chat-status-dot">●</span>
+                  <span className="chat-status-text">Online</span>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="chat-header-actions">
+            <BadgePill variant="orange" dotColor="#ef4d23" dotPulse size="sm" className="chat-header-hd-pill">
+              HD Voice
+            </BadgePill>
             <button
               type="button"
               className={`drawer-toggle-btn ${isDrawerOpen ? 'active' : ''}`}

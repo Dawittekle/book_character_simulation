@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl, formatRelativeDate } from '../lib/formatters';
+import PillButton from '../components/brand/PillButton';
+import BadgePill from '../components/brand/BadgePill';
 import './Conversations.css';
 
 export default function Conversations() {
@@ -51,7 +53,12 @@ export default function Conversations() {
           ← Back
         </button>
         <div className="conversations-title-group">
-          <h1 className="conversations-title">Your Conversations</h1>
+          <div className="conversations-title-lockup">
+            <h1 className="conversations-title">Your Conversations</h1>
+            <BadgePill variant="orange" dotColor="#ef4d23" className="conversations-count-badge">
+              {conversations.length} Active {conversations.length === 1 ? 'Bond' : 'Bonds'}
+            </BadgePill>
+          </div>
           <p className="conversations-subtitle">
             Review past exchanges, ongoing character bonds, and remembered facts.
           </p>
@@ -60,16 +67,18 @@ export default function Conversations() {
 
       {conversations.length === 0 ? (
         <div className="conversations-empty-state">
-          <span className="empty-icon">📖</span>
+          <div className="empty-icon-bubble">💬</div>
           <h3>No Conversations Yet</h3>
           <p>Explore your library and begin talking with a character to build memories.</p>
-          <button
-            type="button"
-            className="empty-cta-btn"
+          <PillButton
+            variant="orange"
+            size="md"
+            hasChevron
             onClick={() => navigate('/library')}
+            className="empty-cta-btn"
           >
             Explore Library →
-          </button>
+          </PillButton>
         </div>
       ) : (
         <div className="conversations-list">
@@ -85,19 +94,24 @@ export default function Conversations() {
                 className="conversation-row-card"
                 onClick={() => navigate(`/chat/${conv.character_id}/${conv.id}`)}
               >
-                <img
-                  src={avatarUrl}
-                  alt={conv.character_name}
-                  className="conv-avatar"
-                />
+                <div className="conv-avatar-wrap">
+                  <img
+                    src={avatarUrl}
+                    alt={conv.character_name}
+                    className="conv-avatar"
+                  />
+                  <span className="conv-online-dot" />
+                </div>
 
                 <div className="conv-main-info">
                   <div className="conv-title-line">
                     <h3 className="conv-char-name">{conv.character_name}</h3>
                     <span className="conv-book-title">({conv.book_title})</span>
-                    <span className="conv-spoiler-pill">{conv.spoiler_policy}</span>
+                    {conv.spoiler_policy && (
+                      <span className="conv-spoiler-pill">{conv.spoiler_policy}</span>
+                    )}
                   </div>
-                  <p className="conv-topic">{conv.title}</p>
+                  <p className="conv-topic">{conv.title || 'Ongoing dialogue'}</p>
                 </div>
 
                 <div className="conv-meta-col">
@@ -115,7 +129,10 @@ export default function Conversations() {
                   onClick={(e) => handleDelete(e, conv.id)}
                   aria-label="Delete conversation"
                 >
-                  🗑
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
                 </button>
               </article>
             );
