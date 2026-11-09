@@ -19,11 +19,16 @@ describe('LandingPage Component', () => {
 
     // Brand title in nav
     expect(screen.getAllByText('Lorely').length).toBeGreaterThan(0);
-    // Desktop navigation links
+    // Active Navigation Links
     expect(screen.getByText('Home')).toBeInTheDocument();
-    expect(screen.getByText('Features')).toBeInTheDocument();
-    expect(screen.getByText('Library')).toBeInTheDocument();
-    expect(screen.getByText('Pages')).toBeInTheDocument();
+    expect(screen.getByText('Use Cases')).toBeInTheDocument();
+    expect(screen.getByText('Pricing')).toBeInTheDocument();
+    expect(screen.getByText('FAQ')).toBeInTheDocument();
+
+    // Verify unused / section-less buttons are STRICTLY removed
+    expect(screen.queryByText('Features')).toBeNull();
+    expect(screen.queryByText('Library')).toBeNull();
+    expect(screen.queryByText('Pages')).toBeNull();
 
     // Verify STRICTLY NO cart icon exists in DOM
     expect(container.querySelector('[aria-label="cart"]')).toBeNull();
@@ -46,8 +51,8 @@ describe('LandingPage Component', () => {
     const handleGetStarted = vi.fn();
     render(<LandingPage onGetStarted={handleGetStarted} />);
 
-    // Nav CTA
-    const navCta = screen.getByRole('button', { name: /start reading/i });
+    // Nav CTA: "Start Free" (updated per design)
+    const navCta = screen.getByRole('button', { name: /start free/i });
     fireEvent.click(navCta);
     expect(handleGetStarted).toHaveBeenCalledTimes(1);
 
@@ -74,25 +79,27 @@ describe('LandingPage Component', () => {
 
     fireEvent.click(hamburger);
     // Mobile dropdown opens
-    const mobileLinks = screen.getAllByText('Features');
+    const mobileLinks = screen.getAllByText('Use Cases');
     expect(mobileLinks.length).toBeGreaterThan(1);
   });
 
   it('renders all three dashboard preview cards with interactive controls', () => {
     render(<LandingPage />);
 
-    // Card 1: Resonance
-    expect(screen.getByText('6,896')).toBeInTheDocument();
-    expect(screen.getByText('92%')).toBeInTheDocument();
+    // Card 1: Character Dialogue Resonance
+    expect(screen.getByText('96.8%')).toBeInTheDocument();
+    expect(screen.getByText('Crime & Punishment')).toBeInTheDocument();
     expect(screen.getByText('Persona Fidelity achieved')).toBeInTheDocument();
+    expect(screen.getByText('Grounded in Chapter Text & Dialogue')).toBeInTheDocument();
 
     // Toggle Card 1
     const turnsBtn = screen.getByRole('button', { name: /dialogue turns/i });
     fireEvent.click(turnsBtn);
     expect(turnsBtn).toHaveClass('is-active');
+    expect(screen.getByText('1,420')).toBeInTheDocument();
 
-    // Card 2: Simulation controls
-    expect(screen.getByText('Deep Analysis')).toBeInTheDocument();
+    // Card 2: Literary simulation controls
+    expect(screen.getByText('Rodion Raskolnikov (Mid-Book)')).toBeInTheDocument();
     expect(screen.getByText('Chapter 12 (Mid-Book)')).toBeInTheDocument();
     expect(screen.getByDisplayValue('25')).toBeInTheDocument();
     expect(screen.getByDisplayValue('8192')).toBeInTheDocument();
@@ -102,10 +109,12 @@ describe('LandingPage Component', () => {
     fireEvent.click(saveBtn);
     expect(screen.getByRole('button', { name: /saved!/i })).toBeInTheDocument();
 
-    // Card 3: Voice Stream
+    // Card 3: Neural Voice Salon
     expect(screen.getByText('Voice Stream')).toBeInTheDocument();
-    expect(screen.getByText('128')).toBeInTheDocument();
+    expect(screen.getByText('24ms')).toBeInTheDocument();
+    expect(screen.getByText('Studio Neural TTS')).toBeInTheDocument();
     expect(screen.getByText('Acoustic Naturalness')).toBeInTheDocument();
+    expect(screen.getByText('19th-Century Conversational Cadence')).toBeInTheDocument();
   });
 
   it('renders the Use Cases section with 4 domain cards and framed badges', () => {

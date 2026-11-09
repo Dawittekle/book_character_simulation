@@ -317,27 +317,6 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 <a href="#faq" className="landing-nav-link">
                   FAQ
                 </a>
-                <a href="#features" className="landing-nav-link">
-                  Features
-                </a>
-                <a href="#library" className="landing-nav-link">
-                  Library
-                </a>
-                <div className="landing-nav-link-dropdown">
-                  <span className="landing-nav-link text-orange">Pages</span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#ef4d23"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
               </div>
 
               {/* Right Cluster: STRICTLY NO CART ICON as required */}
@@ -354,8 +333,8 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                   className="landing-nav-cta-btn"
                   onClick={handleCtaClick}
                 >
-                  <span className="landing-nav-cta-desktop-text">Start Reading</span>
-                  <span className="landing-nav-cta-mobile-text">Explore</span>
+                  <span className="landing-nav-cta-desktop-text">Start Free</span>
+                  <span className="landing-nav-cta-mobile-text">Start Free</span>
                   <span className="landing-nav-cta-icon-circle">
                     <svg
                       width="12"
@@ -443,20 +422,6 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                   >
                     FAQ
                   </a>
-                  <a
-                    href="#features"
-                    className="landing-mobile-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Features
-                  </a>
-                  <a
-                    href="#library"
-                    className="landing-mobile-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Library
-                  </a>
                   <button
                     type="button"
                     className="landing-mobile-link text-left"
@@ -525,11 +490,13 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 <div className="landing-card landing-card-resonance">
                   <div className="landing-card-header">
                     <span className="landing-card-tag text-orange">Resonance</span>
-                    <span className="landing-card-period">This Month</span>
+                    <span className="landing-card-period">Crime & Punishment</span>
                   </div>
 
                   <div className="landing-card-metric-row">
-                    <span className="landing-card-big-number">6,896</span>
+                    <span className="landing-card-big-number">
+                      {activeCard1Tab === 'resonance' ? '96.8%' : '1,420'}
+                    </span>
                     <span className="landing-card-badge-trend positive">
                       <svg
                         width="11"
@@ -544,22 +511,22 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                         <polyline points="17 6 23 6 23 12" />
                       </svg>
-                      +3,382 (33%)
+                      {activeCard1Tab === 'resonance' ? '✦ Canonical' : '+48 Turns'}
                     </span>
                   </div>
 
-                  <span className="landing-card-caption">Compared to yesterday</span>
+                  <span className="landing-card-caption">Grounded in Chapter Text & Dialogue</span>
 
                   <div className="landing-card-gauge-section">
                     <span className="landing-card-gauge-label">
                       Persona Fidelity achieved
                     </span>
                     <RadialGauge
-                      value={activeCard1Tab === 'resonance' ? 92 : 78}
+                      value={activeCard1Tab === 'resonance' ? 96 : 82}
                       color="#ef4d23"
                       showLabels
-                      minLabel="389K"
-                      maxLabel="425K"
+                      minLabel="0%"
+                      maxLabel="100%"
                     />
                   </div>
 
@@ -588,9 +555,9 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 {/* Card 2: Cognitive Simulation Controls & Limits */}
                 <form className="landing-card landing-card-form" onSubmit={handleFormSave}>
                   <div className="landing-form-group">
-                    <label className="landing-form-label">Show figures for</label>
+                    <label className="landing-form-label">Simulated Character</label>
                     <div className="landing-form-select-btn">
-                      <span>{cognitiveDepth}</span>
+                      <span>Rodion Raskolnikov (Mid-Book)</span>
                       <svg
                         width="14"
                         height="14"
@@ -622,14 +589,15 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                   </div>
 
                   <div className="landing-form-group">
-                    <label className="landing-form-label">Target turns (Daily)</label>
+                    <label className="landing-form-label">Daily Dialogue Allowance (Turns)</label>
                     <div className="landing-form-input-container">
-                      <span className="landing-form-input-prefix">#</span>
+                      <span className="landing-form-input-prefix">✦</span>
                       <input
                         type="number"
                         className="landing-form-input"
                         value={dailyTurnsTarget}
                         onChange={(e) => setDailyTurnsTarget(Number(e.target.value))}
+                        aria-label="Daily Dialogue Allowance"
                       />
                     </div>
                   </div>
@@ -637,12 +605,13 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                   <div className="landing-form-group">
                     <label className="landing-form-label">Context memory (Tokens)</label>
                     <div className="landing-form-input-container">
-                      <span className="landing-form-input-prefix">#</span>
+                      <span className="landing-form-input-prefix">✦</span>
                       <input
                         type="number"
                         className="landing-form-input"
                         value={contextTokensTarget}
                         onChange={(e) => setContextTokensTarget(Number(e.target.value))}
+                        aria-label="Context memory (Tokens)"
                       />
                     </div>
                   </div>
@@ -684,12 +653,14 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 <div className="landing-card landing-card-voice">
                   <div className="landing-card-header">
                     <span className="landing-card-tag text-orange">Voice Stream</span>
-                    <span className="landing-card-period">today</span>
+                    <span className="landing-card-period">Studio Neural TTS</span>
                   </div>
 
                   <div className="landing-card-metric-row">
-                    <span className="landing-card-big-number">128</span>
-                    <span className="landing-card-badge-trend neutral">
+                    <span className="landing-card-big-number">
+                      {activeCard3Tab === 'audio' ? '24ms' : '98.5%'}
+                    </span>
+                    <span className="landing-card-badge-trend positive">
                       <svg
                         width="11"
                         height="11"
@@ -703,19 +674,19 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                         <polyline points="17 6 23 6 23 12" />
                       </svg>
-                      +12
+                      {activeCard3Tab === 'audio' ? 'Low Latency' : 'Fidelity'}
                     </span>
                   </div>
 
-                  <span className="landing-card-caption">Compared to yesterday</span>
+                  <span className="landing-card-caption">19th-Century Conversational Cadence</span>
 
                   <div className="landing-card-gauge-section">
                     <span className="landing-card-gauge-label">
                       Acoustic Naturalness
                     </span>
                     <RadialGauge
-                      value={activeCard3Tab === 'audio' ? 68 : 84}
-                      color="#9ca3af"
+                      value={activeCard3Tab === 'audio' ? 94 : 88}
+                      color="#ef4d23"
                       showLabels={false}
                     />
                   </div>
