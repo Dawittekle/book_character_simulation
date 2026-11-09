@@ -23,7 +23,9 @@ from ..db.models import (
     BookProcessingStatus,
     BookSource,
     CharacterMemory,
+    CharacterProfileEvidence,
     CharacterProfileRecord,
+    CharacterStateEvent,
     ChatMessage,
     ChatRole,
     ChatSession,
@@ -45,6 +47,7 @@ from ..rag.chunker import build_semantic_chunks, split_into_chapters
 from ..rag.embedding_provider import EmbeddingService
 from ..rag.retriever import SpoilerAwareRetriever
 from ..schemas.character import CharacterProfile
+from ..simulation import PsiEngine, PerceivedObservation, clamp
 from ..utils.document_extractor import extract_document_from_bytes
 from ..utils.json import parse_json_response
 from .classification_service import ClassificationService
@@ -1057,6 +1060,7 @@ class LorelyService:
         *,
         title: str | None = None,
         spoiler_policy: str = "cautious",
+        reading_progress_chapter: int = 1,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
@@ -1090,6 +1094,7 @@ class LorelyService:
                 character_id=char.id,
                 title=title or f"Chat with {char.name}",
                 spoiler_policy=spoiler_policy,
+                reading_progress_chapter=reading_progress_chapter,
                 latest_psi_parameters=init_psi or {},
                 latest_emotion_state=init_emotions or {},
                 last_message_at=utc_now(),
@@ -1104,9 +1109,90 @@ class LorelyService:
                 "character_id": chat_session.character_id,
                 "character_name": char.name,
                 "spoiler_policy": chat_session.spoiler_policy,
+                "reading_progress_chapter": chat_session.reading_progress_chapter,
                 "latest_emotion_state": chat_session.latest_emotion_state,
                 "created_at": chat_session.created_at.isoformat(),
             }
+
+    def update_conversation(
+        self,
+        auth_user: AuthenticatedUser | None,
+        session_id: str,
+        *,
+        title: str | None = None,
+        spoiler_policy: str | None = None,
+        reading_progress_chapter: int | None = None,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            chat_session = session.get(ChatSession, session_id)
+            if chat_session is None:
+                raise NotFoundError("Conversation session not found.")
+            if chat_session.owner_user_id != user.id:
+                raise ForbiddenError("You cannot modify this conversation.")
+
+            if title is not None:
+                chat_session.title = title.strip()
+            if spoiler_policy is not None:
+                chat_session.spoiler_policy = spoiler_policy.strip()
+            if reading_progress_chapter is not None and reading_progress_chapter > 0:
+                chat_session.reading_progress_chapter = int(reading_progress_chapter)
+
+            session.flush()
+            return {
+                "id": chat_session.id,
+                "title": chat_session.title,
+                "spoiler_policy": chat_session.spoiler_policy,
+                "reading_progress_chapter": chat_session.reading_progress_chapter,
+                "updated_at": chat_session.updated_at.isoformat() if chat_session.updated_at else None,
+            }
+
+    def list_character_state_events(
+        self,
+        auth_user: AuthenticatedUser | None,
+        character_id: str,
+        *,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            char = session.get(CharacterProfileRecord, character_id)
+            if char is None:
+                char = session.scalar(
+                    select(CharacterProfileRecord).where(
+                        CharacterProfileRecord.stable_character_key == character_id
+                    )
+                )
+            if char is None:
+                raise NotFoundError("Character not found.")
+
+            events = session.scalars(
+                select(CharacterStateEvent)
+                .where(
+                    CharacterStateEvent.user_id == user.id,
+                    CharacterStateEvent.character_id == char.id,
+                )
+                .order_by(CharacterStateEvent.state_version.desc())
+                .limit(limit)
+            ).all()
+
+            return [
+                {
+                    "id": ev.id,
+                    "character_id": ev.character_id,
+                    "state_version": ev.state_version,
+                    "trigger_modality": ev.trigger_modality,
+                    "trigger_text": ev.trigger_text,
+                    "perceived_observation": ev.perceived_observation,
+                    "previous_psi": ev.previous_psi,
+                    "resulting_psi": ev.resulting_psi,
+                    "previous_emotion": ev.previous_emotion,
+                    "resulting_emotion": ev.resulting_emotion,
+                    "transition_rules_version": ev.transition_rules_version,
+                    "created_at": ev.created_at.isoformat(),
+                }
+                for ev in events
+            ]
 
     def get_conversation_messages(
         self, auth_user: AuthenticatedUser | None, session_id: str
@@ -1153,6 +1239,7 @@ class LorelyService:
         content: str,
         input_modality: str = "text",
         llm_provider: str | None = None,
+        reading_progress_chapter: int | None = None,
     ) -> dict[str, Any]:
         cleaned_content = content.strip()
         if not cleaned_content:
@@ -1176,7 +1263,10 @@ class LorelyService:
             if char is None:
                 raise NotFoundError("Character for this conversation no longer exists.")
 
-            # Load or initialize per-user state
+            if reading_progress_chapter is not None and reading_progress_chapter > 0:
+                chat_session.reading_progress_chapter = int(reading_progress_chapter)
+
+            # Load or initialize per-user state (canonical character is NEVER mutated)
             user_state = session.scalar(
                 select(UserCharacterState).where(
                     UserCharacterState.user_id == user.id,
@@ -1213,35 +1303,14 @@ class LorelyService:
             session.add(user_msg)
             session.flush()
 
-            # Load memories for this user & character
-            memories = session.scalars(
-                select(CharacterMemory)
-                .where(
-                    CharacterMemory.owner_user_id == user.id,
-                    CharacterMemory.character_id == char.id,
-                )
-                .order_by(CharacterMemory.created_at.asc())
-            ).all()
-            memory_facts = [m.fact for m in memories]
-
-            # Format history for prompt
-            formatted_history = "\n".join(
-                f"{'User' if m.role == ChatRole.user else char.name}: {m.content}"
-                for m in existing_messages[-10:]  # last 10 turns
-            )
-            if formatted_history:
-                formatted_history += f"\nUser: {cleaned_content}"
-            else:
-                formatted_history = f"User: {cleaned_content}"
-
-            # RAG passage retrieval with spoiler boundary protection
+            # Determine spoiler boundary
             policy = chat_session.spoiler_policy or "cautious"
-            max_chapter = None
-            if policy == "no_spoilers":
-                max_chapter = 1
-            elif policy == "cautious":
-                max_chapter = 3
+            if policy in ("cautious", "no_spoilers"):
+                max_chapter = chat_session.reading_progress_chapter or 1
+            else:
+                max_chapter = None  # unrestricted
 
+            # 1. RAG passage retrieval with strict spoiler boundary
             retrieved = self.retriever.retrieve(
                 session,
                 book_id=chat_session.book_id,
@@ -1265,11 +1334,48 @@ class LorelyService:
                 for p in retrieved
             )
 
+            # 2. Filter canonical character evidence up to reader's chapter
+            ev_query = select(CharacterProfileEvidence).where(CharacterProfileEvidence.character_id == char.id)
+            if max_chapter is not None:
+                ev_query = ev_query.where(CharacterProfileEvidence.chapter_order <= max_chapter)
+            char_evidence = session.scalars(ev_query.order_by(CharacterProfileEvidence.chapter_order.asc())).all()
+            evidence_facts = [e.fact_text for e in char_evidence]
+
+            # 3. Filter reader memories with spoiler boundaries
+            mem_query = select(CharacterMemory).where(
+                CharacterMemory.owner_user_id == user.id,
+                CharacterMemory.character_id == char.id,
+            )
+            if max_chapter is not None:
+                mem_query = mem_query.where(
+                    or_(CharacterMemory.spoiler_chapter == None, CharacterMemory.spoiler_chapter <= max_chapter)
+                )
+            memories = session.scalars(mem_query.order_by(CharacterMemory.created_at.asc())).all()
+            memory_facts = [m.fact for m in memories]
+
+            # 4. Filter key events so future events do not leak
+            if max_chapter is not None and char.key_events:
+                filtered_events = char.key_events[:max_chapter]
+            else:
+                filtered_events = char.key_events or []
+
+            # Format history for prompt
+            formatted_history = "\n".join(
+                f"{'User' if m.role == ChatRole.user else char.name}: {m.content}"
+                for m in existing_messages[-10:]  # last 10 turns
+            )
+            if formatted_history:
+                formatted_history += f"\nUser: {cleaned_content}"
+            else:
+                formatted_history = f"User: {cleaned_content}"
+
             char_json_dict = {
                 "id": char.stable_character_key or char.id,
                 "name": char.name,
                 "personality": char.personality,
-                "key_events": char.key_events or [],
+                "reading_chapter_boundary": max_chapter if max_chapter is not None else "full_book",
+                "key_events": filtered_events,
+                "canonical_evidence": evidence_facts if evidence_facts else [],
                 "relationships": char.relationships or [],
             }
             system_prompt, user_prompt = chat_prompt(
@@ -1294,8 +1400,27 @@ class LorelyService:
                 )
                 data = parse_json_response(raw_response)
                 reply_text = data.get("reply") or data.get("response", "...")
-                new_psi = data.get("updated_psi") or user_state.psi_parameters
-                new_emotions = data.get("updated_emotion_state") or user_state.emotion_state
+
+                # Apply deterministic PSI engine
+                raw_observation = data.get("perceived_observation")
+                observation = PerceivedObservation.from_dict(raw_observation)
+
+                resulting_psi, resulting_emotion, delta_psi, delta_emotion = PsiEngine.apply_transition(
+                    current_psi=user_state.psi_parameters or char.psi_parameters or {},
+                    current_emotion=user_state.emotion_state or char.emotion_state or {},
+                    observation=observation,
+                )
+
+                # Graceful backward compatibility for legacy mock tests providing explicit updated_psi
+                if not raw_observation and "updated_psi" in data:
+                    legacy_psi = data.get("updated_psi")
+                    legacy_em = data.get("updated_emotion_state")
+                    if isinstance(legacy_psi, dict) and isinstance(legacy_em, dict):
+                        resulting_psi = {k: clamp(float(legacy_psi.get(k, 0.5))) for k in resulting_psi}
+                        resulting_emotion = {k: clamp(float(legacy_em.get(k, 0.0))) for k in resulting_emotion}
+                        delta_psi = {k: round(resulting_psi[k] - user_state.psi_parameters.get(k, 0.5), 3) for k in resulting_psi}
+                        delta_emotion = {k: round(resulting_emotion[k] - user_state.emotion_state.get(k, 0.0), 3) for k in resulting_emotion}
+
             except Exception as llm_exc:
                 logger.warning(
                     "Upstream LLM failed for character %s (%s). Engaging character-grounded fallback.",
@@ -1303,17 +1428,46 @@ class LorelyService:
                     llm_exc,
                 )
                 reply_text = self._build_grounded_fallback_reply(char, cleaned_content, retrieved)
-                new_psi = user_state.psi_parameters
-                new_emotions = user_state.emotion_state
+                resulting_psi = user_state.psi_parameters
+                resulting_emotion = user_state.emotion_state
+                observation = PerceivedObservation()
+                delta_psi = {k: 0.0 for k in resulting_psi}
+                delta_emotion = {k: 0.0 for k in resulting_emotion}
 
-            # Update user state
-            user_state.psi_parameters = new_psi
-            user_state.emotion_state = new_emotions
+            # Increment state version and record append-only state event
+            last_version = session.scalar(
+                select(func.max(CharacterStateEvent.state_version)).where(
+                    CharacterStateEvent.user_id == user.id,
+                    CharacterStateEvent.character_id == char.id,
+                )
+            ) or 0
+            new_state_version = last_version + 1
+
+            state_event = CharacterStateEvent(
+                user_id=user.id,
+                character_id=char.id,
+                session_id=chat_session.id,
+                state_version=new_state_version,
+                trigger_modality=input_modality,
+                trigger_text=cleaned_content,
+                perceived_observation=observation.model_dump(),
+                previous_psi=user_state.psi_parameters,
+                resulting_psi=resulting_psi,
+                previous_emotion=user_state.emotion_state,
+                resulting_emotion=resulting_emotion,
+                transition_rules_version=PsiEngine.RULES_VERSION,
+                model_provenance=llm_provider or self.settings.llm_provider,
+            )
+            session.add(state_event)
+
+            # Update per-user state (canonical character is NOT modified)
+            user_state.psi_parameters = resulting_psi
+            user_state.emotion_state = resulting_emotion
             user_state.updated_at = utc_now()
 
             # Update session
-            chat_session.latest_psi_parameters = new_psi
-            chat_session.latest_emotion_state = new_emotions
+            chat_session.latest_psi_parameters = resulting_psi
+            chat_session.latest_emotion_state = resulting_emotion
             chat_session.last_message_at = utc_now()
 
             # Save assistant message
@@ -1351,6 +1505,9 @@ class LorelyService:
                                 character_id=char.id,
                                 session_id=chat_session.id,
                                 fact=clean_f,
+                                spoiler_chapter=chat_session.reading_progress_chapter,
+                                provenance="chat",
+                                confidence=0.95,
                             )
                         )
                         memory_facts.append(clean_f)
@@ -1370,9 +1527,10 @@ class LorelyService:
                     "name": char.name,
                     "role": char.role,
                 },
+                "character_state_version": new_state_version,
                 "updated_state": {
-                    "emotion_state": new_emotions,
-                    "psi_parameters": new_psi,
+                    "emotion_state": resulting_emotion,
+                    "psi_parameters": resulting_psi,
                 },
                 "memories": memory_facts,
             }
@@ -1456,6 +1614,7 @@ class LorelyService:
         audio_bytes: bytes | None = None,
         filename: str = "speech.wav",
         llm_provider: str | None = None,
+        reading_progress_chapter: int | None = None,
     ) -> dict[str, Any]:
         transcript = (speech_text or "").strip()
         if not transcript and audio_bytes:
@@ -1470,6 +1629,7 @@ class LorelyService:
             content=transcript,
             input_modality="voice",
             llm_provider=llm_provider,
+            reading_progress_chapter=reading_progress_chapter,
         )
 
         audio_bytes_out, mime_type, duration = self.voice_service.synthesize_speech(result["response"])

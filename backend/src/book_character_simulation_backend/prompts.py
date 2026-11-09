@@ -88,6 +88,13 @@ Latest user message:
 Return a JSON object with this exact structure:
 {{
   "reply": "character response",
+  "perceived_observation": {{
+    "valence_delta": 0.0,
+    "arousal_delta": 0.0,
+    "threat_level": 0.0,
+    "goal_relevance": 0.0,
+    "connection_delta": 0.0
+  }},
   "updated_psi": {{
     "valence_level": 0.0,
     "arousal_level": 0.0,
@@ -107,8 +114,9 @@ Return a JSON object with this exact structure:
 
 Rules:
 - Never break character.
-- Use the factual memories if relevant.
-- If the user's message is neutral, keep state updates small.
+- Ground your answers strictly in the provided book passages, character details, and known memories.
+- If the user asks about events, secrets, or future plot developments that are NOT established in the provided passages and memories, stay in character and state honestly that you do not know, have not experienced it, or that it has not come to pass. Do NOT hallucinate or invent non-canonical lore.
+- If the user's message is neutral, keep state updates and observation deltas small.
 - Return only JSON.
 """.strip()
     return system_prompt, user_prompt

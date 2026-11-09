@@ -115,6 +115,9 @@ class UserAccount(IdentifierMixin, TimestampMixin, Base):
     character_memories: Mapped[list["CharacterMemory"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )
+    character_state_events: Mapped[list["CharacterStateEvent"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     processing_jobs: Mapped[list["ProcessingJob"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )
@@ -260,6 +263,69 @@ class CharacterProfileRecord(IdentifierMixin, TimestampMixin, Base):
     user_states: Mapped[list[UserCharacterState]] = relationship(
         back_populates="character", cascade="all, delete-orphan"
     )
+    evidence: Mapped[list["CharacterProfileEvidence"]] = relationship(
+        back_populates="character", cascade="all, delete-orphan"
+    )
+    state_events: Mapped[list["CharacterStateEvent"]] = relationship(
+        back_populates="character", cascade="all, delete-orphan"
+    )
+
+
+class CharacterProfileEvidence(IdentifierMixin, Base):
+    __tablename__ = "character_profile_evidence"
+
+    character_id: Mapped[str] = mapped_column(
+        ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    book_id: Mapped[str] = mapped_column(
+        ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    fact_text: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), default="trait", nullable=False)
+    chapter_order: Mapped[int] = mapped_column(Integer, default=1, nullable=False, index=True)
+    chunk_id: Mapped[str | None] = mapped_column(
+        ForeignKey("book_chunks.id", ondelete="SET NULL"), nullable=True
+    )
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    provenance: Mapped[str] = mapped_column(String(100), default="canonical", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+
+    character: Mapped["CharacterProfileRecord"] = relationship(back_populates="evidence")
+    book: Mapped["Book"] = relationship()
+    chunk: Mapped["BookChunk | None"] = relationship()
+
+
+class CharacterStateEvent(IdentifierMixin, Base):
+    __tablename__ = "character_state_events"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    character_id: Mapped[str] = mapped_column(
+        ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("chat_sessions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    state_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    trigger_modality: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
+    trigger_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    perceived_observation: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    previous_psi: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    resulting_psi: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    previous_emotion: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    resulting_emotion: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    transition_rules_version: Mapped[str] = mapped_column(String(20), default="v1.0", nullable=False)
+    model_provenance: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+
+    user: Mapped["UserAccount"] = relationship(back_populates="character_state_events")
+    character: Mapped["CharacterProfileRecord"] = relationship(back_populates="state_events")
+    session: Mapped["ChatSession | None"] = relationship()
 
 
 class ChatSession(IdentifierMixin, TimestampMixin, Base):
@@ -270,6 +336,7 @@ class ChatSession(IdentifierMixin, TimestampMixin, Base):
     character_id: Mapped[str] = mapped_column(ForeignKey("characters.id"), nullable=False)
     title: Mapped[str | None] = mapped_column(String(255))
     spoiler_policy: Mapped[str] = mapped_column(String(50), default="cautious", nullable=False)
+    reading_progress_chapter: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     latest_psi_parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     latest_emotion_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     last_message_at: Mapped[datetime | None] = mapped_column(
@@ -314,6 +381,9 @@ class CharacterMemory(IdentifierMixin, Base):
     character_id: Mapped[str] = mapped_column(ForeignKey("characters.id"), nullable=False)
     session_id: Mapped[str] = mapped_column(ForeignKey("chat_sessions.id"), nullable=False)
     fact: Mapped[str] = mapped_column(Text, nullable=False)
+    spoiler_chapter: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    provenance: Mapped[str] = mapped_column(String(50), default="chat", nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,

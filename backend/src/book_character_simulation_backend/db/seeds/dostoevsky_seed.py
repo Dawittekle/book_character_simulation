@@ -10,11 +10,14 @@ from ...rag.embedding_provider import EmbeddingService
 from ...services.storage_service import StorageService
 from ..models import (
     Book,
+    BookChapter,
     BookChunk,
     BookProcessingStatus,
     BookSource,
     CharacterMemory,
+    CharacterProfileEvidence,
     CharacterProfileRecord,
+    CharacterStateEvent,
     ChatMessage,
     ChatSession,
     ProcessingJob,
@@ -447,9 +450,43 @@ def seed_dostoevsky_books(db: DatabaseManager, settings: Any) -> list[Book]:
                         emotion_state=char_data["emotion_state"],
                     )
                     session.add(char)
+                    session.flush()
 
-                # Seed Chunks & Embeddings
+                    # Seed Character Evidence
+                    session.add(
+                        CharacterProfileEvidence(
+                            character_id=char.id,
+                            book_id=book.id,
+                            fact_text=char.personality,
+                            category="trait",
+                            chapter_order=1,
+                            confidence=1.0,
+                            provenance="author_canon",
+                        )
+                    )
+                    for ev_idx, ev_text in enumerate(char_data["key_events"]):
+                        assigned_ch = min(len(book_info["chapters"]), ev_idx + 1)
+                        session.add(
+                            CharacterProfileEvidence(
+                                character_id=char.id,
+                                book_id=book.id,
+                                fact_text=ev_text,
+                                category="event",
+                                chapter_order=assigned_ch,
+                                confidence=1.0,
+                                provenance="plot_event",
+                            )
+                        )
+
+                # Seed Chapters, Chunks & Embeddings
                 for order, title, text_content in book_info["chapters"]:
+                    chapter_rec = BookChapter(
+                        book_id=book.id,
+                        chapter_order=order,
+                        title=title,
+                        word_count=len(text_content.split()),
+                    )
+                    session.add(chapter_rec)
                     vector = embedder.embed_text(text_content)
                     chunk = BookChunk(
                         book_id=book.id,
@@ -458,6 +495,10 @@ def seed_dostoevsky_books(db: DatabaseManager, settings: Any) -> list[Book]:
                         chunk_index=0,
                         content=text_content,
                         embedding=vector,
+                        embedding_provider=embedder.provider_name,
+                        embedding_model=embedder.model_name,
+                        embedding_dimensions=len(vector),
+                        content_hash=hashlib.sha256(text_content.encode("utf-8")).hexdigest(),
                     )
                     session.add(chunk)
 
@@ -527,15 +568,20 @@ def purge_demo_and_test_data(db: DatabaseManager, settings: Any) -> dict[str, in
                 msgs = session.query(ChatMessage).filter(ChatMessage.session_id.in_(demo_session_ids)).delete(synchronize_session=False)
                 deleted_counts["messages"] += msgs
                 session.query(CharacterMemory).filter(CharacterMemory.session_id.in_(demo_session_ids)).delete(synchronize_session=False)
+                session.query(CharacterStateEvent).filter(CharacterStateEvent.session_id.in_(demo_session_ids)).delete(synchronize_session=False)
                 sess_cnt = session.query(ChatSession).filter(ChatSession.id.in_(demo_session_ids)).delete(synchronize_session=False)
                 deleted_counts["sessions"] += sess_cnt
 
             if demo_char_ids:
+                session.query(CharacterStateEvent).filter(CharacterStateEvent.character_id.in_(demo_char_ids)).delete(synchronize_session=False)
+                session.query(CharacterProfileEvidence).filter(CharacterProfileEvidence.character_id.in_(demo_char_ids)).delete(synchronize_session=False)
                 session.query(CharacterMemory).filter(CharacterMemory.character_id.in_(demo_char_ids)).delete(synchronize_session=False)
                 session.query(UserCharacterState).filter(UserCharacterState.character_id.in_(demo_char_ids)).delete(synchronize_session=False)
                 session.query(CharacterProfileRecord).filter(CharacterProfileRecord.id.in_(demo_char_ids)).delete(synchronize_session=False)
 
+            session.query(CharacterProfileEvidence).filter(CharacterProfileEvidence.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
             session.query(BookChunk).filter(BookChunk.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
+            session.query(BookChapter).filter(BookChapter.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
             session.query(ProcessingJob).filter(ProcessingJob.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
             session.query(BookSource).filter(BookSource.book_id.in_(demo_book_ids)).delete(synchronize_session=False)
 

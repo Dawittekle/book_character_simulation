@@ -369,8 +369,18 @@ def create_character_conversation(character_id: str):
         character_id,
         title=body.get("title"),
         spoiler_policy=body.get("spoiler_policy", "cautious"),
+        reading_progress_chapter=int(body.get("reading_progress_chapter", 1)),
     )
     return jsonify(session_data), 201
+
+
+@v1_blueprint.route("/characters/<character_id>/state-events", methods=["GET"])
+def get_character_state_events(character_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    limit = request.args.get("limit", default=50, type=int)
+    events = service.list_character_state_events(user, character_id, limit=limit)
+    return jsonify({"character_id": character_id, "events": events}), 200
 
 
 # --- Conversations ---
@@ -388,6 +398,21 @@ def list_conversations():
             character_id=character_id,
         )
     })
+
+
+@v1_blueprint.route("/conversations/<session_id>", methods=["PATCH"])
+def patch_conversation(session_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    res = service.update_conversation(
+        user,
+        session_id,
+        title=body.get("title"),
+        spoiler_policy=body.get("spoiler_policy"),
+        reading_progress_chapter=body.get("reading_progress_chapter"),
+    )
+    return jsonify(res), 200
 
 
 @v1_blueprint.route("/conversations/<session_id>/messages", methods=["GET"])
@@ -412,6 +437,7 @@ def send_conversation_message(session_id: str):
         content=content,
         input_modality=body.get("input_modality", "text"),
         llm_provider=body.get("llm_provider"),
+        reading_progress_chapter=body.get("reading_progress_chapter"),
     )
     return jsonify(result), 201
 
@@ -439,9 +465,11 @@ def conversation_voice_turn(session_id: str):
     filename = "speech.wav"
     llm_provider = None
 
+    reading_progress_chapter = None
     if request.is_json:
         body = request.get_json(silent=True) or {}
         speech_text = body.get("speech_text") or body.get("content")
+        reading_progress_chapter = body.get("reading_progress_chapter")
         raw_b64 = body.get("audio_base64")
         if raw_b64:
             try:
@@ -451,6 +479,7 @@ def conversation_voice_turn(session_id: str):
         llm_provider = body.get("llm_provider")
     elif request.files:
         speech_text = request.form.get("speech_text")
+        reading_progress_chapter = request.form.get("reading_progress_chapter")
         llm_provider = request.form.get("llm_provider")
         file = request.files.get("audio") or request.files.get("file")
         if file:
@@ -467,6 +496,7 @@ def conversation_voice_turn(session_id: str):
         audio_bytes=audio_bytes,
         filename=filename,
         llm_provider=llm_provider,
+        reading_progress_chapter=int(reading_progress_chapter) if reading_progress_chapter is not None else None,
     )
     return jsonify(result), 200
 
