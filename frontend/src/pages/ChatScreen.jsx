@@ -4,6 +4,7 @@ import CharacterDetailsDrawer from '../components/CharacterDetailsDrawer';
 import WaveformPlayer from '../components/WaveformPlayer';
 import BadgePill from '../components/brand/BadgePill';
 import { lorelyApi } from '../services/lorelyApi';
+import speechSynthesisService from '../services/speechSynthesisService';
 import { getCharacterAvatarUrl } from '../lib/formatters';
 import './ChatScreen.css';
 
@@ -36,6 +37,13 @@ export default function ChatScreen() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [expandedCitationId, setExpandedCitationId] = useState(null);
   const [emotionState, setEmotionState] = useState(INITIAL_EMPTY_CHARACTER.emotion_state);
+  const [autoVoiceEnabled, setAutoVoiceEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('lorely_auto_voice') !== 'false';
+    } catch {
+      return true;
+    }
+  });
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -49,6 +57,13 @@ export default function ChatScreen() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Clean up any ongoing browser speech synthesis when leaving the screen
+  useEffect(() => {
+    return () => {
+      speechSynthesisService.stop();
+    };
+  }, []);
 
   // Load character & conversation
   useEffect(() => {
@@ -362,6 +377,29 @@ export default function ChatScreen() {
           </div>
 
           <div className="chat-header-actions">
+            <button
+              type="button"
+              className={`chat-header-voice-toggle ${autoVoiceEnabled ? 'active' : ''}`}
+              onClick={() => {
+                const next = !autoVoiceEnabled;
+                setAutoVoiceEnabled(next);
+                try {
+                  localStorage.setItem('lorely_auto_voice', String(next));
+                } catch {}
+                if (!next) {
+                  speechSynthesisService.stop();
+                }
+              }}
+              title={
+                autoVoiceEnabled
+                  ? 'Auto-voice response is ON (Click to turn OFF)'
+                  : 'Auto-voice response is OFF (Click to turn ON)'
+              }
+              aria-label={autoVoiceEnabled ? 'Disable auto-voice' : 'Enable auto-voice'}
+            >
+              <span className="voice-toggle-icon">{autoVoiceEnabled ? '🔊' : '🔈'}</span>
+              <span>Voice {autoVoiceEnabled ? 'ON' : 'OFF'}</span>
+            </button>
             <BadgePill variant="orange" dotColor="#ef4d23" dotPulse size="sm" className="chat-header-hd-pill">
               HD Voice
             </BadgePill>
@@ -414,7 +452,7 @@ export default function ChatScreen() {
               </div>
             </div>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, idx) => {
               const isCharacter = msg.role === 'assistant';
 
               return (
@@ -443,7 +481,7 @@ export default function ChatScreen() {
                     </div>
 
                     {/* Audio Waveform Embedded in Character speech */}
-                    {isCharacter && msg.showAudio && (
+                    {isCharacter && (msg.showAudio || msg.content) && (
                       <WaveformPlayer
                         audioSrc={
                           msg.audioSrc ||
@@ -451,6 +489,11 @@ export default function ChatScreen() {
                             ? lorelyApi.getMessageAudioUrl(sessionId, msg.id)
                             : undefined)
                         }
+                        speechText={msg.content}
+                        characterName={character?.name}
+                        voiceGender={character?.gender}
+                        language={msg.language_code || character?.language || 'en'}
+                        autoPlay={autoVoiceEnabled && idx === messages.length - 1}
                       />
                     )}
 
