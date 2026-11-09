@@ -17,38 +17,50 @@
 
 ## 2. Logo & Mark
 
-The official Lorely mark is a geometric **8-petal flower** arranged around a central core.
+The official Lorely mark is the **Literary Rosette**: 8 orbital character nodes arranged around an open book folio core.
 
 ```
        ○
    ○       ○
-○      ●      ○
+○     📖     ○
    ○       ○
        ○
 ```
 
 ### Specifications
-- **Geometry**: 8 peripheral circles evenly distributed at radius $R = 10\text{px}$ around center $(16, 16)$, plus 1 central circle.
-- **Circle Radius**: $r = 3.5\text{px}$ for all 9 circles.
+- **Geometry**: 8 peripheral circles evenly distributed at radius $R = 10\text{px}$ around center $(16, 16)$, orbiting an open book folio core with a central nexus spark.
+- **Outer Node Radius**: $r = 3\text{px}$ for the 8 peripheral circles.
+- **Center Core**: Stylized dual folio pages with subtle page curvatures and central spark node $(r = 0.75\text{px})$.
 - **ViewBox**: `0 0 32 32`.
 - **Primary Color**: `#ef4d23` (Vermilion Orange).
 - **Dark Surface Variant**: `#ffffff` (Pure White).
 - **Asset Paths**:
   - `docs/Brand/logo.svg` (Orange #ef4d23 on transparent)
   - `docs/Brand/logo-white.svg` (White #ffffff on transparent)
+  - `frontend/public/logo.svg` & `frontend/public/favicon.svg`
 
 ### SVG Markup
 ```xml
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="#ef4d23" aria-label="Lorely Flower Mark">
-  <circle cx="16" cy="16" r="3.5" />
-  <circle cx="26" cy="16" r="3.5" />
-  <circle cx="23.071" cy="23.071" r="3.5" />
-  <circle cx="16" cy="26" r="3.5" />
-  <circle cx="8.929" cy="23.071" r="3.5" />
-  <circle cx="6" cy="16" r="3.5" />
-  <circle cx="8.929" cy="8.929" r="3.5" />
-  <circle cx="16" cy="6" r="3.5" />
-  <circle cx="23.071" cy="8.929" r="3.5" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="#ef4d23" aria-label="Lorely Literary Rosette Mark">
+  <!-- 8 Petal circles at radius 10 around (16, 16) -->
+  <circle cx="26" cy="16" r="3" />
+  <circle cx="23.071" cy="23.071" r="3" />
+  <circle cx="16" cy="26" r="3" />
+  <circle cx="8.929" cy="23.071" r="3" />
+  <circle cx="6" cy="16" r="3" />
+  <circle cx="8.929" cy="8.929" r="3" />
+  <circle cx="16" cy="6" r="3" />
+  <circle cx="23.071" cy="8.929" r="3" />
+
+  <!-- Center Core: Stylized Open Book Folio Pages -->
+  <path
+    d="M15.6 13.1 C14.25 12.7 12.75 12.8 11.75 13.4 C11.5 13.55 11.4 13.8 11.4 14.1 L11.4 17.9 C11.4 18.3 11.8 18.6 12.15 18.4 C13.1 17.9 14.4 17.8 15.6 18.25 Z"
+  />
+  <path
+    d="M16.4 13.1 C17.75 12.7 19.25 12.8 20.25 13.4 C20.5 13.55 20.6 13.8 20.6 14.1 L20.6 17.9 C20.6 18.3 20.2 18.6 19.85 18.4 C18.9 17.9 17.6 17.8 16.4 18.25 Z"
+  />
+  <!-- Central Spark / Nexus Node -->
+  <circle cx="16" cy="15.6" r="0.75" />
 </svg>
 ```
 

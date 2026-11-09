@@ -11,14 +11,17 @@ import {
 
 describe('Brand Primitives Component Suite', () => {
   describe('BrandLogo', () => {
-    it('renders the 8-petal flower SVG mark with center circle', () => {
+    it('renders the Literary Rosette SVG mark with 8 orbital nodes and open book folios', () => {
       const { container } = render(<BrandLogo size={32} />);
       const svg = container.querySelector('svg');
       expect(svg).toBeInTheDocument();
       expect(svg).toHaveAttribute('viewBox', '0 0 32 32');
-      // 1 center circle + 8 petal circles = 9 circles
+      // 8 orbital circles + 1 center nexus spark = 9 circles
       const circles = container.querySelectorAll('circle');
       expect(circles).toHaveLength(9);
+      // Dual open book folio pages
+      const paths = container.querySelectorAll('path');
+      expect(paths).toHaveLength(2);
     });
 
     it('renders with brand name and tagline when enabled', () => {
