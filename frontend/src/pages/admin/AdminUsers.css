@@ -1,53 +1,61 @@
+/* ==========================================================================
+   Admin Operations Suite - User Roles & Access Control
+   Brand Obsidian (#0b0f1a) & Vermilion Orange (#ef4d23) Design Language
+   ========================================================================== */
+
 .admin-users-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
 }
 
 .users-header-line {
-  border-bottom: 1px solid #233B2E;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 18px;
 }
 
 .users-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 24px;
-  font-weight: 700;
-  color: #FFFFFF;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 28px;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
 
 .users-sub {
   font-size: 13px;
-  color: #8CA898;
+  color: #9ca3af;
   margin: 0;
+  line-height: 1.5;
 }
 
 .role-pill {
-  padding: 3px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--brand-radius-pill, 9999px);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
 }
 
 .pill-admin {
-  background: rgba(212, 175, 55, 0.2);
-  color: #FDE047;
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(239, 77, 35, 0.15);
+  color: #ff896b;
+  border: 1px solid rgba(239, 77, 35, 0.35);
 }
 
 .pill-user {
-  background: #14241B;
-  color: #94A3B8;
-  border: 1px solid #233B2E;
+  background: rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .role-toggle-btn {
-  background: none;
-  border: 1px solid #325240;
-  color: #E2ECE5;
-  border-radius: 6px;
-  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+  border-radius: var(--brand-radius-pill, 9999px);
+  padding: 5px 12px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -55,12 +63,12 @@
 }
 
 .role-toggle-btn:hover:not(:disabled) {
-  background: #233B2E;
-  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .role-toggle-btn.demote {
-  color: #FCA5A5;
+  color: #fca5a5;
   border-color: rgba(239, 68, 68, 0.4);
 }
 
@@ -69,12 +77,12 @@
 }
 
 .role-toggle-btn.promote {
-  color: #FDE047;
-  border-color: rgba(212, 175, 55, 0.4);
+  color: #ff896b;
+  border-color: rgba(239, 77, 35, 0.4);
 }
 
 .role-toggle-btn.promote:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.15);
+  background: rgba(239, 77, 35, 0.15);
 }
 
 .role-toggle-btn:disabled {

@@ -10,7 +10,6 @@ export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeframe, setTimeframe] = useState('7d');
-  const [selectedMetric, setSelectedMetric] = useState('all');
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const navigate = useNavigate();
 
@@ -252,15 +251,15 @@ export default function AdminAnalytics() {
             >
               <defs>
                 <linearGradient id="hopeGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34D399" stopOpacity="0.45" />
+                  <stop offset="0%" stopColor="#34D399" stopOpacity="0.4" />
                   <stop offset="100%" stopColor="#34D399" stopOpacity="0.0" />
                 </linearGradient>
                 <linearGradient id="longingGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#C89D5C" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#C89D5C" stopOpacity="0.0" />
+                  <stop offset="0%" stopColor="#ef4d23" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#ef4d23" stopOpacity="0.0" />
                 </linearGradient>
                 <linearGradient id="anxietyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F87171" stopOpacity="0.3" />
+                  <stop offset="0%" stopColor="#F87171" stopOpacity="0.25" />
                   <stop offset="100%" stopColor="#F87171" stopOpacity="0.0" />
                 </linearGradient>
               </defs>
@@ -301,14 +300,14 @@ export default function AdminAnalytics() {
               <polyline
                 fill="none"
                 stroke="#34D399"
-                strokeWidth="3"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 points={getPoints('hope')}
               />
               <polyline
                 fill="none"
-                stroke="#C89D5C"
+                stroke="#ef4d23"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -337,9 +336,9 @@ export default function AdminAnalytics() {
                       cx={x}
                       cy={hopeY}
                       r="4.5"
-                      fill="#0D1912"
+                      fill="#0b0f1a"
                       stroke="#34D399"
-                      strokeWidth="2.5"
+                      strokeWidth="2"
                       className="interactive-node"
                       onMouseEnter={() => setHoveredPoint(item)}
                       onMouseLeave={() => setHoveredPoint(null)}
@@ -368,7 +367,7 @@ export default function AdminAnalytics() {
                 </div>
                 <div className="tooltip-row">
                   <span>Longing:</span>
-                  <span style={{ color: '#C89D5C' }}>{hoveredPoint.longing}%</span>
+                  <span style={{ color: '#ef4d23' }}>{hoveredPoint.longing}%</span>
                 </div>
                 <div className="tooltip-row">
                   <span>Melancholy:</span>
@@ -397,7 +396,7 @@ export default function AdminAnalytics() {
                   cy="60"
                   r="48"
                   fill="none"
-                  stroke="#1B3024"
+                  stroke="#182032"
                   strokeWidth="12"
                 />
                 {/* Scholar Segment */}
@@ -406,7 +405,7 @@ export default function AdminAnalytics() {
                   cy="60"
                   r="48"
                   fill="none"
-                  stroke="#C89D5C"
+                  stroke="#ef4d23"
                   strokeWidth="12"
                   strokeDasharray={`${(scholarPct * 301.6) / 100} 301.6`}
                   strokeDashoffset="0"

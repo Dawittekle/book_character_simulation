@@ -1,47 +1,54 @@
+/* ==========================================================================
+   Admin Operations Suite - System & Payment Settings
+   Brand Obsidian (#0b0f1a) & Vermilion Orange (#ef4d23) Design Language
+   ========================================================================== */
+
 .admin-settings-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
 }
 
 .settings-header-line {
-  border-bottom: 1px solid #233B2E;
-  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 18px;
 }
 
 .settings-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 24px;
-  font-weight: 700;
-  color: #FFFFFF;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 28px;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
 
 .settings-sub {
   font-size: 13px;
-  color: #8CA898;
+  color: #9ca3af;
   margin: 0;
   max-width: 800px;
+  line-height: 1.5;
 }
 
 .settings-toast {
   padding: 12px 18px;
-  border-radius: 8px;
+  border-radius: var(--brand-radius-md, 12px);
   font-size: 13px;
   font-weight: 600;
   animation: fadeIn 0.2s ease;
 }
 
 .toast-success {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  color: #86EFAC;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
 }
 
 .toast-error {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #F87171;
+  color: #fca5a5;
 }
 
 .settings-cards-grid {
@@ -57,18 +64,18 @@
 }
 
 .settings-panel-card {
-  background: #14241B;
-  border: 1px solid #233B2E;
-  border-radius: 12px;
-  padding: 24px;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--brand-radius-2xl, 24px);
+  padding: 26px 28px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 
 .card-section-head {
-  border-bottom: 1px solid #233B2E;
-  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
 }
 
 .card-icon-title {
@@ -78,21 +85,27 @@
 }
 
 .section-icon {
-  font-size: 22px;
+  font-size: 24px;
+  background: #0b0f1a;
+  padding: 10px;
+  border-radius: var(--brand-radius-xl, 20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .section-heading {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 18px;
-  font-weight: 700;
-  color: #FFFFFF;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0 0 4px;
+  letter-spacing: -0.01em;
 }
 
 .section-desc {
-  font-size: 12px;
-  color: #8CA898;
+  font-size: 13px;
+  color: #9ca3af;
   margin: 0;
+  line-height: 1.45;
 }
 
 .settings-accounts-form {
@@ -102,21 +115,21 @@
 }
 
 .form-group-cluster {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(35, 59, 46, 0.7);
-  border-radius: 8px;
-  padding: 16px;
+  background: #0b0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--brand-radius-xl, 20px);
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .cluster-title {
   font-size: 13px;
   font-weight: 700;
-  color: #C89D5C;
+  color: var(--brand-orange, #ef4d23);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   margin: 0;
 }
 
@@ -141,55 +154,60 @@
 .form-field-unit label {
   font-size: 11px;
   font-weight: 600;
-  color: #B5C7BC;
+  color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .form-field-unit input,
 .form-field-unit textarea {
-  background: #0B1611;
-  border: 1px solid #233B2E;
-  color: #FFFFFF;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: var(--brand-radius-md, 12px);
   font-size: 13px;
+  font-family: inherit;
   outline: none;
   transition: border-color 0.15s ease;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .form-field-unit input:focus,
 .form-field-unit textarea:focus {
-  border-color: #C89D5C;
+  border-color: var(--brand-orange, #ef4d23);
+  box-shadow: 0 0 0 2px rgba(239, 77, 35, 0.2);
 }
 
 .field-caption {
   font-size: 11px;
-  color: #6C8B77;
+  color: #9ca3af;
 }
 
 .settings-form-actions {
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid #233B2E;
-  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 18px;
 }
 
 .btn-save-settings {
-  background: linear-gradient(135deg, #C89D5C 0%, #A87D3C 100%);
+  background: var(--brand-orange, #ef4d23);
   border: none;
-  color: #0B1611;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 700;
+  color: #ffffff;
+  padding: 10px 24px;
+  border-radius: var(--brand-radius-pill, 9999px);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 10px rgba(239, 77, 35, 0.35);
 }
 
 .btn-save-settings:hover:not(:disabled) {
-  background: #D8AF6E;
-  box-shadow: 0 0 16px rgba(200, 157, 92, 0.35);
+  background: var(--brand-orange-hover, #d9421a);
+  transform: translateY(-1px);
 }
 
 .btn-save-settings:disabled {
@@ -201,14 +219,14 @@
 .telemetry-item-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .telemetry-item {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid #233B2E;
-  border-radius: 8px;
-  padding: 12px 14px;
+  background: #0b0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--brand-radius-lg, 16px);
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -217,21 +235,22 @@
 .telemetry-label {
   font-size: 11px;
   text-transform: uppercase;
-  color: #8CA898;
-  letter-spacing: 0.5px;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
 .telemetry-val {
   font-size: 13px;
-  color: #FFFFFF;
+  color: #ffffff;
   font-weight: 500;
 }
 
 .telemetry-badge {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .badge-active {
-  color: #4ADE80;
+  color: #34d399;
 }

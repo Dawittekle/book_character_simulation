@@ -7,25 +7,28 @@ export default function PillButton({
   size = 'md', // 'sm' | 'md' | 'lg'
   icon = null,
   trailingChevron = false,
+  hasChevron = false,
   className = '',
   disabled = false,
   type = 'button',
   onClick,
   ...props
 }) {
+  const showChevron = trailingChevron || hasChevron;
+
   return (
     <button
       type={type}
       disabled={disabled}
       onClick={onClick}
       className={`brand-pill-button variant-${variant} size-${size} ${
-        trailingChevron ? 'has-trailing-chevron' : ''
+        showChevron ? 'has-trailing-chevron' : ''
       } ${className}`.trim()}
       {...props}
     >
       {icon && <span className="brand-pill-leading-icon">{icon}</span>}
       <span className="brand-pill-label">{children}</span>
-      {trailingChevron && (
+      {showChevron && (
         <span className="brand-pill-chevron-container">
           <svg
             width="12"

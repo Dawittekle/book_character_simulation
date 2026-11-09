@@ -1,59 +1,69 @@
+/* ==========================================================================
+   Admin Operations Suite - Extraction Jobs Telemetry
+   Brand Obsidian (#0b0f1a) & Vermilion Orange (#ef4d23) Design Language
+   ========================================================================== */
+
 .admin-jobs-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
 }
 
 .jobs-header-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #233B2E;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 18px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .jobs-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 24px;
-  font-weight: 700;
-  color: #FFFFFF;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 28px;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
 
 .jobs-sub {
   font-size: 13px;
-  color: #8CA898;
+  color: #9ca3af;
   margin: 0;
+  line-height: 1.5;
 }
 
 .jobs-filter-group {
   display: flex;
-  background: #14241B;
-  border: 1px solid #233B2E;
-  padding: 3px;
-  border-radius: 8px;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px;
+  border-radius: var(--brand-radius-pill, 9999px);
   gap: 4px;
 }
 
 .job-filter-btn {
   background: none;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 6px 14px;
+  border-radius: var(--brand-radius-pill, 9999px);
   font-size: 11px;
   font-weight: 600;
-  color: #8CA898;
+  color: #9ca3af;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .job-filter-btn:hover {
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .job-filter-btn.active {
-  background: #233B2E;
-  color: #FFFFFF;
+  background: var(--brand-orange, #ef4d23);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 77, 35, 0.35);
 }
 
 .error-cell {
@@ -61,16 +71,16 @@
 }
 
 .error-text {
-  color: #F87171;
+  color: #fca5a5;
   font-size: 11px;
 }
 
 .job-retry-btn {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #FCA5A5;
-  border-radius: 6px;
-  padding: 4px 10px;
+  background: rgba(239, 77, 35, 0.15);
+  border: 1px solid rgba(239, 77, 35, 0.35);
+  color: #ff896b;
+  border-radius: var(--brand-radius-pill, 9999px);
+  padding: 5px 12px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -78,8 +88,8 @@
 }
 
 .job-retry-btn:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.25);
-  color: #FFFFFF;
+  background: var(--brand-orange, #ef4d23);
+  color: #ffffff;
 }
 
 .job-retry-btn:disabled {
@@ -88,6 +98,6 @@
 }
 
 .admin-subtext {
-  color: #8CA898;
+  color: #9ca3af;
   font-size: 13px;
 }

@@ -1,3 +1,8 @@
+/* ==========================================================================
+   Admin Operations Suite - Plans & Quotas
+   Brand Obsidian (#0b0f1a) & Vermilion Orange (#ef4d23) Design Language
+   ========================================================================== */
+
 .admin-plans-view {
   display: flex;
   flex-direction: column;
@@ -5,30 +10,32 @@
 }
 
 .plans-header-line {
-  border-bottom: 1px solid #233B2E;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 18px;
 }
 
 .plans-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 24px;
-  font-weight: 700;
-  color: #FFFFFF;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 28px;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
 
 .plans-sub {
   font-size: 13px;
-  color: #8CA898;
+  color: #9ca3af;
   margin: 0;
+  line-height: 1.5;
 }
 
 .plans-status-toast {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  color: #86EFAC;
-  padding: 10px 16px;
-  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+  padding: 12px 18px;
+  border-radius: var(--brand-radius-md, 12px);
   font-size: 13px;
   font-weight: 600;
 }
@@ -41,45 +48,47 @@
 }
 
 .plan-card {
-  background: #14241B;
-  border: 1px solid #233B2E;
-  border-radius: 12px;
-  padding: 24px;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--brand-radius-2xl, 24px);
+  padding: 26px;
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .plan-card:hover {
-  border-color: #385E48;
+  border-color: rgba(239, 77, 35, 0.35);
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .plan-card.featured-plan {
-  border-color: #C89D5C;
-  background: linear-gradient(180deg, #182C21 0%, #111F17 100%);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(239, 77, 35, 0.5);
+  background: linear-gradient(180deg, #172033 0%, #121826 100%);
+  box-shadow: 0 4px 24px rgba(239, 77, 35, 0.15);
 }
 
 .plan-badge {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  background: #C89D5C;
-  color: #14241B;
+  top: 18px;
+  right: 18px;
+  background: var(--brand-orange, #ef4d23);
+  color: #ffffff;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--brand-radius-pill, 9999px);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .plan-card-name {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 18px;
-  color: #FAF7F2;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0 0 10px;
 }
 
@@ -87,150 +96,154 @@
   margin-bottom: 14px;
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 6px;
 }
 
 .price-amount {
-  font-size: 28px;
-  font-weight: 800;
-  color: #FAF7F2;
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
+  font-size: 32px;
+  font-weight: 500;
+  color: #ffffff;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
 }
 
 .price-period {
   font-size: 13px;
-  color: #8CA898;
+  color: #9ca3af;
 }
 
 .plan-card-desc {
-  font-size: 12px;
-  color: #B2C4B8;
+  font-size: 13px;
+  color: #9ca3af;
   line-height: 1.5;
   margin: 0 0 18px;
   min-height: 48px;
 }
 
 .plan-quotas-box {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 18px;
+  background: #0b0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--brand-radius-lg, 16px);
+  padding: 14px 16px;
+  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .quota-row {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #8CA898;
+  color: #9ca3af;
 }
 
 .quota-row strong {
-  color: #FAF7F2;
+  color: #ffffff;
 }
 
 .plan-feature-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-  color: #D3DFD7;
-}
-
-/* User Allocations Section */
-.plans-user-section {
-  background: #14241B;
-  border: 1px solid #233B2E;
-  border-radius: 12px;
-  padding: 24px;
-}
-
-.plans-section-heading {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 18px;
-  color: #FFFFFF;
-  margin: 0 0 6px;
-}
-
-.plans-section-sub {
-  font-size: 12px;
-  color: #8CA898;
-  margin: 0 0 20px;
-}
-
-.plan-tier-pill {
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-block;
-}
-
-.tier-institution {
-  background: rgba(168, 85, 247, 0.2);
-  color: #D8B4FE;
-  border: 1px solid rgba(168, 85, 247, 0.4);
-}
-
-.tier-scholar {
-  background: rgba(212, 175, 55, 0.2);
-  color: #FDE047;
-  border: 1px solid rgba(212, 175, 55, 0.4);
-}
-
-.tier-free {
-  background: rgba(148, 163, 184, 0.15);
-  color: #CBD5E1;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-
-.plan-select-dropdown {
-  background: #0D1912;
-  border: 1px solid #325240;
-  color: #FAF7F2;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  outline: none;
-}
-
-.plan-select-dropdown:focus {
-  border-color: #C89D5C;
+  gap: 9px;
+  font-size: 13px;
+  color: #d1d5db;
 }
 
 .btn-edit-plan {
   margin-top: auto;
-  background: #1E3326;
-  border: 1px solid #385E48;
-  color: #B5C7BC;
-  padding: 8px 14px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f3f4f6;
+  padding: 10px 16px;
+  border-radius: var(--brand-radius-pill, 9999px);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   width: 100%;
 }
 
 .btn-edit-plan:hover {
-  background: #2D483A;
-  color: #FFFFFF;
-  border-color: #C89D5C;
+  background: var(--brand-orange, #ef4d23);
+  color: #ffffff;
+  border-color: var(--brand-orange, #ef4d23);
+  box-shadow: 0 2px 8px rgba(239, 77, 35, 0.35);
+}
+
+/* User Allocations Section */
+.plans-user-section {
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--brand-radius-2xl, 24px);
+  padding: 24px 28px;
+}
+
+.plans-section-heading {
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.plans-section-sub {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0 0 20px;
+}
+
+.plan-tier-pill {
+  padding: 4px 12px;
+  border-radius: var(--brand-radius-pill, 9999px);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.tier-institution {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.tier-scholar {
+  background: rgba(239, 77, 35, 0.15);
+  color: #ff896b;
+  border: 1px solid rgba(239, 77, 35, 0.35);
+}
+
+.tier-free {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.plan-select-dropdown {
+  background: #0b0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: var(--brand-radius-pill, 9999px);
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.plan-select-dropdown:focus {
+  border-color: var(--brand-orange, #ef4d23);
 }
 
 /* Modal styles */
 .plan-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(11, 15, 26, 0.75);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -239,45 +252,46 @@
 }
 
 .plan-modal-dialog {
-  background: #14241B;
-  border: 1px solid #233B2E;
-  border-radius: 12px;
+  background: #121826;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--brand-radius-2xl, 24px);
   width: 100%;
   max-width: 540px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-  padding: 24px;
-  animation: fadeIn 0.2s ease;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+  padding: 28px;
 }
 
 .plan-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #233B2E;
-  padding-bottom: 14px;
-  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .plan-modal-header h3 {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  color: #FFFFFF;
-  font-size: 18px;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 500;
   margin: 0;
 }
 
 .plan-modal-close {
   background: transparent;
   border: none;
-  color: #8CA898;
-  font-size: 16px;
+  color: #9ca3af;
+  font-size: 18px;
   cursor: pointer;
   padding: 4px 8px;
+  border-radius: 50%;
 }
 
 .plan-modal-close:hover {
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .plan-modal-form {
@@ -302,17 +316,17 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #8CA898;
-  letter-spacing: 0.5px;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
 }
 
 .modal-field input,
 .modal-field textarea {
-  background: #0F1D15;
-  border: 1px solid #233B2E;
-  border-radius: 6px;
-  color: #FFFFFF;
-  padding: 8px 12px;
+  background: #0b0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--brand-radius-md, 12px);
+  color: #ffffff;
+  padding: 10px 14px;
   font-size: 13px;
   font-family: inherit;
   box-sizing: border-box;
@@ -322,14 +336,15 @@
 .modal-field input:focus,
 .modal-field textarea:focus {
   outline: none;
-  border-color: #C89D5C;
+  border-color: var(--brand-orange, #ef4d23);
+  box-shadow: 0 0 0 2px rgba(239, 77, 35, 0.2);
 }
 
 .modal-field-checkbox label {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: 13px;
   cursor: pointer;
 }
@@ -339,40 +354,40 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 8px;
-  border-top: 1px solid #233B2E;
-  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 18px;
 }
 
 .modal-btn-cancel {
-  background: transparent;
-  border: 1px solid #233B2E;
-  color: #8CA898;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d1d5db;
+  padding: 8px 18px;
+  border-radius: var(--brand-radius-pill, 9999px);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .modal-btn-cancel:hover {
-  color: #FFFFFF;
-  border-color: #385E48;
+  color: #ffffff;
 }
 
 .modal-btn-save {
-  background: #C89D5C;
+  background: var(--brand-orange, #ef4d23);
   border: none;
-  color: #0F1D15;
-  padding: 8px 18px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 700;
+  color: #ffffff;
+  padding: 8px 22px;
+  border-radius: var(--brand-radius-pill, 9999px);
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
+  box-shadow: 0 2px 8px rgba(239, 77, 35, 0.35);
 }
 
 .modal-btn-save:hover:not(:disabled) {
-  background: #D8AF6E;
+  background: var(--brand-orange-hover, #d9421a);
 }
 
 .modal-btn-save:disabled {
@@ -380,15 +395,14 @@
   cursor: not-allowed;
 }
 
-
-/* Skeleton rows for stable data loading without jumping */
+/* Skeleton rows */
 .skeleton-table-row td {
   padding: 16px;
 }
 
 .skeleton-line-cell {
   height: 14px;
-  background: linear-gradient(90deg, #182C21 25%, #233B2E 50%, #182C21 75%);
+  background: linear-gradient(90deg, #182032 25%, #243048 50%, #182032 75%);
   background-size: 200% 100%;
   border-radius: 4px;
   animation: shimmer 1.5s infinite;
@@ -409,9 +423,9 @@
 .skeleton-pill-cell {
   height: 22px;
   width: 80px;
-  background: linear-gradient(90deg, #182C21 25%, #233B2E 50%, #182C21 75%);
+  background: linear-gradient(90deg, #182032 25%, #243048 50%, #182032 75%);
   background-size: 200% 100%;
-  border-radius: 12px;
+  border-radius: var(--brand-radius-pill, 9999px);
   animation: shimmer 1.5s infinite;
 }
 

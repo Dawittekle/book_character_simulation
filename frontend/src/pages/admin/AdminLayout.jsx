@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
+import BrandLogo from '../../components/brand/BrandLogo';
+import BadgePill from '../../components/brand/BadgePill';
 import './AdminLayout.css';
 
 export default function AdminLayout() {
@@ -22,8 +24,9 @@ export default function AdminLayout() {
     <div className="lorely-admin-layout" data-testid="admin-layout">
       <header className="admin-console-header">
         <div className="admin-brand-group">
+          <BrandLogo size="sm" showTagline={false} showText={false} />
           <div className="admin-badge">
-            <span className="admin-badge-icon">🛡️</span>
+            <span className="admin-badge-dot" />
             <span className="admin-badge-text">Operations Console</span>
           </div>
           <span className="admin-header-sep">/</span>
@@ -87,17 +90,6 @@ export default function AdminLayout() {
             type="button"
             className="admin-logout-btn"
             onClick={handleAdminLogout}
-            style={{
-              background: 'transparent',
-              color: '#C89D5C',
-              border: '1px solid #C89D5C',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              marginRight: '0',
-            }}
           >
             Sign Out Admin
           </button>
