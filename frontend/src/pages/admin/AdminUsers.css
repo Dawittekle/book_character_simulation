@@ -89,3 +89,33 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.admin-protected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #ff896b;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: rgba(239, 77, 35, 0.12);
+  border-radius: var(--brand-radius-pill, 9999px);
+  border: 1px solid rgba(239, 77, 35, 0.3);
+}
+
+.role-toggle-btn.btn-danger-pill {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.role-toggle-btn.btn-danger-pill:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ffffff;
+}
+
+.admin-actions-cell {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}

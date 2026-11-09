@@ -182,6 +182,13 @@ export default function Login({ onBack }) {
             Sign up
           </Link>
         </div>
+
+        <div className="auth-switch-link-wrapper" style={{ marginTop: '6px' }}>
+          <span>Curator or Administrator?</span>
+          <Link to="/admin/login" className="auth-switch-action">
+            Staff Portal &rarr;
+          </Link>
+        </div>
       </form>
     </AuthLayout>
   );

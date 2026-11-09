@@ -133,10 +133,11 @@ export default function AdminSubscribers() {
 
   const formatAmount = (amount, currency) => {
     const curr = (currency || 'USD').toUpperCase();
+    const numAmount = Number(amount || 0);
     if (curr === 'ETB') {
-      return `${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`;
+      return `${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`;
     }
-    return `$${Number(amount).toFixed(2)} USD`;
+    return `$${numAmount.toFixed(2)} USD`;
   };
 
   const renderMethodBadge = (method) => {
@@ -204,7 +205,7 @@ export default function AdminSubscribers() {
             <span className="kpi-card-icon">💰</span>
             <span className="kpi-card-label">Monthly Recurring Revenue</span>
           </div>
-          <div className="kpi-card-value">${metrics.mrr.toFixed(2)}</div>
+          <div className="kpi-card-value">${(Number(metrics.mrr) || 0).toFixed(2)}</div>
           <div className="kpi-card-sub">from {metrics.total_subscribers} paid subscriber(s)</div>
         </div>
 

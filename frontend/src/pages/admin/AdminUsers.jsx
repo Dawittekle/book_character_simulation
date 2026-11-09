@@ -110,24 +110,11 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       {isPrimaryAdmin ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '12px',
-                            color: '#C89D5C',
-                            fontWeight: 600,
-                            padding: '4px 8px',
-                            background: 'rgba(200, 157, 92, 0.1)',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(200, 157, 92, 0.25)',
-                          }}
-                        >
+                        <span className="admin-protected-pill">
                           🔒 Protected Admin
                         </span>
                       ) : (
-                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <div className="admin-actions-cell">
                           <button
                             type="button"
                             className={`role-toggle-btn ${u.role === 'admin' ? 'demote' : 'promote'}`}
@@ -138,8 +125,7 @@ export default function AdminUsers() {
                           </button>
                           <button
                             type="button"
-                            className="role-toggle-btn demote"
-                            style={{ background: '#451a1a', borderColor: '#7a2828' }}
+                            className="role-toggle-btn btn-danger-pill"
                             disabled={updatingId === u.id}
                             onClick={() => handleDeleteUser(u)}
                           >

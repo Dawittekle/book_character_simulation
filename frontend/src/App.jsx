@@ -36,12 +36,38 @@ function LegacyChatRedirect() {
   return <Navigate replace to={`/chat/${characterId}`} />;
 }
 
-function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdmin }) {
-  const accessToken = session?.access_token;
+/**
+ * Universal administrative routes definition.
+ * Must remain accessible whether a Supabase reader session is active or not,
+ * protected exclusively by AdminRouteGuard (lorely_admin_token).
+ */
+function renderAdminRoutes() {
+  return (
+    <>
+      <Route path="admin/login" element={<AdminLogin />} />
+      <Route element={<AdminRouteGuard />}>
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<AdminOverview />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="catalog" element={<AdminCatalog />} />
+          <Route path="jobs" element={<AdminJobs />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="plans" element={<AdminPlans />} />
+          <Route path="subscribers" element={<AdminSubscribers />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+      </Route>
+    </>
+  );
+}
 
+function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdmin }) {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Dedicated Authoritative Admin Portal */}
+        {renderAdminRoutes()}
+
         {/* Reader Application Layout */}
         <Route
           path="/"
@@ -53,6 +79,7 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
           }
         >
           <Route index element={<Discover />} />
+          <Route path="discover" element={<Discover />} />
           <Route path="library" element={<MyLibrary />} />
           <Route path="books/:bookId" element={<CharacterGallery />} />
           <Route path="characters" element={<CharacterGallery />} />
@@ -66,21 +93,6 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
           <Route path="chat/:textId/:characterId" element={<LegacyChatRedirect />} />
           <Route path="login" element={<Navigate replace to="/" />} />
           <Route path="signup" element={<Navigate replace to="/" />} />
-        </Route>
-
-        {/* Dedicated Authoritative Admin Portal */}
-        <Route path="admin/login" element={<AdminLogin />} />
-        <Route element={<AdminRouteGuard />}>
-          <Route path="admin" element={<AdminLayout />}>
-            <Route index element={<AdminOverview />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="catalog" element={<AdminCatalog />} />
-            <Route path="jobs" element={<AdminJobs />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="plans" element={<AdminPlans />} />
-            <Route path="subscribers" element={<AdminSubscribers />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
         </Route>
 
         <Route path="*" element={<Navigate replace to="/" />} />
@@ -185,10 +197,15 @@ function App() {
     return <AuthScreen setupMode />;
   }
 
+  // When no Supabase reader session is active, render public routes + the dedicated admin portal
   if (session === null) {
     return (
       <BrowserRouter>
         <Routes>
+          {/* Dedicated Authoritative Admin Portal */}
+          {renderAdminRoutes()}
+
+          {/* Public Marketing & Reader Entry */}
           <Route
             path="/"
             element={
@@ -204,7 +221,6 @@ function App() {
           />
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
-          <Route path="admin/login" element={<AdminLogin />} />
           <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </BrowserRouter>

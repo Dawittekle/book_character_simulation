@@ -24,7 +24,7 @@ export default function AdminLayout() {
     <div className="lorely-admin-layout" data-testid="admin-layout">
       <header className="admin-console-header">
         <div className="admin-brand-group">
-          <BrandLogo size="sm" showTagline={false} showText={false} />
+          <BrandLogo size={28} variant="orange" />
           <div className="admin-badge">
             <span className="admin-badge-dot" />
             <span className="admin-badge-text">Operations Console</span>

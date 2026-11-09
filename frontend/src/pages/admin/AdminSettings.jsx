@@ -60,12 +60,12 @@ export default function AdminSettings() {
 
     try {
       const payload = {
-        telebirr_phone: paymentConfig.telebirr_phone.trim(),
-        telebirr_name: paymentConfig.telebirr_name.trim(),
-        cbe_account: paymentConfig.cbe_account.trim(),
-        cbe_name: paymentConfig.cbe_name.trim(),
+        telebirr_phone: String(paymentConfig.telebirr_phone || '').trim(),
+        telebirr_name: String(paymentConfig.telebirr_name || '').trim(),
+        cbe_account: String(paymentConfig.cbe_account || '').trim(),
+        cbe_name: String(paymentConfig.cbe_name || '').trim(),
         etb_rate: parseFloat(paymentConfig.etb_rate) || 135.0,
-        instructions: paymentConfig.instructions.trim(),
+        instructions: String(paymentConfig.instructions || '').trim(),
       };
 
       const updated = await lorelyApi.adminUpdatePaymentConfig(payload, accessToken);
