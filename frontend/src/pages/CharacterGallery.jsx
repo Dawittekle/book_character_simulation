@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl } from '../lib/formatters';
+import PillButton from '../components/brand/PillButton';
+import BadgePill from '../components/brand/BadgePill';
+import BrandLogo from '../components/brand/BrandLogo';
 import './CharacterGallery.css';
 
 // Storage helpers to instantly render previously loaded casts without jumping
@@ -81,7 +84,7 @@ export default function CharacterGallery() {
   return (
     <div className="lorely-gallery-page" data-testid="character-gallery-page">
       <header className="gallery-header">
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="gallery-header-nav-row">
           <button
             type="button"
             className="page-back-btn"
@@ -93,18 +96,25 @@ export default function CharacterGallery() {
           {bookId && (
             <button
               type="button"
-              className="page-back-btn"
+              className="gallery-view-all-pill"
               onClick={() => navigate('/characters')}
-              style={{ background: '#F4ECE1', color: '#1A3326', fontWeight: 600 }}
             >
-              📚 View All 5 Characters
+              📚 View All Characters
             </button>
           )}
         </div>
+
         <div className="gallery-title-group">
-          <h1 className="gallery-title">Meet the Characters</h1>
+          <div className="gallery-title-lockup">
+            <h1 className="gallery-title">Meet the Characters</h1>
+            <BadgePill variant="orange" dotColor="#ef4d23" className="gallery-count-badge">
+              {characters.length} Active {characters.length === 1 ? 'Persona' : 'Personas'}
+            </BadgePill>
+          </div>
           <p className="gallery-subtitle">
-            {bookId ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})` : 'Legendary personalities across the Lorely library.'}
+            {bookId
+              ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})`
+              : 'Legendary personalities across the Lorely library.'}
           </p>
         </div>
       </header>
@@ -125,22 +135,27 @@ export default function CharacterGallery() {
           ))
         ) : characters.length === 0 ? (
           <div className="gallery-empty-state">
-            <span className="gallery-empty-icon">📖</span>
+            <div className="gallery-empty-bubble">📖</div>
             <h3 className="gallery-empty-title">No Characters Available</h3>
             <p className="gallery-empty-sub">
-              {bookId ? 'No characters have been extracted for this literary work yet.' : 'Explore your library to discover character dialogues.'}
+              {bookId
+                ? 'No characters have been extracted for this literary work yet.'
+                : 'Explore your library to discover character dialogues.'}
             </p>
-            <button
-              type="button"
-              className="card-chat-btn"
+            <PillButton
+              variant="orange"
+              size="md"
+              hasChevron
               onClick={() => navigate('/library')}
+              className="gallery-browse-btn"
             >
               Browse Library →
-            </button>
+            </PillButton>
           </div>
         ) : (
           characters.map((char) => {
             const avatarUrl = getCharacterAvatarUrl(char.name, char.avatar_asset_id);
+            const role = char.role || 'Protagonist';
 
             return (
               <article key={char.id} className="character-portrait-card">
@@ -149,24 +164,33 @@ export default function CharacterGallery() {
                     src={avatarUrl}
                     alt={char.name}
                     className="card-portrait-img"
+                    loading="lazy"
                   />
-                  <span className="card-role-badge">{char.role || 'Protagonist'}</span>
+                  <div className="card-avatar-sheen" />
+                  <span className="card-role-badge">
+                    {role}
+                  </span>
                 </div>
 
                 <div className="card-info-body">
-                  <h3 className="card-character-name">{char.name}</h3>
-                  <span className="card-book-sub">{char.book_title || bookTitle}</span>
+                  <div className="card-character-header">
+                    <h3 className="card-character-name">{char.name}</h3>
+                    <span className="card-book-sub">{char.book_title || bookTitle}</span>
+                  </div>
+
                   <p className="card-character-bio">
                     {char.personality || 'A thoughtful individual shaped by memory and destiny.'}
                   </p>
 
-                  <button
-                    type="button"
-                    className="card-chat-btn"
-                    onClick={() => navigate(`/chat/${char.id}`)}
-                  >
-                    <span>💬</span> Talk to {char.name.split(' ')[0]} →
-                  </button>
+                  <div className="card-chat-action">
+                    <button
+                      type="button"
+                      className="card-chat-btn"
+                      onClick={() => navigate(`/chat/${char.id}`)}
+                    >
+                      <span>💬</span> Talk to {char.name.split(' ')[0]} →
+                    </button>
+                  </div>
                 </div>
               </article>
             );

@@ -1,15 +1,72 @@
 .lorely-gallery-page {
-  padding: 28px 36px 48px;
+  padding: 24px 32px 48px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 1200px;
+  gap: 28px;
+  max-width: 1240px;
   margin: 0 auto;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
 }
 
+/* ==========================================================================
+   Gallery Header
+   ========================================================================== */
 .gallery-header {
-  border-bottom: 1px solid #E8E0D2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-bottom: 1px solid var(--brand-border, #e5e5e5);
   padding-bottom: 20px;
+}
+
+.gallery-header-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #e5e5e5);
+  color: var(--brand-obsidian, #0b0f1a);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(11, 15, 26, 0.04);
+}
+
+.page-back-btn:hover {
+  border-color: #d4d4d8;
+  background: #fafafa;
+  transform: translateX(-2px);
+}
+
+.gallery-view-all-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--brand-tray-bg, #f5f2ee);
+  border: 1px solid var(--brand-border, #e5e5e5);
+  color: var(--brand-obsidian, #0b0f1a);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gallery-view-all-pill:hover {
+  background: #eae5de;
+  transform: translateY(-1px);
 }
 
 .gallery-title-group {
@@ -18,172 +75,251 @@
   gap: 4px;
 }
 
+.gallery-title-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .gallery-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 26px;
-  font-weight: 700;
-  color: #1C2E24;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--brand-obsidian, #0b0f1a);
+  letter-spacing: -0.02em;
   margin: 0;
+  line-height: 1.1;
 }
 
 .gallery-subtitle {
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
   font-size: 13px;
-  color: #7A7065;
+  color: #6b7280;
   margin: 0;
 }
 
+/* ==========================================================================
+   Characters Grid
+   ========================================================================== */
 .characters-card-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
+  .characters-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
   .characters-card-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
+@media (max-width: 480px) {
+  .characters-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Character Portrait Card
+   ========================================================================== */
 .character-portrait-card {
-  background: #FFFFFF;
-  border: 1px solid #E8E0D2;
-  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #e5e5e5);
+  border-radius: var(--brand-radius-2xl, 1rem);
+  padding: 10px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 14px rgba(35, 31, 32, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(11, 15, 26, 0.05), 0 1px 2px rgba(11, 15, 26, 0.03);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  position: relative;
 }
 
 .character-portrait-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(28, 46, 36, 0.12);
-  border-color: #C89D5C;
+  box-shadow: 0 14px 28px -6px rgba(11, 15, 26, 0.09), 0 4px 10px -2px rgba(11, 15, 26, 0.04);
+  border-color: rgba(239, 77, 35, 0.35);
 }
 
 .card-avatar-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 4.5;
-  background: #FAF6EF;
-  border-bottom: 1px solid #EAE3D6;
+  aspect-ratio: 1 / 1;
+  background: var(--brand-tray-bg, #f5f2ee);
+  border-radius: calc(var(--brand-radius-2xl, 1rem) - 4px);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .card-portrait-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.character-portrait-card:hover .card-portrait-img {
+  transform: scale(1.05);
+}
+
+.card-avatar-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%);
+  pointer-events: none;
 }
 
 .card-role-badge {
   position: absolute;
   bottom: 8px;
   right: 8px;
-  background: rgba(28, 46, 36, 0.85);
-  color: #FFFDF7;
+  background: rgba(11, 15, 26, 0.8);
+  color: #ffffff;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: 9999px;
   backdrop-filter: blur(4px);
-  border: 1px solid rgba(212, 175, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  user-select: none;
 }
 
+/* Card Info Body */
 .card-info-body {
-  padding: 14px;
+  padding: 12px 4px 4px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
 }
 
+.card-character-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .card-character-name {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 16px;
-  font-weight: 700;
-  color: #1C2E24;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--brand-obsidian, #0b0f1a);
   margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .card-book-sub {
-  font-family: var(--font-serif-narrative, Georgia, serif);
-  font-style: italic;
   font-size: 11px;
-  color: #7A7065;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-character-bio {
   font-size: 12px;
   line-height: 1.45;
-  color: #554D43;
-  margin: 4px 0 12px;
+  color: #4b5563;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   flex: 1;
 }
 
+.card-chat-action {
+  margin-top: 8px;
+}
+
 .card-chat-btn {
-  background: #FAF6EF;
-  border: 1px solid #D5CAB9;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
-  font-size: 12px;
-  font-weight: 700;
-  color: #1C2E24;
-  cursor: pointer;
-  display: flex;
+  width: 100%;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.15s ease;
+  background: var(--brand-orange, #ef4d23);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 7px 14px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(239, 77, 35, 0.2);
 }
 
 .card-chat-btn:hover {
-  background: #1C2E24;
-  color: #FFFFFF;
-  border-color: #1C2E24;
+  background: var(--brand-orange-hover, #d9421a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 77, 35, 0.32);
 }
 
-/* Skeleton Loaders */
+.card-chat-btn span {
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Skeleton State
+   ========================================================================== */
 .character-portrait-card.skeleton {
   pointer-events: none;
+  border-color: #ededed;
 }
 
 .skeleton-avatar {
   width: 100%;
-  aspect-ratio: 4 / 4.5;
-  background: linear-gradient(90deg, #F5EFE6 25%, #E8DFD3 50%, #F5EFE6 75%);
+  aspect-ratio: 1 / 1;
+  border-radius: calc(var(--brand-radius-2xl, 1rem) - 4px);
+  background: linear-gradient(90deg, #edeae5 25%, #e2ded8 50%, #edeae5 75%);
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite linear;
+  animation: character-skeleton-shimmer 1.5s infinite linear;
 }
 
 .skeleton-line {
-  height: 14px;
   border-radius: 4px;
-  background: linear-gradient(90deg, #F5EFE6 25%, #E8DFD3 50%, #F5EFE6 75%);
+  background: linear-gradient(90deg, #f5f2ee 25%, #eae6e0 50%, #f5f2ee 75%);
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite linear;
-}
-
-.skeleton-line.short {
-  width: 45%;
+  animation: character-skeleton-shimmer 1.5s infinite linear;
 }
 
 .skeleton-line.medium {
-  width: 75%;
+  width: 65%;
+  height: 14px;
+}
+
+.skeleton-line.short {
+  width: 40%;
+  height: 10px;
 }
 
 .skeleton-line.long {
-  width: 100%;
+  width: 90%;
+  height: 11px;
 }
 
 .skeleton-line.btn {
-  height: 34px;
-  border-radius: 8px;
-  margin-top: 8px;
+  width: 100%;
+  height: 28px;
+  border-radius: 9999px;
+  margin-top: 10px;
 }
 
-@keyframes skeleton-shimmer {
+@keyframes character-skeleton-shimmer {
   0% {
     background-position: 200% 0;
   }
@@ -192,34 +328,53 @@
   }
 }
 
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
 .gallery-empty-state {
-  text-align: center;
-  padding: 48px 24px;
-  background: #FFFFFF;
-  border: 1px dashed #D5CAB9;
-  border-radius: 12px;
   grid-column: 1 / -1;
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #e5e5e5);
+  border-radius: var(--brand-radius-3xl, 1.5rem);
+  padding: 48px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(11, 15, 26, 0.03);
 }
 
-.gallery-empty-icon {
-  font-size: 40px;
+.gallery-empty-bubble {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-tray-bg, #f5f2ee);
+  border: 1px solid var(--brand-border, #e5e5e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
   margin-bottom: 4px;
 }
 
 .gallery-empty-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 18px;
-  color: #1C2E24;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--brand-obsidian, #0b0f1a);
   margin: 0;
 }
 
 .gallery-empty-sub {
   font-size: 13px;
-  color: #7A7065;
-  margin: 0 0 12px;
+  color: #6b7280;
+  max-width: 420px;
+  line-height: 1.5;
+  margin: 0;
 }
 
+.gallery-browse-btn {
+  margin-top: 6px;
+}

@@ -1,6 +1,19 @@
 import React from 'react';
 import { getEmotionInsight } from '../lib/formatters';
+import BadgePill from './brand/BadgePill';
 import './EmotionStateWidget.css';
+
+const EMOTION_COLOR_MAP = {
+  hope: '#10b981', // emerald
+  trust: '#06b6d4', // cyan
+  joy: '#f59e0b', // amber
+  curiosity: '#8b5cf6', // violet
+  anxiety: '#ef4444', // red
+  fear: '#dc2626', // deep red
+  sadness: '#6366f1', // indigo
+  anger: '#ea580c', // orange-red
+  calm: '#14b8a6', // teal
+};
 
 export default function EmotionStateWidget({ emotionState = {}, onViewDetails }) {
   const entries = Object.entries(emotionState || {}).filter(
@@ -22,8 +35,8 @@ export default function EmotionStateWidget({ emotionState = {}, onViewDetails })
   const insightText = getEmotionInsight(emotionState);
 
   // SVG circular arc calculation
-  // Radius = 38, Circumference = 2 * PI * 38 = ~238.76
-  const radius = 38;
+  // Radius = 34, Circumference = 2 * PI * 34 = ~213.63
+  const radius = 34;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (primaryScore / 100) * circumference;
 
@@ -34,43 +47,49 @@ export default function EmotionStateWidget({ emotionState = {}, onViewDetails })
           <span className="emotion-heading">Emotion State</span>
           <span className="emotion-info-icon" title="Psychological simulation derived from conversation context">ⓘ</span>
         </div>
-        {onViewDetails && (
-          <button
-            type="button"
-            className="emotion-view-details-btn"
-            onClick={onViewDetails}
-          >
-            View details →
-          </button>
-        )}
+        <div className="emotion-header-actions">
+          <BadgePill variant="orange" dotColor="#ef4d23" dotPulse size="sm" className="emotion-live-badge">
+            Dynamic Drift
+          </BadgePill>
+          {onViewDetails && (
+            <button
+              type="button"
+              className="emotion-view-details-btn"
+              onClick={onViewDetails}
+            >
+              View details →
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="emotion-gauge-row">
         <div className="emotion-circular-gauge">
-          <svg className="emotion-svg" viewBox="0 0 100 100">
+          <svg className="emotion-svg" viewBox="0 0 88 88">
             {/* Background track */}
             <circle
               className="gauge-bg"
-              cx="50"
-              cy="50"
+              cx="44"
+              cy="44"
               r={radius}
-              strokeWidth="9"
+              strokeWidth="7"
             />
-            {/* Hope / Joy track */}
+            {/* Active primary emotion progress */}
             <circle
               className="gauge-progress-hope"
-              cx="50"
-              cy="50"
+              cx="44"
+              cy="44"
               r={radius}
-              strokeWidth="9"
+              strokeWidth="7"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              transform="rotate(-90 50 50)"
+              transform="rotate(-90 44 44)"
             />
           </svg>
           <div className="gauge-center-text">
             <span className="gauge-percent">{primaryScore}%</span>
+            <span className="gauge-center-label">Resonance</span>
           </div>
         </div>
 
@@ -78,11 +97,22 @@ export default function EmotionStateWidget({ emotionState = {}, onViewDetails })
           {topThree.map(([name, val], idx) => {
             const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
             const dotClasses = ['hope-dot', 'anxiety-dot', 'sadness-dot'];
+            const percentVal = Math.round(val * 100);
+            const color = EMOTION_COLOR_MAP[name.toLowerCase()] || 'var(--brand-orange, #ef4d23)';
+
             return (
               <div key={name} className="legend-item">
-                <span className={`legend-dot ${dotClasses[idx % 3]}`} />
-                <span className="legend-label">{capitalized}</span>
-                <span className="legend-value">{Math.round(val * 100)}%</span>
+                <div className="legend-item-header">
+                  <span className={`legend-dot ${dotClasses[idx % 3]}`} style={{ backgroundColor: color }} />
+                  <span className="legend-label">{capitalized}</span>
+                  <span className="legend-value">{percentVal}%</span>
+                </div>
+                <div className="legend-progress-bar-bg">
+                  <div
+                    className="legend-progress-bar-fill"
+                    style={{ width: `${percentVal}%`, backgroundColor: color }}
+                  />
+                </div>
               </div>
             );
           })}

@@ -1,5 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import EmotionStateWidget from './EmotionStateWidget';
+import PillButton from './brand/PillButton';
+import BadgePill from './brand/BadgePill';
 import { getCharacterAvatarUrl } from '../lib/formatters';
 import './CharacterDetailsDrawer.css';
 
@@ -9,14 +12,21 @@ export default function CharacterDetailsDrawer({
   emotionState,
   onClose,
 }) {
+  const navigate = useNavigate();
+
   if (!character) {
     return null;
   }
 
   const avatarUrl = getCharacterAvatarUrl(character.name, character.avatar_asset_id);
-
   const relationships = Array.isArray(character.relationships) ? character.relationships : [];
   const storyFacts = Array.isArray(character.key_events) ? character.key_events : [];
+  const role = character.role || 'Literary Character';
+
+  const handleStartChat = () => {
+    if (onClose) onClose();
+    navigate(`/chat/${character.id}`);
+  };
 
   return (
     <aside
@@ -26,7 +36,9 @@ export default function CharacterDetailsDrawer({
     >
       <div className="drawer-header">
         <div className="drawer-title-group">
-          <span className="drawer-icon">📖</span>
+          <BadgePill variant="orange" dotColor="#ef4d23" size="sm">
+            Dossier
+          </BadgePill>
           <h2 className="drawer-heading">Character Details</h2>
         </div>
         {onClose && (
@@ -49,6 +61,8 @@ export default function CharacterDetailsDrawer({
             alt={character.name}
             className="portrait-hero-img"
           />
+          <div className="portrait-hero-sheen" />
+          <span className="portrait-role-badge">{role}</span>
         </div>
 
         {/* Name and Identity */}
@@ -65,7 +79,7 @@ export default function CharacterDetailsDrawer({
             <div className="attribute-row">
               <span className="attr-icon">👤</span>
               <span className="attr-label">Role:</span>
-              <span className="attr-value">{character.role || 'Literary Character'}</span>
+              <span className="attr-value">{role}</span>
             </div>
             {character.occupation && (
               <div className="attribute-row">
@@ -77,9 +91,24 @@ export default function CharacterDetailsDrawer({
             <div className="attribute-row">
               <span className="attr-icon">🏛</span>
               <span className="attr-label">Affiliation:</span>
-              <span className="attr-value">{character.affiliation || bookTitle || character.book_title || 'Fyodor Dostoevsky Classics'}</span>
+              <span className="attr-value">
+                {character.affiliation || bookTitle || character.book_title || 'Fyodor Dostoevsky Classics'}
+              </span>
             </div>
           </div>
+        </div>
+
+        {/* Quick Launch Chat CTA */}
+        <div className="drawer-chat-cta-wrap">
+          <PillButton
+            variant="orange"
+            size="md"
+            hasChevron
+            onClick={handleStartChat}
+            className="drawer-chat-action-btn"
+          >
+            Talk to {character.name.split(' ')[0]} →
+          </PillButton>
         </div>
 
         {/* Relationships */}

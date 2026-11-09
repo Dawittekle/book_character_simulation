@@ -1,17 +1,19 @@
 .emotion-state-widget {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: #FAF6EF;
-  border: 1px solid #E8E0D2;
-  border-radius: 12px;
-  padding: 14px;
+  gap: 14px;
+  background: var(--brand-tray-bg, #f5f2ee);
+  border: 1px solid var(--brand-border, #e5e5e5);
+  border-radius: var(--brand-radius-2xl, 1rem);
+  padding: 16px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
 }
 
 .emotion-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 }
 
 .emotion-title-group {
@@ -21,35 +23,49 @@
 }
 
 .emotion-heading {
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
   font-size: 13px;
   font-weight: 700;
-  color: #1C2E24;
+  color: var(--brand-obsidian, #0b0f1a);
+  letter-spacing: -0.01em;
 }
 
 .emotion-info-icon {
   font-size: 12px;
-  color: #8C8276;
+  color: #9ca3af;
   cursor: help;
+}
+
+.emotion-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emotion-live-badge {
+  font-size: 10px !important;
+  padding: 2px 8px !important;
 }
 
 .emotion-view-details-btn {
   background: none;
   border: none;
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
   font-size: 11px;
   font-weight: 600;
-  color: #8C8276;
+  color: var(--brand-orange, #ef4d23);
   cursor: pointer;
   padding: 0;
-  transition: color 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
 .emotion-view-details-btn:hover {
-  color: #1C2E24;
+  opacity: 0.8;
   text-decoration: underline;
 }
 
+/* ==========================================================================
+   Gauge Row
+   ========================================================================== */
 .emotion-gauge-row {
   display: flex;
   align-items: center;
@@ -58,8 +74,8 @@
 
 .emotion-circular-gauge {
   position: relative;
-  width: 76px;
-  height: 76px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
 }
 
@@ -70,95 +86,123 @@
 
 .gauge-bg {
   fill: none;
-  stroke: #EAE3D6;
+  stroke: #e4dfd7;
 }
 
 .gauge-progress-hope {
   fill: none;
-  stroke: #2E8B57;
+  stroke: var(--brand-orange, #ef4d23);
   transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .gauge-center-text {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
 .gauge-percent {
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
-  font-size: 15px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 16px;
   font-weight: 700;
-  color: #1C2E24;
+  color: var(--brand-obsidian, #0b0f1a);
+  line-height: 1;
 }
 
+.gauge-center-label {
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   Emotion Legend
+   ========================================================================== */
 .emotion-legend {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
 }
 
 .legend-item {
   display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.legend-item-header {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  justify-content: space-between;
+  font-size: 11px;
 }
 
 .legend-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
   flex-shrink: 0;
 }
 
-.hope-dot {
-  background: #2E8B57;
-}
-
-.anxiety-dot {
-  background: #3B82F6;
-}
-
-.sadness-dot {
-  background: #F59E0B;
-}
-
 .legend-label {
-  color: #4A4238;
   font-weight: 500;
+  color: #374151;
   flex: 1;
 }
 
 .legend-value {
-  color: #1C2E24;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--brand-obsidian, #0b0f1a);
 }
 
+.legend-progress-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.legend-progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Insight Pill
+   ========================================================================== */
 .emotion-insight-pill {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
-  background: #EDF5EE;
-  border: 1px solid #D5E8D6;
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #e5e5e5);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  box-shadow: 0 1px 3px rgba(11, 15, 26, 0.03);
 }
 
 .emotion-insight-icon {
   font-size: 13px;
-  line-height: 1.2;
+  flex-shrink: 0;
 }
 
 .emotion-insight-text {
   font-size: 11px;
   font-weight: 500;
-  color: #265935;
+  color: #4b5563;
   line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
