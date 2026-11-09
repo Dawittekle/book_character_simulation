@@ -1519,6 +1519,23 @@
   color: #78716c;
 }
 
+.pricing-reset-free-btn {
+  background: transparent;
+  border: 1px solid #e7e5e4;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ef4d23;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.pricing-reset-free-btn:hover {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
 .pricing-tiers-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

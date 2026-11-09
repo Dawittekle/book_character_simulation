@@ -152,7 +152,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
   const [plansError, setPlansError] = useState(null);
   const [currency, setCurrency] = useState('ETB'); // 'USD' | 'ETB'
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'yearly'
-  const [selectedPlanId, setSelectedPlanId] = useState('scholar');
+  const [selectedPlanId, setSelectedPlanId] = useState('free');
 
   // Smart Sticky Floating Navbar (Hide on scroll down, show on scroll up)
   const [navVisible, setNavVisible] = useState(true);
@@ -217,10 +217,10 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
 
         if (plansRes.status === 'fulfilled' && plansRes.value?.plans && plansRes.value.plans.length > 0) {
           setPlans(plansRes.value.plans);
-          const scholar = plansRes.value.plans.find(
-            (p) => p.id === 'scholar' || p.badge?.includes('POPULAR')
+          const freePlan = plansRes.value.plans.find(
+            (p) => p.id === 'free' || p.price_monthly === 0
           );
-          setSelectedPlanId(scholar ? scholar.id : plansRes.value.plans[0]?.id || 'scholar');
+          setSelectedPlanId(freePlan ? freePlan.id : plansRes.value.plans[0]?.id || 'free');
         } else {
           // Graceful fallback structure matching database schema
           const fallbackPlans = [
@@ -228,9 +228,14 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
               id: 'free',
               name: 'Free Reader',
               price_monthly: 0,
-              badge: 'STARTER',
-              description: 'Introductory reading with classical dialogue limits.',
-              features: ['Unlimited everyday text chats', 'Access to standard classics', 'Limited memory and storage'],
+              badge: 'YOUR CURRENT PLAN',
+              description: 'Exploration tier with access to standard classics and introductory character dialogues.',
+              features: [
+                'Unlimited everyday text chats',
+                'Access to standard classics',
+                'Limited memory and storage',
+                'Community support',
+              ],
             },
             {
               id: 'scholar',
@@ -259,7 +264,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
             },
           ];
           setPlans(fallbackPlans);
-          setSelectedPlanId('scholar');
+          setSelectedPlanId('free');
         }
 
         if (configRes.status === 'fulfilled' && configRes.value) {
@@ -308,16 +313,16 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
   };
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) || plans[0] || {
-    id: 'scholar',
-    name: 'Literary Scholar (Plus)',
-    price_monthly: 20,
-    badge: 'MOST POPULAR',
-    description: 'Advanced cognitive simulations, unlimited shelf imports, HD speech synthesis.',
+    id: 'free',
+    name: 'Free Reader',
+    price_monthly: 0,
+    badge: 'YOUR CURRENT PLAN',
+    description: 'Exploration tier with access to standard classics and introductory character dialogues.',
     features: [
-      'Unlimited book shelf imports',
-      'Unlimited daily dialogue turns',
-      'HD Voice mode simulation',
-      'Dynamic emotional drift telemetry',
+      'Unlimited everyday text chats',
+      'Access to standard classics',
+      'Limited memory and storage',
+      'Community support',
     ],
   };
 
@@ -1111,8 +1116,8 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                   data-testid="pricing-master-action-btn"
                 >
                   <span>
-                    {selectedPlan.price_monthly === 0
-                      ? 'Start Free Reading'
+                    {selectedPlan.price_monthly === 0 || selectedPlan.id === 'free'
+                      ? 'Start Free'
                       : `Upgrade to ${selectedPlan.name}`}
                   </span>
                   <span className="pricing-btn-arrow">→</span>
@@ -1120,60 +1125,68 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
               </div>
             </div>
 
-            {/* Comparison Strip: All Real Backend Plans */}
+            {/* Comparison Strip: All Real Backend Plans (Excluding Free Starter, showing paid upgrades) */}
             <div className="pricing-strip-section">
               <div className="pricing-strip-header">
-                <span className="pricing-strip-title">Compare All Available Membership Tiers</span>
-                <span className="pricing-strip-subtitle">Select any tier to inspect its full allowance</span>
+                <div>
+                  <span className="pricing-strip-title">Compare All Available Membership Tiers</span>
+                  <span className="pricing-strip-subtitle">Select any tier to inspect its full allowance</span>
+                </div>
+                {selectedPlanId !== 'free' && (
+                  <button
+                    type="button"
+                    className="pricing-reset-free-btn"
+                    onClick={() => setSelectedPlanId('free')}
+                  >
+                    ← View Free Reader Plan
+                  </button>
+                )}
               </div>
 
               <div className="pricing-tiers-grid">
-                {plans.map((p) => {
-                  const pPrice = calculatePrice(p.price_monthly || 0);
-                  const isCurrent = p.id === selectedPlanId;
-                  const displayBadge =
-                    p.badge && p.badge !== 'YOUR CURRENT PLAN'
-                      ? p.badge
-                      : p.id === 'free'
-                        ? 'STARTER'
-                        : null;
-                  return (
-                    <div
-                      key={p.id}
-                      className={`pricing-tier-card ${isCurrent ? 'is-current' : ''}`}
-                      onClick={() => setSelectedPlanId(p.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          setSelectedPlanId(p.id);
-                        }
-                      }}
-                    >
-                      {displayBadge && (
-                        <div className="tier-pill-badge">
-                          <span>{displayBadge}</span>
-                        </div>
-                      )}
-                      <h4 className="tier-card-heading">{p.name}</h4>
-                      <div className="tier-card-price-row">
-                        <span className="tier-card-amount">{pPrice.display}</span>
-                        <span className="tier-card-period">{billingPeriod === 'yearly' ? '/mo (yr)' : '/mo'}</span>
-                      </div>
-                      <p className="tier-card-desc">{p.description}</p>
-                      <button
-                        type="button"
-                        className={`tier-card-select-btn ${isCurrent ? 'is-selected' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPlanId(p.id);
+                {plans
+                  .filter((p) => p.id !== 'free' && (p.price_monthly > 0 || p.price > 0))
+                  .map((p) => {
+                    const pPrice = calculatePrice(p.price_monthly || 0);
+                    const isCurrent = p.id === selectedPlanId;
+                    const displayBadge = p.badge && p.badge !== 'YOUR CURRENT PLAN' ? p.badge : null;
+                    return (
+                      <div
+                        key={p.id}
+                        className={`pricing-tier-card ${isCurrent ? 'is-current' : ''}`}
+                        onClick={() => setSelectedPlanId(p.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            setSelectedPlanId(p.id);
+                          }
                         }}
                       >
-                        {isCurrent ? 'Selected Tier' : 'Inspect Tier'}
-                      </button>
-                    </div>
-                  );
-                })}
+                        {displayBadge && (
+                          <div className="tier-pill-badge">
+                            <span>{displayBadge}</span>
+                          </div>
+                        )}
+                        <h4 className="tier-card-heading">{p.name}</h4>
+                        <div className="tier-card-price-row">
+                          <span className="tier-card-amount">{pPrice.display}</span>
+                          <span className="tier-card-period">{billingPeriod === 'yearly' ? '/mo (yr)' : '/mo'}</span>
+                        </div>
+                        <p className="tier-card-desc">{p.description}</p>
+                        <button
+                          type="button"
+                          className={`tier-card-select-btn ${isCurrent ? 'is-selected' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPlanId(p.id);
+                          }}
+                        >
+                          {isCurrent ? 'Selected Tier' : 'Inspect Tier'}
+                        </button>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>

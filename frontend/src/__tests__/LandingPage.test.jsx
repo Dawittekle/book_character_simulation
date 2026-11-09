@@ -161,11 +161,16 @@ describe('LandingPage Component', () => {
 
     // Master CTA button triggers onGetStarted
     const masterCta = screen.getByTestId('pricing-master-action-btn');
+    expect(masterCta).toHaveTextContent(/start free/i);
     fireEvent.click(masterCta);
     expect(handleGetStarted).toHaveBeenCalled();
 
-    // Verify Free Reader card is excluded from subscription tier comparisons
-    expect(screen.queryByText('Free Reader')).toBeNull();
+    // Main featured card defaults to Free Reader
+    expect(screen.getByText('Free Reader')).toBeInTheDocument();
+
+    // Verify Free Reader card is excluded from the bottom tier comparison grid (paid upgrades only)
+    const tiersGrid = screen.getByText(/Compare All Available Membership Tiers/i).closest('.pricing-strip-section').querySelector('.pricing-tiers-grid');
+    expect(tiersGrid).not.toHaveTextContent('Free Reader');
   });
 
   it('renders the FAQ "THE NOSY SECTION" with framed tabs and expandable accordions', () => {
