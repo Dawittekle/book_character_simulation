@@ -26,6 +26,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import BrandLogo from './components/brand/BrandLogo';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { lorelyApi } from './services/lorelyApi';
+import { checkAndMigrateLegacyWorkspaces } from './lib/workspaceMigration';
 
 function LegacyWorkspaceRedirect() {
   const { textId } = useParams();
@@ -175,6 +176,11 @@ function App() {
     }
 
     fetchRole();
+    if (session?.access_token) {
+      checkAndMigrateLegacyWorkspaces(session.access_token).catch((e) => {
+        console.warn('Background legacy workspace migration skipped:', e);
+      });
+    }
     return () => {
       isMounted = false;
     };

@@ -241,17 +241,26 @@ class LorelyService:
 
     # --- Books ---
 
-    def list_books(self, auth_user: AuthenticatedUser | None = None) -> list[dict[str, Any]]:
+    def list_books(
+        self,
+        auth_user: AuthenticatedUser | None = None,
+        scope: str | None = None,
+    ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
-            books = session.scalars(
-                select(Book)
-                .where(or_(Book.owner_user_id == user.id, Book.visibility == "featured"))
-                .order_by(
-                    case((Book.visibility == "featured", 0), else_=1),
-                    Book.created_at.asc(),
-                )
-            ).all()
+            stmt = select(Book)
+            if scope == "mine":
+                stmt = stmt.where(Book.owner_user_id == user.id)
+            elif scope == "featured":
+                stmt = stmt.where(Book.visibility == "featured")
+            else:
+                stmt = stmt.where(or_(Book.owner_user_id == user.id, Book.visibility == "featured"))
+
+            stmt = stmt.order_by(
+                case((Book.visibility == "featured", 0), else_=1),
+                Book.created_at.asc(),
+            )
+            books = session.scalars(stmt).all()
 
             results = []
             for b in books:
@@ -1015,6 +1024,46 @@ class LorelyService:
                 for m in memories
             ]
 
+    def delete_character_memory(
+        self, auth_user: AuthenticatedUser | None, character_id: str, memory_id: str
+    ) -> None:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            memory = session.get(CharacterMemory, memory_id)
+            if memory is None:
+                raise NotFoundError("Memory record not found.")
+
+            if memory.owner_user_id != user.id:
+                raise ForbiddenError("You can only delete your own memories.")
+
+            session.delete(memory)
+            session.flush()
+
+    def update_character_memory(
+        self, auth_user: AuthenticatedUser | None, character_id: str, memory_id: str, fact: str
+    ) -> dict[str, Any]:
+        cleaned_fact = fact.strip()
+        if not cleaned_fact:
+            raise BadRequestError("Memory fact cannot be empty.")
+
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            memory = session.get(CharacterMemory, memory_id)
+            if memory is None:
+                raise NotFoundError("Memory record not found.")
+
+            if memory.owner_user_id != user.id:
+                raise ForbiddenError("You can only modify your own memories.")
+
+            memory.fact = cleaned_fact
+            session.flush()
+            return {
+                "id": memory.id,
+                "fact": memory.fact,
+                "session_id": memory.session_id,
+                "created_at": memory.created_at.isoformat() if memory.created_at else None,
+            }
+
     # --- Conversations ---
 
     def list_conversations(
@@ -1509,6 +1558,150 @@ class LorelyService:
 
             session.delete(s)
             session.flush()
+
+    # --- Legacy Workspace Migration ---
+
+    def migrate_legacy_workspace(
+        self, auth_user: AuthenticatedUser | None, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Migrates legacy client workspace state (from localStorage) into PostgreSQL.
+        Guarantees that user's previous books, characters, and chats are preserved in the DB.
+        """
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            raw_books = payload.get("books") or []
+            migrated_books = 0
+            migrated_characters = 0
+            migrated_sessions = 0
+            migrated_messages = 0
+
+            for b_data in raw_books:
+                if not isinstance(b_data, dict):
+                    continue
+                title = (b_data.get("title") or "Untitled Book").strip()
+                if not title:
+                    continue
+
+                # Check if book already exists for this user with same title
+                existing_book = session.scalar(
+                    select(Book).where(
+                        Book.owner_user_id == user.id,
+                        Book.title == title,
+                    )
+                )
+                if existing_book is None:
+                    book = Book(
+                        owner_user_id=user.id,
+                        title=title,
+                        author=(b_data.get("author") or "Unknown Author").strip(),
+                        summary=b_data.get("preview") or "",
+                        visibility="private",
+                        source_type=b_data.get("sourceType") or "text",
+                        processing_status=BookProcessingStatus.ready,
+                    )
+                    session.add(book)
+                    session.flush()
+                    migrated_books += 1
+                else:
+                    book = existing_book
+
+                # Migrate characters
+                char_map: dict[str, CharacterProfileRecord] = {}
+                for c_data in b_data.get("characters") or []:
+                    if not isinstance(c_data, dict):
+                        continue
+                    c_name = (c_data.get("name") or "Unnamed Character").strip()
+                    c_key = c_data.get("id") or re.sub(r"[^a-z0-9]+", "-", c_name.lower()).strip("-")
+
+                    existing_char = session.scalar(
+                        select(CharacterProfileRecord).where(
+                            CharacterProfileRecord.book_id == book.id,
+                            CharacterProfileRecord.name == c_name,
+                        )
+                    )
+                    if existing_char is None:
+                        char_rec = CharacterProfileRecord(
+                            book_id=book.id,
+                            stable_character_key=c_key,
+                            name=c_name,
+                            role=c_data.get("role") or "Protagonist",
+                            personality=c_data.get("personality") or "A literary character.",
+                            appearance_description=c_data.get("appearance_description") or "",
+                            psi_parameters=c_data.get("psi_parameters") or {},
+                            emotion_state=c_data.get("emotion_state") or {},
+                            key_events=c_data.get("key_events") or [],
+                            relationships=c_data.get("relationships") or [],
+                        )
+                        session.add(char_rec)
+                        session.flush()
+                        migrated_characters += 1
+                        char_map[c_key] = char_rec
+                        if c_data.get("id"):
+                            char_map[str(c_data["id"])] = char_rec
+                    else:
+                        char_map[c_key] = existing_char
+                        if c_data.get("id"):
+                            char_map[str(c_data["id"])] = existing_char
+
+                # Migrate sessions & messages
+                char_sessions = b_data.get("characterSessions") or {}
+                if isinstance(char_sessions, dict):
+                    for char_ref_id, msgs in char_sessions.items():
+                        target_char = char_map.get(str(char_ref_id))
+                        if not target_char or not isinstance(msgs, list) or not msgs:
+                            continue
+
+                        # Find or create a chat session
+                        sess = session.scalar(
+                            select(ChatSession).where(
+                                ChatSession.owner_user_id == user.id,
+                                ChatSession.book_id == book.id,
+                                ChatSession.character_id == target_char.id,
+                            )
+                        )
+                        if sess is None:
+                            sess = ChatSession(
+                                owner_user_id=user.id,
+                                book_id=book.id,
+                                character_id=target_char.id,
+                                title=f"Chat with {target_char.name}",
+                                latest_psi_parameters=target_char.psi_parameters or {},
+                                latest_emotion_state=target_char.emotion_state or {},
+                            )
+                            session.add(sess)
+                            session.flush()
+                            migrated_sessions += 1
+
+                        # Append messages only if session has none
+                        curr_count = session.scalar(
+                            select(func.count(ChatMessage.id)).where(ChatMessage.session_id == sess.id)
+                        ) or 0
+                        if curr_count == 0:
+                            for seq, msg_obj in enumerate(msgs, start=1):
+                                if not isinstance(msg_obj, dict):
+                                    continue
+                                role_str = (msg_obj.get("role") or "user").lower()
+                                role_enum = ChatRole.assistant if role_str == "assistant" else ChatRole.user
+                                session.add(
+                                    ChatMessage(
+                                        session_id=sess.id,
+                                        role=role_enum,
+                                        content=msg_obj.get("content") or msg_obj.get("text") or "",
+                                        sequence_number=seq,
+                                        input_modality="text",
+                                    )
+                                )
+                                migrated_messages += 1
+                            session.flush()
+
+            return {
+                "status": "success",
+                "migrated_books": migrated_books,
+                "migrated_characters": migrated_characters,
+                "migrated_sessions": migrated_sessions,
+                "migrated_messages": migrated_messages,
+            }
 
     # --- Administrator Operations ---
 

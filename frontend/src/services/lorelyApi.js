@@ -63,8 +63,16 @@ export const lorelyApi = {
   },
 
   // Books
-  listBooks: async (accessToken) => {
-    const res = await request('/books', { accessToken });
+  listBooks: async (accessTokenOrScope, maybeAccessToken) => {
+    let scope;
+    let accessToken = maybeAccessToken;
+    if (typeof accessTokenOrScope === 'string' && ['all', 'mine', 'featured'].includes(accessTokenOrScope)) {
+      scope = accessTokenOrScope;
+    } else {
+      accessToken = accessTokenOrScope;
+    }
+    const query = scope ? `?scope=${scope}` : '';
+    const res = await request(`/books${query}`, { accessToken });
     return res.books || [];
   },
 
@@ -138,6 +146,21 @@ export const lorelyApi = {
   getCharacterMemories: async (characterId, accessToken) => {
     const res = await request(`/characters/${characterId}/memories`, { accessToken });
     return res.memories || [];
+  },
+
+  deleteCharacterMemory: async (characterId, memoryId, accessToken) => {
+    return request(`/characters/${characterId}/memories/${memoryId}`, {
+      method: 'DELETE',
+      accessToken,
+    });
+  },
+
+  updateCharacterMemory: async (characterId, memoryId, fact, accessToken) => {
+    return request(`/characters/${characterId}/memories/${memoryId}`, {
+      method: 'PATCH',
+      body: { fact },
+      accessToken,
+    });
   },
 
   // Conversations
@@ -312,6 +335,14 @@ export const lorelyApi = {
 
   getJobStatus: async (jobId, accessToken) => {
     return request(`/jobs/${jobId}`, { accessToken });
+  },
+
+  migrateLegacyWorkspace: async (payload, accessToken) => {
+    return request('/workspaces/migrate-legacy', {
+      method: 'POST',
+      body: payload,
+      accessToken,
+    });
   },
 
   // Authoritative Administrator Operations

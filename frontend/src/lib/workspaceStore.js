@@ -1,3 +1,7 @@
+/**
+ * @deprecated workspaceStore is superseded by PostgreSQL authority via lorelyApi.
+ * Retained exclusively for backward compatibility and local migration extraction.
+ */
 const STORAGE_PREFIX = 'book-character-simulation-workspace';
 
 function storageKey(ownerKey) {

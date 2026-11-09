@@ -160,7 +160,8 @@ def get_job_status(job_id: str):
 def list_books():
     user = _optional_authenticated_user()
     service = _lorely_service()
-    return jsonify({"books": service.list_books(user)})
+    scope = request.args.get("scope")
+    return jsonify({"books": service.list_books(user, scope=scope)})
 
 
 @v1_blueprint.route("/books", methods=["POST"])
@@ -281,6 +282,24 @@ def get_character_memories(character_id: str):
     return jsonify({"memories": service.get_character_memories(user, character_id)})
 
 
+@v1_blueprint.route("/characters/<character_id>/memories/<memory_id>", methods=["DELETE"])
+def delete_character_memory(character_id: str, memory_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    service.delete_character_memory(user, character_id, memory_id)
+    return jsonify({"status": "deleted"}), 200
+
+
+@v1_blueprint.route("/characters/<character_id>/memories/<memory_id>", methods=["PATCH"])
+def update_character_memory(character_id: str, memory_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    fact = body.get("fact") or ""
+    updated = service.update_character_memory(user, character_id, memory_id, fact)
+    return jsonify({"memory": updated}), 200
+
+
 @v1_blueprint.route("/characters/<character_id>/conversations", methods=["POST"])
 def create_character_conversation(character_id: str):
     user = _optional_authenticated_user()
@@ -399,6 +418,15 @@ def delete_conversation(session_id: str):
     service = _lorely_service()
     service.delete_conversation(user, session_id)
     return jsonify({"message": "Conversation deleted successfully."}), 200
+
+
+@v1_blueprint.route("/workspaces/migrate-legacy", methods=["POST"])
+def migrate_legacy_workspace():
+    user = _authenticated_user()
+    service = _lorely_service()
+    body = request.get_json(silent=True) or {}
+    result = service.migrate_legacy_workspace(user, body)
+    return jsonify(result), 200
 
 
 # --- Admin Routes ---
