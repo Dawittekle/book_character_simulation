@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import io
 import logging
+import uuid
+from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, redirect, request, send_file
 
@@ -115,7 +117,7 @@ def inspect_source():
         file_bytes = uploaded_file.read()
     else:
         body = request.get_json(silent=True) or {}
-        raw_text = body.get("text") or request.form.get("text")
+        raw_text = body.get("text") or body.get("raw_text") or request.form.get("text") or request.form.get("raw_text")
         filename = body.get("filename") or request.form.get("filename")
 
     result = service.inspect_source(
@@ -137,6 +139,7 @@ def ingest_source():
     if not temp_source_id:
         raise BadRequestError("temp_source_id is required.")
 
+    async_mode = bool(body.get("async") or body.get("async_mode") or request.args.get("async"))
     result = service.ingest_source(
         user,
         temp_source_id=temp_source_id,
@@ -145,8 +148,10 @@ def ingest_source():
         visibility=body.get("visibility", "private"),
         force_extraction=bool(body.get("force_extraction", False)),
         llm_provider=body.get("llm_provider"),
+        async_mode=async_mode,
     )
-    return jsonify(result), 201
+    status_code = 202 if async_mode else 201
+    return jsonify(result), status_code
 
 
 @v1_blueprint.route("/jobs/<job_id>", methods=["GET"])
@@ -242,6 +247,60 @@ def get_stored_file(storage_key: str):
         io.BytesIO(data),
         download_name=filename,
     )
+
+
+@v1_blueprint.route("/storage/presigned-upload", methods=["POST"])
+def get_presigned_upload_url():
+    user = _authenticated_user()
+    service = _lorely_service()
+    payload = request.get_json(silent=True) or {}
+    filename = payload.get("filename")
+    if not filename or not isinstance(filename, str):
+        raise BadRequestError("Filename is required for presigned upload.")
+
+    safe_name = Path(filename).name.strip()
+    if not safe_name or ".." in safe_name:
+        raise BadRequestError("Invalid filename.")
+
+    allowed_exts = {".pdf", ".epub", ".txt", ".json", ".jpg", ".jpeg", ".png", ".webp"}
+    ext = Path(safe_name).suffix.lower()
+    if ext not in allowed_exts:
+        raise BadRequestError(f"Unsupported file extension: {ext}")
+
+    content_type = payload.get("content_type")
+    book_id = payload.get("book_id")
+    upload_id = uuid.uuid4().hex[:12]
+
+    upload_user_id = getattr(user, "user_id", None) or getattr(user, "id", "anonymous")
+    if book_id:
+        storage_key = f"books/{book_id}/sources/{upload_id}_{safe_name}"
+    else:
+        storage_key = f"uploads/{upload_user_id}/{upload_id}_{safe_name}"
+
+    upload_info = service.storage_service.generate_presigned_upload_url(
+        key=storage_key,
+        content_type=content_type,
+        expires_in=payload.get("expires_in", 3600),
+    )
+    return jsonify(upload_info), 200
+
+
+@v1_blueprint.route("/storage/upload/<path:storage_key>", methods=["POST", "PUT"])
+def receive_direct_upload(storage_key: str):
+    """Local dev/test direct upload receiver when storage is in local mode."""
+    service = _lorely_service()
+    data = request.get_data()
+    if not data and request.files:
+        uploaded_file = next(iter(request.files.values()))
+        data = uploaded_file.read()
+    if not data:
+        raise BadRequestError("No binary data received.")
+    saved_key = service.storage_service.upload_file(
+        key=storage_key,
+        data=data,
+        content_type=request.content_type,
+    )
+    return jsonify({"key": saved_key, "bytes_written": len(data), "status": "uploaded"}), 201
 
 
 # --- Characters ---

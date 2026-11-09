@@ -5,9 +5,10 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from book_character_simulation_backend.config import Settings
+from book_character_simulation_backend.errors import ConfigurationError, StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +72,52 @@ class StorageService:
                 self.is_cloud = False
                 self.bucket_name = "local"
 
+        is_production = getattr(settings, "app_env", "development") in ("production", "prod")
+        if is_production and not self.is_cloud:
+            raise ConfigurationError(
+                "Cloudflare R2 is required in production environment (APP_ENV=production). "
+                "Local ephemeral disk storage is prohibited."
+            )
+
         if not self.is_cloud:
             self.local_dir.mkdir(parents=True, exist_ok=True)
             logger.info("StorageService running in local mode at: %s", self.local_dir)
+
+    def generate_presigned_upload_url(
+        self,
+        key: str,
+        content_type: str | None = None,
+        expires_in: int = 3600,
+    ) -> dict[str, Any]:
+        """Generate a direct upload URL for client-side uploads."""
+        clean_key = key.lstrip("/")
+
+        if self.is_cloud and self._s3_client is not None:
+            params: dict[str, Any] = {"Bucket": self.bucket_name, "Key": clean_key}
+            if content_type:
+                params["ContentType"] = content_type
+            url = self._s3_client.generate_presigned_url(
+                "put_object",
+                Params=params,
+                ExpiresIn=expires_in,
+            )
+            return {
+                "upload_url": str(url),
+                "method": "PUT",
+                "key": clean_key,
+                "storage_provider": "r2",
+                "bucket": self.bucket_name,
+                "headers": {"Content-Type": content_type} if content_type else {},
+            }
+
+        return {
+            "upload_url": f"/api/v1/storage/upload/{clean_key}",
+            "method": "POST",
+            "key": clean_key,
+            "storage_provider": "local",
+            "bucket": "local",
+            "headers": {"Content-Type": content_type} if content_type else {},
+        }
 
     def upload_file(
         self,
@@ -112,6 +156,10 @@ class StorageService:
                 )
                 return clean_key
             except Exception as exc:
+                if getattr(self.settings, "app_env", "development") in ("production", "prod"):
+                    raise StorageError(
+                        f"Cloudflare R2 upload failed for key '{clean_key}' on bucket '{self.bucket_name}': {exc}"
+                    ) from exc
                 logger.warning(
                     "Cloud storage put_object failed (%s on %s): %s. Falling back to local storage.",
                     clean_key,

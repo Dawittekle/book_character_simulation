@@ -26,6 +26,10 @@ class ConfigurationError(AppError):
     status_code = 500
 
 
+class StorageError(AppError):
+    status_code = 500
+
+
 class UpstreamServiceError(AppError):
     status_code = 502
 

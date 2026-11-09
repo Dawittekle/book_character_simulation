@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from .base import Base, IdentifierMixin, TimestampMixin, utc_now
 
@@ -160,6 +161,9 @@ class Book(IdentifierMixin, TimestampMixin, Base):
 
     owner: Mapped["UserAccount"] = relationship(back_populates="books")
     sources: Mapped[list["BookSource"]] = relationship(back_populates="book", cascade="all, delete-orphan")
+    chapters: Mapped[list["BookChapter"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
     characters: Mapped[list["CharacterProfileRecord"]] = relationship(
         back_populates="book", cascade="all, delete-orphan"
     )
@@ -172,6 +176,25 @@ class Book(IdentifierMixin, TimestampMixin, Base):
     chunks: Mapped[list["BookChunk"]] = relationship(
         back_populates="book", cascade="all, delete-orphan"
     )
+
+
+class BookChapter(IdentifierMixin, Base):
+    __tablename__ = "book_chapters"
+
+    book_id: Mapped[str] = mapped_column(
+        ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    chapter_order: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    start_char: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    end_char: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    word_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+
+    book: Mapped["Book"] = relationship(back_populates="chapters")
 
 
 class BookSource(IdentifierMixin, TimestampMixin, Base):
@@ -199,7 +222,11 @@ class BookChunk(IdentifierMixin, Base):
     chapter_title: Mapped[str | None] = mapped_column(String(255))
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(JSON)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector())
+    embedding_provider: Mapped[str] = mapped_column(String(50), default="gemini", nullable=False)
+    embedding_model: Mapped[str] = mapped_column(String(100), default="text-embedding-004", nullable=False)
+    embedding_dimensions: Mapped[int] = mapped_column(Integer, default=768, nullable=False)
+    content_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )

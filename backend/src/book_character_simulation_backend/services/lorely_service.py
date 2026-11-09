@@ -18,6 +18,7 @@ from ..auth import AuthenticatedUser
 from ..db.base import utc_now
 from ..db.models import (
     Book,
+    BookChapter,
     BookChunk,
     BookProcessingStatus,
     BookSource,
@@ -40,7 +41,7 @@ from ..db.session import DatabaseManager
 from ..errors import BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError
 from ..llm.factory import get_llm_provider
 from ..prompts import character_extraction_prompt, chat_prompt, fact_extraction_prompt
-from ..rag.chunker import build_semantic_chunks
+from ..rag.chunker import build_semantic_chunks, split_into_chapters
 from ..rag.embedding_provider import EmbeddingService
 from ..rag.retriever import SpoilerAwareRetriever
 from ..schemas.character import CharacterProfile
@@ -344,9 +345,26 @@ class LorelyService:
                     file_size_bytes=len(text_bytes),
                 )
                 session.add(source)
+
+                # Segment chapters and store canonical chapter records
+                chapters = split_into_chapters(extracted_text)
+                for ch in chapters:
+                    session.add(
+                        BookChapter(
+                            book_id=book.id,
+                            chapter_order=ch.order,
+                            title=ch.title,
+                            start_char=ch.start_char,
+                            end_char=ch.end_char,
+                            word_count=ch.word_count,
+                        )
+                    )
+
+                # Build semantic chunks with native pgvector embeddings
                 chunks = build_semantic_chunks(extracted_text)
                 for c in chunks:
                     vec = self.embedding_service.embed_text(c.content)
+                    c_hash = hashlib.sha256(c.content.encode("utf-8")).hexdigest()
                     session.add(
                         BookChunk(
                             book_id=book.id,
@@ -355,6 +373,10 @@ class LorelyService:
                             chunk_index=c.chunk_index,
                             content=c.content,
                             embedding=vec,
+                            embedding_provider=self.embedding_service.provider_name,
+                            embedding_model=self.embedding_service.model_name,
+                            embedding_dimensions=len(vec),
+                            content_hash=c_hash,
                         )
                     )
                 session.flush()
@@ -440,6 +462,9 @@ class LorelyService:
                 "page_count": doc.page_count,
                 "word_count": doc.word_count,
                 "is_narrative": classification.is_narrative,
+                "genre": classification.genre,
+                "language": classification.language,
+                "supported_for_character_simulation": classification.supported_for_character_simulation,
                 "warning": classification.warning,
                 "reasoning": classification.reasoning,
                 "storage_path": temp_storage_key,
@@ -452,6 +477,9 @@ class LorelyService:
             return {
                 "temp_source_id": job.id,
                 "document_type": classification.document_type,
+                "genre": classification.genre,
+                "language": classification.language,
+                "supported_for_character_simulation": classification.supported_for_character_simulation,
                 "confidence": classification.confidence,
                 "title": classification.title or (filename.rsplit(".", 1)[0].replace("_", " ").title() if filename else "Untitled Book"),
                 "author": classification.author,
@@ -473,6 +501,7 @@ class LorelyService:
         visibility: str = "private",
         force_extraction: bool = False,
         llm_provider: str | None = None,
+        async_mode: bool = False,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
@@ -483,22 +512,13 @@ class LorelyService:
             if job.owner_user_id != user.id:
                 raise ForbiddenError("You do not have access to this job.")
 
-            if job.document_type == "document" and not force_extraction:
+            is_doc = job.document_type == "document"
+            supported = job.job_metadata.get("supported_for_character_simulation", True)
+            if (is_doc or not supported) and not force_extraction:
                 raise BadRequestError(
                     job.job_metadata.get("warning")
                     or "This file is classified as a non-narrative document. To extract characters anyway, confirm by enabling force_extraction."
                 )
-
-            job.status = "processing"
-            job.stage = "creating_book"
-            job.progress = 40
-            session.flush()
-
-            extracted_text = job.job_metadata.get("text", "")
-            if not extracted_text and job.job_metadata.get("text_storage_path"):
-                downloaded = self.storage_service.download_file(job.job_metadata["text_storage_path"])
-                if downloaded:
-                    extracted_text = downloaded.decode("utf-8", errors="replace")
 
             final_title = (title or job.inferred_title or "Untitled Book").strip()
             final_author = (author or job.inferred_author or "").strip() or None
@@ -515,127 +535,47 @@ class LorelyService:
             session.add(book)
             session.flush()
 
-            # Save permanent assets to object storage (Cloudflare R2 / Local fallback)
-            orig_filename = job.job_metadata.get("filename") or f"{final_title}.txt"
-            perm_text_key = f"books/{book.id}/text/extracted.txt"
-            perm_orig_key = f"books/{book.id}/original/{orig_filename}"
-
-            try:
-                self.storage_service.upload_file(
-                    perm_text_key, extracted_text, content_type="text/plain; charset=utf-8"
-                )
-                temp_storage_key = job.job_metadata.get("storage_path")
-                if temp_storage_key and self.storage_service.file_exists(temp_storage_key):
-                    raw_data = self.storage_service.download_file(temp_storage_key)
-                    if raw_data:
-                        self.storage_service.upload_file(perm_orig_key, raw_data)
-                else:
-                    self.storage_service.upload_file(
-                        perm_orig_key, extracted_text.encode("utf-8"), content_type="text/plain"
-                    )
-            except Exception as exc:
-                logger.warning("Failed to store permanent files for book %s: %s", book.id, exc)
-
-            text_bytes = extracted_text.encode("utf-8")
-            source = BookSource(
-                book_id=book.id,
-                original_filename=orig_filename,
-                mime_type=f"application/{job.job_metadata.get('format', 'text')}",
-                storage_bucket=self.storage_service.bucket_name,
-                storage_path=perm_orig_key,
-                extracted_text=extracted_text,
-                extracted_text_hash=hashlib.sha256(text_bytes).hexdigest(),
-                file_size_bytes=len(text_bytes),
-            )
-            session.add(source)
             job.book_id = book.id
-            job.stage = "extracting_characters"
-            job.progress = 60
+            meta = dict(job.job_metadata or {})
+            meta["force_extraction"] = force_extraction
+            meta["llm_provider"] = llm_provider
+            job.job_metadata = meta
+            job.status = "queued"
+            job.stage = "queued"
+            job.progress = 5
             session.flush()
 
-            # Clean up temp upload files for this job
-            try:
-                self.storage_service.delete_prefix(f"temp_uploads/{job.id}/")
-            except Exception as exc:
-                logger.debug("Failed cleaning temp storage for job %s: %s", job.id, exc)
+            book_id = book.id
+            job_id = job.id
 
-            # Extract characters with LLM
-            characters = []
-            try:
-                provider = get_llm_provider(
-                    self.settings,
-                    provider_name=llm_provider or self.settings.llm_provider,
-                )
-                system_prompt, user_prompt = character_extraction_prompt(extracted_text[: self.settings.max_source_characters])
-                raw_response = provider.generate_json(system_prompt=system_prompt, user_prompt=user_prompt)
-                parsed_characters = parse_json_response(raw_response)
-                if isinstance(parsed_characters, list):
-                    for idx, char_dict in enumerate(parsed_characters):
-                        if not isinstance(char_dict, dict):
-                            continue
-                        if not char_dict.get("id"):
-                            char_dict["id"] = re.sub(r"[^a-z0-9]+", "-", char_dict.get("name", f"char-{idx+1}").lower()).strip("-")
-                        c = CharacterProfile.model_validate(char_dict)
-                        char_rec = CharacterProfileRecord(
-                            book_id=book.id,
-                            stable_character_key=c.id or f"char-{idx+1}",
-                            name=c.name,
-                            role="Protagonist" if idx == 0 else "Supporting",
-                            personality=c.personality,
-                            key_events=c.key_events or [],
-                            relationships=c.relationships or [],
-                            psi_parameters=c.psi_parameters.model_dump(mode="json"),
-                            emotion_state=c.emotion_state.model_dump(mode="json"),
-                        )
-                        session.add(char_rec)
-                        characters.append(char_rec)
+        if async_mode:
+            with self.db.session_scope() as session:
+                user = self.resolve_user(session, auth_user, allow_guest=True)
+                return {
+                    "job_id": job_id,
+                    "status": "queued",
+                    "book_id": book_id,
+                    "character_count": 0,
+                    "book": self._get_book_details_in_session(session, user, book_id),
+                }
 
-                # Build semantic chunks and store embeddings for RAG
-                job.stage = "indexing_passages"
-                job.progress = 85
-                chunks = build_semantic_chunks(extracted_text)
-                for c in chunks:
-                    vec = self.embedding_service.embed_text(c.content)
-                    session.add(
-                        BookChunk(
-                            book_id=book.id,
-                            chapter_order=c.chapter_order,
-                            chapter_title=c.chapter_title,
-                            chunk_index=c.chunk_index,
-                            content=c.content,
-                            embedding=vec,
-                        )
-                    )
-                session.flush()
+        # Synchronous execution: run pipeline via IngestionWorker
+        from ..workers.ingestion_worker import IngestionWorker
 
-                book.processing_status = BookProcessingStatus.ready
-                job.status = "completed"
-                job.stage = "ready"
-                job.progress = 100
+        worker = IngestionWorker(self.db, self.settings)
+        worker.process_job(job_id)
 
-                # Ingestion notification
-                session.add(
-                    NotificationRecord(
-                        user_id=user.id,
-                        title=f"'{book.title}' is ready!",
-                        message=f"Indexed into semantic vector database with {len(characters)} character personality dossiers.",
-                        category="ingestion",
-                        link_url=f"/books/{book.id}",
-                    )
-                )
-            except Exception as exc:
-                logger.exception("Character extraction failed during ingestion: %s", exc)
-                book.processing_status = BookProcessingStatus.failed
-                job.status = "failed"
-                job.error_message = str(exc)
-
-            session.flush()
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            refreshed_book = session.get(Book, book_id)
+            refreshed_job = session.get(ProcessingJob, job_id)
+            char_count = len(refreshed_book.characters) if refreshed_book else 0
             return {
-                "job_id": job.id,
-                "status": job.status,
-                "book_id": book.id,
-                "character_count": len(characters),
-                "book": self._get_book_details_in_session(session, user, book.id),
+                "job_id": refreshed_job.id if refreshed_job else job_id,
+                "status": refreshed_job.status if refreshed_job else "completed",
+                "book_id": book_id,
+                "character_count": char_count,
+                "book": self._get_book_details_in_session(session, user, book_id),
             }
 
     def get_job_status(self, auth_user: AuthenticatedUser | None, job_id: str) -> dict[str, Any]:
@@ -2586,8 +2526,8 @@ class LorelyService:
                 )
                 system_note = NotificationRecord(
                     user_id=user.id,
-                    title="Chroma Vector DB Connected",
-                    message="High-fidelity semantic embeddings and spoiler-aware retrieval are active.",
+                    title="Vector Search Engine Connected",
+                    message="High-fidelity pgvector semantic embeddings and spoiler-aware retrieval are active.",
                     category="system",
                     link_url="/library",
                     is_read=False,

@@ -660,7 +660,7 @@ DEFAULT_MEMBERSHIP_PLANS = [
         "voice_access": True,
         "description": "Dedicated vector search namespace, multi-seat classroom access, and custom persona prompt fine-tuning.",
         "features": [
-            "Isolated Chroma vector namespace",
+            "Dedicated pgvector semantic search namespace",
             "Multi-seat classroom & research access",
             "Custom persona & directive fine-tuning",
             "LMS & export integration",

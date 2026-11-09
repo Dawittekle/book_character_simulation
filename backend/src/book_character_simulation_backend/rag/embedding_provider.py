@@ -42,6 +42,22 @@ class EmbeddingService:
     def __init__(self, settings: Any):
         self.settings = settings
 
+    @property
+    def provider_name(self) -> str:
+        if self.settings and getattr(self.settings, "gemini_api_key", None) and getattr(self.settings, "app_env", "") != "testing":
+            return "gemini"
+        if self.settings and getattr(self.settings, "openai_api_key", None) and getattr(self.settings, "app_env", "") != "testing":
+            return "openai"
+        return "deterministic"
+
+    @property
+    def model_name(self) -> str:
+        if self.settings and getattr(self.settings, "gemini_api_key", None) and getattr(self.settings, "app_env", "") != "testing":
+            return "text-embedding-004"
+        if self.settings and getattr(self.settings, "openai_api_key", None) and getattr(self.settings, "app_env", "") != "testing":
+            return "text-embedding-3-small"
+        return "deterministic-128"
+
     def embed_text(self, text: str) -> list[float]:
         cleaned = text.strip()
         if not cleaned:

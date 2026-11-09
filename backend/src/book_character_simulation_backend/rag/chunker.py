@@ -12,31 +12,80 @@ class SemanticChunk:
     content: str
 
 
+@dataclass(slots=True)
+class ExtractedChapter:
+    order: int
+    title: str
+    content: str
+    start_char: int
+    end_char: int
+    word_count: int
+
+    def __iter__(self):
+        yield self.order
+        yield self.title
+        yield self.content
+
+    def __getitem__(self, index: int):
+        return (self.order, self.title, self.content)[index]
+
+
 CHAPTER_PATTERN = re.compile(
     r"(?i)^(?:chapter|part|act|scene|book|prologue|epilogue)\b[^\n]*",
     re.MULTILINE,
 )
 
 
-def split_into_chapters(text: str) -> list[tuple[int, str, str]]:
+def split_into_chapters(text: str) -> list[ExtractedChapter]:
     matches = list(CHAPTER_PATTERN.finditer(text))
     if not matches:
-        return [(1, "Full Story", text.strip())]
+        clean = text.strip()
+        words = len(re.findall(r"\w+", clean))
+        return [
+            ExtractedChapter(
+                order=1,
+                title="Full Story",
+                content=clean,
+                start_char=0,
+                end_char=len(text),
+                word_count=words,
+            )
+        ]
 
-    chapters = []
+    chapters: list[ExtractedChapter] = []
     # If there is content before the first chapter header
     if matches[0].start() > 0:
         preamble = text[: matches[0].start()].strip()
         if preamble:
-            chapters.append((0, "Prologue / Introduction", preamble))
+            words = len(re.findall(r"\w+", preamble))
+            chapters.append(
+                ExtractedChapter(
+                    order=0,
+                    title="Prologue / Introduction",
+                    content=preamble,
+                    start_char=0,
+                    end_char=matches[0].start(),
+                    word_count=words,
+                )
+            )
 
     for idx, match in enumerate(matches):
         start = match.start()
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
         raw_header = match.group(0).strip()
         chapter_content = text[start:end].strip()
+        words = len(re.findall(r"\w+", chapter_content))
         chapter_num = idx + 1
-        chapters.append((chapter_num, raw_header, chapter_content))
+        chapters.append(
+            ExtractedChapter(
+                order=chapter_num,
+                title=raw_header,
+                content=chapter_content,
+                start_char=start,
+                end_char=end,
+                word_count=words,
+            )
+        )
 
     return chapters
 
