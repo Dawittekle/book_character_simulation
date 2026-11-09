@@ -4,10 +4,9 @@ import { describe, it, expect, vi } from 'vitest';
 import LandingPage from '../pages/LandingPage';
 
 describe('LandingPage Component', () => {
-  it('renders hero title with italic serif accent and kicker badge', () => {
+  it('renders hero title with italic serif accent', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText('Lorely Studio')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       /Step into Minds of classic literature/i,
     );
@@ -169,6 +168,9 @@ describe('LandingPage Component', () => {
     const masterCta = screen.getByTestId('pricing-master-action-btn');
     fireEvent.click(masterCta);
     expect(handleGetStarted).toHaveBeenCalled();
+
+    // Verify Free Reader card is excluded from subscription tier comparisons
+    expect(screen.queryByText('Free Reader')).toBeNull();
   });
 
   it('renders the FAQ "THE NOSY SECTION" with framed tabs and expandable accordions', () => {
@@ -196,14 +198,10 @@ describe('LandingPage Component', () => {
     expect(screen.getByText(/Lorely employs strict chapter-gated spoiler boundaries/i)).toBeInTheDocument();
   });
 
-  it('renders the Parallax Footer with VIEW BELOW spacer, links, and social circles', () => {
+  it('renders the Parallax Footer with links, book graphic, and social circles', () => {
     render(<LandingPage />);
 
-    // Top spacer
-    expect(screen.getByTestId('footer-top-spacer')).toBeInTheDocument();
-    expect(screen.getByText('VIEW BELOW')).toBeInTheDocument();
-
-    // Parallax footer section
+    // Parallax footer section (without top spacer)
     expect(screen.getByTestId('footer-parallax-section')).toBeInTheDocument();
     expect(screen.getByText(/Interactive Cognitive Casts\. Step into the stories\./i)).toBeInTheDocument();
 
@@ -214,10 +212,14 @@ describe('LandingPage Component', () => {
 
     expect(screen.getByRole('link', { name: 'Pricing Plans' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Classical Library' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start Free' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Start Free' }).length).toBeGreaterThan(0);
+
+    // Verify removed links are absent
+    expect(screen.queryByText('Membership Tiers')).toBeNull();
+    expect(screen.queryByText('Admin Access')).toBeNull();
 
     // Copyright
-    expect(screen.getByText(/© 2026 Lorely Studio\. All Rights Reserved/i)).toBeInTheDocument();
+    expect(screen.getByText(/© 2026 Lorely\. All Rights Reserved/i)).toBeInTheDocument();
 
     // Social icons
     expect(screen.getByLabelText('Twitter')).toBeInTheDocument();

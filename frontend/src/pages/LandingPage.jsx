@@ -154,6 +154,46 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'yearly'
   const [selectedPlanId, setSelectedPlanId] = useState('scholar');
 
+  // Smart Sticky Floating Navbar (Hide on scroll down, show on scroll up)
+  const [navVisible, setNavVisible] = useState(true);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY || 0;
+          const prevY = lastScrollY.current;
+          const diff = currentY - prevY;
+
+          // Always visible near top of page
+          if (currentY < 60) {
+            setNavVisible(true);
+            setNavScrolled(false);
+          } else {
+            setNavScrolled(true);
+            if (diff > 8) {
+              // Scrolling down -> hide navbar
+              setNavVisible(false);
+              setMobileMenuOpen(false);
+            } else if (diff < -8) {
+              // Scrolling up -> reveal navbar
+              setNavVisible(true);
+            }
+          }
+          lastScrollY.current = currentY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Parallax Footer Scroll Tracking (Phase 5)
   const parallaxRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -267,7 +307,10 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
     };
   };
 
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || plans[0] || {
+  // Filter out free tier for landing subscription cards (paid upgrade tiers only)
+  const paidPlans = plans.filter((p) => p.id !== 'free' && (p.price_monthly > 0 || p.price > 0));
+  const effectivePlans = paidPlans.length > 0 ? paidPlans : plans.filter((p) => p.id !== 'free');
+  const selectedPlan = effectivePlans.find((p) => p.id === selectedPlanId) || effectivePlans[0] || {
     id: 'scholar',
     name: 'Literary Scholar (Plus)',
     price_monthly: 20,
@@ -368,8 +411,167 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
 
   return (
     <div className="landing-page-frame">
+      {/* Floating Smart Pill Navbar (Sticky with hide on scroll down / show on scroll up) */}
+      <motion.header
+        className={`landing-nav-wrapper ${navScrolled ? 'is-scrolled' : ''} ${navVisible ? 'nav-visible' : 'nav-hidden'}`}
+        initial={{ y: 0 }}
+        animate={{ y: navVisible ? 0 : -100 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <nav className="landing-nav-pill">
+          {/* Logo Cluster */}
+          <div className="landing-nav-logo-group">
+            <BrandLogo size={30} variant="orange" />
+            <span className="landing-nav-brand-title">Lorely</span>
+          </div>
+
+          {/* Desktop Links (Clean without dot before Home) */}
+          <div className="landing-nav-links">
+            <a href="#home" className="landing-nav-link is-active">
+              Home
+            </a>
+            <a href="#use-cases" className="landing-nav-link">
+              Use Cases
+            </a>
+            <a href="#pricing" className="landing-nav-link">
+              Pricing
+            </a>
+            <a href="#faq" className="landing-nav-link">
+              FAQ
+            </a>
+          </div>
+
+          {/* Right Cluster: Sign In, Start Free, and Mobile Hamburger */}
+          <div className="landing-nav-right">
+            <button
+              type="button"
+              className="landing-nav-signin-btn"
+              onClick={handleSignInClick}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              className="landing-nav-cta-btn"
+              onClick={handleCtaClick}
+            >
+              <span className="landing-nav-cta-desktop-text">Start Free</span>
+              <span className="landing-nav-cta-icon-circle">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+            </button>
+
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              aria-label="Toggle navigation menu"
+              className="landing-nav-hamburger"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Menu Dropdown */}
+          {mobileMenuOpen && (
+            <div className="landing-mobile-menu">
+              <a
+                href="#home"
+                className="landing-mobile-link is-active"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </a>
+              <a
+                href="#use-cases"
+                className="landing-mobile-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Use Cases
+              </a>
+              <a
+                href="#pricing"
+                className="landing-mobile-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Pricing
+              </a>
+              <a
+                href="#faq"
+                className="landing-mobile-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                FAQ
+              </a>
+              <div className="landing-mobile-divider" />
+              <button
+                type="button"
+                className="landing-mobile-link text-left"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleSignInClick();
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                className="landing-mobile-cta-btn"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleCtaClick();
+                }}
+              >
+                <span>Start Free</span>
+                <span className="landing-mobile-cta-arrow">→</span>
+              </button>
+            </div>
+          )}
+        </nav>
+      </motion.header>
+
       {/* Clipped Full-Viewport Hero Container */}
-      <section className="landing-hero-container">
+      <section className="landing-hero-container" id="home">
         {/* Background Looping Video */}
         <video
           className="landing-bg-video"
@@ -392,158 +594,8 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
 
         {/* Foreground Content Wrapper */}
         <div className="landing-foreground">
-          {/* Floating Pill Navbar */}
-          <header className="landing-nav-wrapper">
-            <nav className="landing-nav-pill">
-              {/* Logo Cluster */}
-              <div className="landing-nav-logo-group">
-                <BrandLogo size={30} variant="orange" />
-                <span className="landing-nav-brand-title">Lorely</span>
-              </div>
-
-              {/* Desktop Links */}
-              <div className="landing-nav-links">
-                <a href="#home" className="landing-nav-link is-active">
-                  <span className="landing-nav-dot" />
-                  Home
-                </a>
-                <a href="#use-cases" className="landing-nav-link">
-                  Use Cases
-                </a>
-                <a href="#pricing" className="landing-nav-link">
-                  Pricing
-                </a>
-                <a href="#faq" className="landing-nav-link">
-                  FAQ
-                </a>
-              </div>
-
-              {/* Right Cluster: STRICTLY NO CART ICON as required */}
-              <div className="landing-nav-right">
-                <button
-                  type="button"
-                  className="landing-nav-signin-btn"
-                  onClick={handleSignInClick}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  className="landing-nav-cta-btn"
-                  onClick={handleCtaClick}
-                >
-                  <span className="landing-nav-cta-desktop-text">Start Free</span>
-                  <span className="landing-nav-cta-mobile-text">Start Free</span>
-                  <span className="landing-nav-cta-icon-circle">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </span>
-                </button>
-
-                {/* Mobile Hamburger Button */}
-                <button
-                  type="button"
-                  aria-label="Toggle navigation menu"
-                  className="landing-nav-hamburger"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                >
-                  {mobileMenuOpen ? (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="3" y1="12" x2="21" y2="12" />
-                      <line x1="3" y1="6" x2="21" y2="6" />
-                      <line x1="3" y1="18" x2="21" y2="18" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-
-              {/* Mobile Menu Dropdown */}
-              {mobileMenuOpen && (
-                <div className="landing-mobile-menu">
-                  <a
-                    href="#home"
-                    className="landing-mobile-link is-active"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Home
-                  </a>
-                  <a
-                    href="#use-cases"
-                    className="landing-mobile-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Use Cases
-                  </a>
-                  <a
-                    href="#pricing"
-                    className="landing-mobile-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Pricing
-                  </a>
-                  <a
-                    href="#faq"
-                    className="landing-mobile-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    FAQ
-                  </a>
-                  <button
-                    type="button"
-                    className="landing-mobile-link text-left"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      handleSignInClick();
-                    }}
-                  >
-                    Sign In
-                  </button>
-                </div>
-              )}
-            </nav>
-          </header>
-
           {/* Centered Hero Content */}
           <div className="landing-hero-content">
-            {/* Kicker Badge */}
-            <div className="landing-kicker-badge">
-              <span className="landing-kicker-dot" />
-              <span>Lorely Studio</span>
-            </div>
-
             {/* Fluid Hero Headline */}
             <h1 className="landing-hero-headline">
               Step into{' '}
@@ -1102,7 +1154,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
               </div>
 
               <div className="pricing-tiers-grid">
-                {plans.map((p) => {
+                {effectivePlans.map((p) => {
                   const pPrice = calculatePrice(p.price_monthly || 0);
                   const isCurrent = p.id === selectedPlanId;
                   return (
@@ -1219,21 +1271,8 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
       </section>
 
       {/* =========================================================================
-          FOOTER SECTION: SPACER ("VIEW BELOW") + MAIN PARALLAX CONTAINER
+          FOOTER SECTION: MAIN PARALLAX CONTAINER WITH OPEN FOLIO GRAPHIC
           ========================================================================= */}
-      {/* 2. Top Spacer Section (View Below) */}
-      <section className="footer-top-spacer" data-testid="footer-top-spacer">
-        <motion.p
-          className="footer-spacer-text"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          VIEW BELOW
-        </motion.p>
-      </section>
-
-      {/* 3. Main Parallax Container */}
       <section
         ref={parallaxRef}
         className="footer-parallax-section"
@@ -1343,19 +1382,6 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                         Sign In
                       </button>
                     </li>
-                    <li><a href="#pricing" className="footer-link">Membership Tiers</a></li>
-                    <li>
-                      <a
-                        href="/admin"
-                        className="footer-link"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleSignInClick();
-                        }}
-                      >
-                        Admin Access
-                      </a>
-                    </li>
                   </ul>
                 </div>
               </div>
@@ -1364,7 +1390,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
             {/* Bottom Bar */}
             <div className="footer-bottom-bar">
               <span className="footer-copyright-text">
-                © 2026 Lorely Studio. All Rights Reserved
+                © 2026 Lorely. All Rights Reserved
               </span>
 
               <div className="footer-social-icons">

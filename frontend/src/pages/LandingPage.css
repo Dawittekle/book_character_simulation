@@ -71,14 +71,29 @@
 }
 
 /* ==========================================================================
-   Floating Pill Navbar
+   Floating Smart Pill Navbar (Sticky with hide on scroll down / show on scroll up)
    ========================================================================== */
 .landing-nav-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   display: flex;
   justify-content: center;
   padding-top: 1rem;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-nav-wrapper.nav-hidden {
+  transform: translateY(-120%);
+}
+
+.landing-nav-wrapper.nav-visible {
+  transform: translateY(0);
 }
 
 @media (min-width: 640px) {
@@ -91,6 +106,7 @@
 
 .landing-nav-pill {
   position: relative;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -99,8 +115,17 @@
   background-color: #ffffff;
   border-radius: var(--brand-radius-pill, 9999px);
   border: 1px solid var(--brand-border, #e5e5e5);
-  box-shadow: var(--brand-shadow-pill, 0 2px 8px rgba(0, 0, 0, 0.04));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   padding: 0.45rem 0.65rem 0.45rem 1rem;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.landing-nav-wrapper.is-scrolled .landing-nav-pill {
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(11, 15, 26, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-color: rgba(255, 255, 255, 0.85);
 }
 
 .landing-nav-logo-group {
@@ -148,14 +173,6 @@
 .landing-nav-link.is-active {
   color: var(--brand-text-strong, #0b0f1a);
   font-weight: 600;
-}
-
-.landing-nav-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 9999px;
-  background-color: #000000;
-  display: inline-block;
 }
 
 .landing-nav-link-dropdown {
@@ -215,20 +232,15 @@
   transform: translateY(-1px);
 }
 
-.landing-nav-cta-mobile-text {
+.landing-nav-cta-desktop-text {
   display: inline;
 }
 
-.landing-nav-cta-desktop-text {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .landing-nav-cta-mobile-text {
-    display: none;
-  }
-  .landing-nav-cta-desktop-text {
-    display: inline;
+/* Hide Sign In & Start Free buttons on mobile to avoid pill distortion */
+@media (max-width: 639px) {
+  .landing-nav-signin-btn,
+  .landing-nav-cta-btn {
+    display: none !important;
   }
 }
 
@@ -294,6 +306,39 @@
   background-color: var(--brand-tray-bg, #f5f2ee);
 }
 
+.landing-mobile-divider {
+  height: 1px;
+  background-color: var(--brand-border, #e5e5e5);
+  margin: 0.25rem 0;
+}
+
+.landing-mobile-cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--brand-orange, #ef4d23);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--brand-radius-pill, 9999px);
+  padding: 0.65rem 1.1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  box-shadow: 0 2px 8px rgba(239, 77, 35, 0.25);
+  transition: background-color 160ms ease;
+}
+
+.landing-mobile-cta-btn:hover {
+  background-color: var(--brand-orange-hover, #d9421a);
+}
+
+.landing-mobile-cta-arrow {
+  font-size: 1.1rem;
+}
+
 /* ==========================================================================
    Hero Centered Content
    ========================================================================== */
@@ -302,14 +347,14 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 2.5rem 1rem 1.5rem;
+  padding: 5.5rem 1rem 1.5rem;
   max-width: 960px;
   margin: 0 auto;
 }
 
 @media (min-width: 640px) {
   .landing-hero-content {
-    padding: 3.5rem 1rem 2rem;
+    padding: 7rem 1rem 2rem;
   }
 }
 
@@ -1868,37 +1913,8 @@
 }
 
 /* ==========================================================================
-   FOOTER SECTION: "VIEW BELOW" SPACER + PARALLAX FOOTER CARD
+   FOOTER SECTION: MAIN PARALLAX CONTAINER WITH OPEN FOLIO GRAPHIC
    ========================================================================== */
-.footer-top-spacer {
-  height: 40vh;
-  min-height: 180px;
-  background: linear-gradient(180deg, #5297ec 0%, #448de8 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 5;
-}
-
-@media (min-width: 768px) and (max-width: 1024px) {
-  .footer-top-spacer {
-    height: 25vh;
-  }
-}
-
-.footer-spacer-text {
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5em;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  margin: 0;
-  padding-left: 0.5em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
 /* Main Parallax Container - Serene Blue Sky Atmosphere */
 .footer-parallax-section {
   position: relative;
