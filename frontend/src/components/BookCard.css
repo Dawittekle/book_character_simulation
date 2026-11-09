@@ -1,24 +1,26 @@
 .lorely-book-card {
   display: flex;
   flex-direction: column;
-  background: #FFFFFF;
-  border: 1px solid rgba(229, 220, 205, 0.85);
-  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #e5e5e5);
+  border-radius: var(--brand-radius-2xl, 1rem);
+  padding: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
-  box-shadow: 0 4px 14px rgba(35, 31, 32, 0.04);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  box-shadow: 0 1px 3px rgba(11, 15, 26, 0.05), 0 1px 2px rgba(11, 15, 26, 0.03);
   position: relative;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
 }
 
 .lorely-book-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(28, 46, 36, 0.12);
-  border-color: rgba(200, 157, 92, 0.6);
+  box-shadow: 0 14px 28px -6px rgba(11, 15, 26, 0.09), 0 4px 10px -2px rgba(11, 15, 26, 0.04);
+  border-color: rgba(239, 77, 35, 0.35);
 }
 
 .lorely-book-card:focus-visible {
-  outline: 2px solid #C89D5C;
+  outline: 2px solid var(--brand-orange, #ef4d23);
   outline-offset: 2px;
 }
 
@@ -27,18 +29,20 @@
   width: 100%;
   aspect-ratio: 5 / 7;
   overflow: hidden;
-  background: #141E28;
+  border-radius: calc(var(--brand-radius-2xl, 1rem) - 4px);
+  background: var(--brand-obsidian, #0b0f1a);
 }
 
 .lorely-book-cover-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: block;
 }
 
 .lorely-book-card:hover .lorely-book-cover-img {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 .lorely-book-cover-shine {
@@ -47,59 +51,140 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 60%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 55%);
   pointer-events: none;
 }
 
+.lorely-book-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(11, 15, 26, 0.72) 0%, rgba(11, 15, 26, 0.15) 45%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.lorely-book-card:hover .lorely-book-hover-overlay {
+  opacity: 1;
+}
+
+.lorely-book-hover-cta {
+  background: #ffffff;
+  color: var(--brand-obsidian, #0b0f1a);
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(4px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+}
+
+.lorely-book-card:hover .lorely-book-hover-cta {
+  transform: translateY(0);
+}
+
+.lorely-book-arrow-icon {
+  stroke-width: 2.5;
+  transition: transform 0.15s ease;
+}
+
+.lorely-book-card:hover .lorely-book-arrow-icon {
+  transform: translateX(2px);
+}
+
 .lorely-book-info {
-  padding: 10px 12px 12px;
+  padding: 10px 4px 4px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: #FFFFFF;
+  background: #ffffff;
 }
 
 .lorely-book-title {
-  font-family: var(--font-serif-title, 'Cinzel', Georgia, serif);
-  font-size: 13px;
-  font-weight: 700;
-  color: #1C2E24;
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--brand-obsidian, #0b0f1a);
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .lorely-book-author {
-  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
-  font-size: 11px;
-  color: #7A7065;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6b7280;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.lorely-book-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 .lorely-book-meta-pill {
-  margin-top: 4px;
-  align-self: flex-start;
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #4b5563;
+  background: var(--brand-tray-bg, #f5f2ee);
+  border: 1px solid var(--brand-border, #e5e5e5);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  user-select: none;
+}
+
+.lorely-book-meta-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-orange, #ef4d23);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.lorely-book-genre-pill {
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 0.6875rem;
   font-weight: 600;
-  color: #63584B;
-  background: #F4EFE6;
-  border: 1px solid #E8E0D2;
+  color: var(--brand-orange, #ef4d23);
+  background: rgba(239, 77, 35, 0.08);
+  border: 1px solid rgba(239, 77, 35, 0.2);
   padding: 2px 7px;
-  border-radius: 12px;
+  border-radius: 9999px;
+  user-select: none;
 }
 
 /* Skeleton State for Book Card */
 .lorely-book-card.skeleton {
   pointer-events: none;
+  border-color: #ededed;
 }
 
 .lorely-book-card.skeleton .lorely-book-cover-container {
-  background: linear-gradient(90deg, #EBE3D7 25%, #DECFC0 50%, #EBE3D7 75%);
+  background: linear-gradient(90deg, #edeae5 25%, #e2ded8 50%, #edeae5 75%);
   background-size: 200% 100%;
   animation: book-skeleton-shimmer 1.5s infinite linear;
 }
@@ -107,25 +192,28 @@
 .book-skeleton-line {
   height: 12px;
   border-radius: 4px;
-  background: linear-gradient(90deg, #F0EAE0 25%, #E3D9CC 50%, #F0EAE0 75%);
+  background: linear-gradient(90deg, #f5f2ee 25%, #eae6e0 50%, #f5f2ee 75%);
   background-size: 200% 100%;
   animation: book-skeleton-shimmer 1.5s infinite linear;
 }
 
 .book-skeleton-line.title {
   width: 80%;
+  height: 14px;
   margin-bottom: 4px;
 }
 
 .book-skeleton-line.author {
   width: 50%;
+  height: 11px;
   margin-bottom: 6px;
 }
 
 .book-skeleton-line.pill {
-  width: 35%;
+  width: 38%;
   height: 16px;
-  border-radius: 10px;
+  border-radius: 9999px;
+  margin-top: 4px;
 }
 
 @keyframes book-skeleton-shimmer {

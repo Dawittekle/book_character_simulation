@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import BookCard from '../components/BookCard';
+import PillButton from '../components/brand/PillButton';
+import BadgePill from '../components/brand/BadgePill';
 import { lorelyApi } from '../services/lorelyApi';
 import './MyLibrary.css';
 
@@ -40,7 +42,7 @@ let cachedLibraryBooks = null;
 
 export default function MyLibrary() {
   const { openAddBookModal, accessToken } = useOutletContext();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [books, setBooks] = useState(cachedLibraryBooks || CANONICAL_BOOKS);
   const [loading, setLoading] = useState(!cachedLibraryBooks);
@@ -82,31 +84,42 @@ export default function MyLibrary() {
     return true;
   });
 
+  const clearSearch = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    setSearchParams(next);
+  };
+
   return (
     <div className="lorely-library-page" data-testid="my-library-page">
       <header className="library-header">
-        <button
-          type="button"
-          className="page-back-btn"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          ← Back
-        </button>
+        <div className="library-header-nav-row">
+          <button
+            type="button"
+            className="page-back-btn"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+          >
+            ← Back
+          </button>
+          
+          <button
+            type="button"
+            className="library-add-book-btn"
+            onClick={openAddBookModal}
+          >
+            + Add a Book
+          </button>
+        </div>
+
         <div className="library-title-group">
-          <h1 className="library-title">My Literary Shelf</h1>
+          <h1 className="library-title">
+            My Literary <span className="serif-italic">Shelf</span>
+          </h1>
           <p className="library-subtitle">
             Explore your imported manuscripts, literary novels, and public classics.
           </p>
         </div>
-
-        <button
-          type="button"
-          className="library-add-book-btn"
-          onClick={openAddBookModal}
-        >
-          <span>+</span> Add a Book
-        </button>
       </header>
 
       {/* Filter Tabs */}
@@ -136,16 +149,26 @@ export default function MyLibrary() {
         </div>
 
         {query && (
-          <span className="library-search-indicator">
-            Filtering by: “{query}”
-          </span>
+          <div className="library-search-indicator-pill">
+            <span className="library-search-indicator">
+              Filtering by: “{query}”
+            </span>
+            <button
+              type="button"
+              className="clear-search-btn"
+              onClick={clearSearch}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Book Grid */}
-      <div className="library-books-grid">
-        {loading && books.length === 0 ? (
-          [1, 2, 3, 4].map((n) => (
+      {/* Book Grid or Empty State */}
+      {loading && books.length === 0 ? (
+        <div className="library-books-grid">
+          {[1, 2, 3, 4].map((n) => (
             <article key={`book-skeleton-${n}`} className="lorely-book-card skeleton" aria-hidden="true">
               <div className="lorely-book-cover-container" />
               <div className="lorely-book-info">
@@ -154,17 +177,45 @@ export default function MyLibrary() {
                 <div className="book-skeleton-line pill" />
               </div>
             </article>
-          ))
-        ) : (
-          filteredBooks.map((book) => (
+          ))}
+        </div>
+      ) : filteredBooks.length === 0 ? (
+        <div className="library-empty-shelf-card">
+          <div className="empty-shelf-icon-bubble">📚</div>
+          <h3 className="empty-shelf-title">No manuscripts found</h3>
+          <p className="empty-shelf-desc">
+            {query
+              ? `No literary works matched your search for "${query}".`
+              : filter === 'mine'
+              ? 'You have not uploaded any personal books yet. Ingest your own manuscript to interact with custom characters.'
+              : 'No literary works found in this section.'}
+          </p>
+          <div className="empty-shelf-actions">
+            {query && (
+              <PillButton variant="white" size="sm" onClick={clearSearch}>
+                Clear Filter
+              </PillButton>
+            )}
+            <PillButton
+              variant="orange"
+              size="sm"
+              onClick={openAddBookModal}
+            >
+              + Ingest Manuscript
+            </PillButton>
+          </div>
+        </div>
+      ) : (
+        <div className="library-books-grid">
+          {filteredBooks.map((book) => (
             <BookCard
               key={book.id}
               book={book}
               onClick={() => navigate(`/books/${book.id}`)}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import BookCard from '../components/BookCard';
+import BadgePill from '../components/brand/BadgePill';
+import PillButton from '../components/brand/PillButton';
+import BrandLogo from '../components/brand/BrandLogo';
 import { lorelyApi } from '../services/lorelyApi';
 import './Discover.css';
 
@@ -13,6 +16,7 @@ const DEFAULT_FEATURED_BOOKS = [
     character_count: 2,
     cover_url: '/covers/white_nights.svg',
     summary: 'A sentimental novel from the recollections of a dreamer across the luminous white nights of St. Petersburg.',
+    visibility: 'featured',
   },
   {
     id: 'book-dostoevsky-ridiculous-man',
@@ -21,6 +25,7 @@ const DEFAULT_FEATURED_BOOKS = [
     character_count: 1,
     cover_url: '/covers/the_dream_of_a_ridiculous_man.svg',
     summary: 'A visionary philosophical revelation on an uncorrupted duplicate earth.',
+    visibility: 'featured',
   },
   {
     id: 'book-dostoevsky-honest-thief',
@@ -29,6 +34,7 @@ const DEFAULT_FEATURED_BOOKS = [
     character_count: 2,
     cover_url: '/covers/an_honest_thief.svg',
     summary: 'A touching narrative of conscience and forgiveness in St. Petersburg.',
+    visibility: 'featured',
   },
 ];
 
@@ -67,9 +73,15 @@ export default function Discover() {
       {/* Top Banner Tagline */}
       <section className="discover-hero-banner">
         <div className="banner-editorial-header">
-          <h1 className="banner-main-title">Lorely</h1>
+          <div className="banner-brand-lockup">
+            <BrandLogo size="md" showTagline={false} />
+            <h1 className="banner-main-title">Lorely</h1>
+          </div>
           <div className="banner-divider" />
           <div className="banner-taglines">
+            <BadgePill variant="white" dotColor="#ef4d23" className="banner-badge">
+              Interactive Cognitive Casts
+            </BadgePill>
             <h2 className="banner-headline">Step into the stories.</h2>
             <p className="banner-subtext">
               Explore books. Meet characters. Have meaningful conversations.
@@ -77,23 +89,28 @@ export default function Discover() {
           </div>
         </div>
 
-        {/* Hero Card: Timeless Classics */}
+        {/* Hero Feature Card: Timeless Classics */}
         <div className="hero-feature-card">
           <div className="hero-feature-content">
-            <span className="hero-feature-badge">Featured Collection</span>
+            <BadgePill variant="orange" dotColor="#ef4d23">
+              Featured Collection
+            </BadgePill>
             <h2 className="hero-feature-title">Timeless Classics</h2>
             <p className="hero-feature-desc">
               Explore legendary characters from literary masterpieces.
             </p>
-            <button
-              type="button"
-              className="hero-feature-btn"
+            <PillButton
+              variant="dark"
+              size="md"
+              hasChevron
               onClick={() => navigate('/library')}
+              className="hero-feature-cta"
             >
               Explore Collection →
-            </button>
+            </PillButton>
           </div>
           <div className="hero-feature-art">
+            <div className="hero-art-glow" />
             <img
               src="/covers/the_midnight_letters.svg"
               alt="Vintage books"
@@ -106,7 +123,10 @@ export default function Discover() {
       {/* Your Library Section */}
       <section className="discover-library-section">
         <div className="section-header-row">
-          <h2 className="section-heading">Your Library</h2>
+          <div className="section-title-wrap">
+            <h2 className="section-heading">Your Library</h2>
+            <span className="section-subtext">Recent and recommended literary works</span>
+          </div>
           <button
             type="button"
             className="view-all-link"
@@ -116,7 +136,7 @@ export default function Discover() {
           </button>
         </div>
 
-        {/* Books Carousel / Grid */}
+        {/* Books Shelf Grid */}
         <div className="books-shelf-grid">
           {books.slice(0, 4).map((book) => (
             <BookCard key={book.id} book={book} />
@@ -133,68 +153,79 @@ export default function Discover() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') openAddBookModal();
             }}
+            aria-label="Add a Book to your library"
           >
-            <span className="add-book-plus">+</span>
-            <span className="add-book-title">Add a Book</span>
-            <span className="add-book-sub">Upload a PDF, TXT or paste text</span>
+            <div className="add-book-icon-bubble">
+              <span className="add-book-plus">+</span>
+            </div>
+            <div className="add-book-text-group">
+              <span className="add-book-title">Add a Book</span>
+              <span className="add-book-sub">Upload a PDF, TXT or paste text</span>
+            </div>
+            <span className="add-book-arrow-pill">Upload manuscript →</span>
           </div>
 
           <div className="literary-quote-card">
-            <span className="quote-quill-icon">🪶</span>
+            <div className="quote-mark-icon">“</div>
             <p className="quote-text">
               “Books are not just stories, but worlds waiting to be lived.”
             </p>
+            <span className="quote-attribution">— The Art of Literary Simulation</span>
           </div>
         </div>
       </section>
 
       {/* Bottom Feature Strip */}
       <footer className="discover-feature-strip">
-        <div className="feature-strip-item">
-          <span className="strip-item-icon">📖</span>
-          <div className="strip-item-text">
-            <strong>Bring Any Book</strong>
-            <span>PDF, TXT or more</span>
+        <div className="feature-strip-items-tray">
+          <div className="feature-strip-item">
+            <span className="strip-item-icon">📖</span>
+            <div className="strip-item-text">
+              <strong>Bring Any Book</strong>
+              <span>PDF, TXT or more</span>
+            </div>
+          </div>
+
+          <div className="strip-item-divider" />
+
+          <div className="feature-strip-item">
+            <span className="strip-item-icon">👥</span>
+            <div className="strip-item-text">
+              <strong>Discover Characters</strong>
+              <span>Get to know their personalities</span>
+            </div>
+          </div>
+
+          <div className="strip-item-divider" />
+
+          <div className="feature-strip-item">
+            <span className="strip-item-icon">💬</span>
+            <div className="strip-item-text">
+              <strong>Talk Naturally</strong>
+              <span>Text or voice</span>
+            </div>
+          </div>
+
+          <div className="strip-item-divider" />
+
+          <div className="feature-strip-item">
+            <span className="strip-item-icon">🧠</span>
+            <div className="strip-item-text">
+              <strong>Watch Them Evolve</strong>
+              <span>With memory and emotion</span>
+            </div>
           </div>
         </div>
 
-        <div className="strip-item-divider" />
-
-        <div className="feature-strip-item">
-          <span className="strip-item-icon">👥</span>
-          <div className="strip-item-text">
-            <strong>Discover Characters</strong>
-            <span>Get to know their personalities</span>
-          </div>
-        </div>
-
-        <div className="strip-item-divider" />
-
-        <div className="feature-strip-item">
-          <span className="strip-item-icon">💬</span>
-          <div className="strip-item-text">
-            <strong>Talk Naturally</strong>
-            <span>Text or voice</span>
-          </div>
-        </div>
-
-        <div className="strip-item-divider" />
-
-        <div className="feature-strip-item">
-          <span className="strip-item-icon">🧠</span>
-          <div className="strip-item-text">
-            <strong>Watch Them Evolve</strong>
-            <span>With memory and emotion</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="start-exploring-btn"
+        <PillButton
+          variant="primary"
+          size="md"
+          hasChevron
           onClick={() => navigate('/library')}
+          className="start-exploring-btn"
         >
           Start Exploring →
-        </button>
+        </PillButton>
       </footer>
     </div>
   );

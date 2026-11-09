@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { lorelyApi } from '../services/lorelyApi';
 import { getFriendlyErrorMessage } from '../lib/errorUtils';
+import BrandLogo from './brand/BrandLogo';
+import PillButton from './brand/PillButton';
+import BadgePill from './brand/BadgePill';
 import './AddBookModal.css';
 
 export default function AddBookModal({
@@ -106,16 +109,28 @@ export default function AddBookModal({
   };
 
   return (
-    <div className="add-book-modal-backdrop" role="dialog" aria-modal="true">
+    <div className="add-book-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="add-book-modal-title">
       <div className="add-book-modal">
         <div className="modal-header">
           <div className="modal-title-group">
-            <span className="modal-icon">{isSharedCatalog ? '🏛️' : '📖'}</span>
-            <h2 className="modal-title">
-              {isSharedCatalog ? 'Add Book to Shared Catalog (Featured & Vector Indexed)' : 'Add a Book to Your Library'}
-            </h2>
+            <div className="modal-brand-badge">
+              <BrandLogo size="sm" showTagline={false} showText={false} />
+            </div>
+            <div>
+              <h2 id="add-book-modal-title" className="modal-title">
+                {isSharedCatalog ? 'Add Book to Shared Catalog' : 'Add a Book to Your Library'}
+              </h2>
+              <span className="modal-subtitle">
+                {isSharedCatalog ? 'Featured & vector-indexed catalog' : 'Import manuscript, novella, or classic story'}
+              </span>
+            </div>
           </div>
-          <button type="button" className="modal-close-btn" onClick={resetForm} aria-label="Close modal">
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={resetForm}
+            aria-label="Close modal"
+          >
             ✕
           </button>
         </div>
@@ -152,11 +167,24 @@ export default function AddBookModal({
                     className="file-input-hidden"
                   />
                   <label htmlFor="book-file-input" className="file-dropzone-label">
-                    <span className="dropzone-icon">📚</span>
+                    <div className="dropzone-icon-bubble">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
                     <span className="dropzone-text">
                       {file ? file.name : 'Click or drop PDF, EPUB, or TXT file here'}
                     </span>
-                    <span className="dropzone-sub">Supports classic novels, short stories, and manuscripts</span>
+                    <span className="dropzone-sub">
+                      Supports classic novels, short stories, and manuscripts
+                    </span>
+                    {file && (
+                      <span className="dropzone-file-tag">
+                        Selected: {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    )}
                   </label>
                 </div>
               ) : (
@@ -172,25 +200,31 @@ export default function AddBookModal({
               )}
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={resetForm}>
+                <PillButton variant="ghost" size="md" onClick={resetForm}>
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
+                </PillButton>
+                <PillButton
+                  variant="orange"
+                  size="md"
+                  hasChevron
                   onClick={handleInspect}
                   disabled={tab === 'upload' ? !file : !pastedText.trim()}
                 >
                   Inspect & Classify →
-                </button>
+                </PillButton>
               </div>
             </div>
           )}
 
           {step === 'inspecting' && (
             <div className="modal-loading-step">
-              <div className="loading-spinner" />
-              <p className="loading-text">Analyzing narrative content and detecting characters...</p>
+              <div className="modal-spinner-flower">
+                <BrandLogo size="lg" showTagline={false} showText={false} />
+              </div>
+              <h3 className="loading-heading">Analyzing Manuscript</h3>
+              <p className="loading-text">
+                Analyzing narrative content, chapter structures, and detecting characters...
+              </p>
             </div>
           )}
 
@@ -216,8 +250,9 @@ export default function AddBookModal({
 
               <div className="inspection-summary-card">
                 <div className="summary-field">
-                  <label>Title</label>
+                  <label htmlFor="inspect-title-input">Title</label>
                   <input
+                    id="inspect-title-input"
                     type="text"
                     value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
@@ -226,8 +261,9 @@ export default function AddBookModal({
                   />
                 </div>
                 <div className="summary-field">
-                  <label>Author</label>
+                  <label htmlFor="inspect-author-input">Author</label>
                   <input
+                    id="inspect-author-input"
                     type="text"
                     value={customAuthor}
                     onChange={(e) => setCustomAuthor(e.target.value)}
@@ -236,8 +272,9 @@ export default function AddBookModal({
                   />
                 </div>
                 <div className="summary-field">
-                  <label>Catalog Visibility</label>
+                  <label htmlFor="inspect-visibility-select">Catalog Visibility</label>
                   <select
+                    id="inspect-visibility-select"
                     value={visibility}
                     onChange={(e) => setVisibility(e.target.value)}
                     className="summary-input"
@@ -248,33 +285,47 @@ export default function AddBookModal({
                   </select>
                 </div>
                 <div className="summary-pills-row">
-                  <span className="summary-pill">Format: {inspectionResult.format?.toUpperCase()}</span>
-                  <span className="summary-pill">Words: {inspectionResult.word_count?.toLocaleString()}</span>
-                  <span className="summary-pill">Pages: {inspectionResult.page_count}</span>
-                  <span className="summary-pill">Type: {inspectionResult.document_type}</span>
+                  <BadgePill variant="muted" dotColor={null}>
+                    Format: {inspectionResult.format?.toUpperCase()}
+                  </BadgePill>
+                  <BadgePill variant="muted" dotColor={null}>
+                    Words: {inspectionResult.word_count?.toLocaleString()}
+                  </BadgePill>
+                  <BadgePill variant="muted" dotColor={null}>
+                    Pages: {inspectionResult.page_count}
+                  </BadgePill>
+                  <BadgePill variant="muted" dotColor={null}>
+                    Type: {inspectionResult.document_type}
+                  </BadgePill>
                 </div>
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setStep('select')}>
+                <PillButton variant="ghost" size="md" onClick={() => setStep('select')}>
                   Back
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
+                </PillButton>
+                <PillButton
+                  variant="orange"
+                  size="md"
+                  hasChevron
                   onClick={handleConfirmIngest}
                   disabled={inspectionResult.document_type === 'document' && !forceExtraction}
                 >
                   Confirm & Ingest Book →
-                </button>
+                </PillButton>
               </div>
             </div>
           )}
 
           {step === 'ingesting' && (
             <div className="modal-loading-step">
-              <div className="loading-spinner" />
-              <p className="loading-text">Building semantic chunks, vector embeddings, and extracting character cast...</p>
+              <div className="modal-spinner-flower is-pulsing">
+                <BrandLogo size="lg" showTagline={false} showText={false} />
+              </div>
+              <h3 className="loading-heading">Building Neural Embeddings</h3>
+              <p className="loading-text">
+                Building semantic chunks, vector embeddings, and extracting character cast...
+              </p>
             </div>
           )}
         </div>
