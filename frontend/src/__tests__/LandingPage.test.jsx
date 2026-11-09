@@ -127,4 +127,33 @@ describe('LandingPage Component', () => {
     expect(screen.getByText('Cognitive Voice & State Laboratory')).toBeInTheDocument();
     expect(screen.getByText('Bring Your Own Books to Life')).toBeInTheDocument();
   });
+
+  it('renders the Pricing section with sky atmosphere, currency toggling, and tier switching', async () => {
+    const handleGetStarted = vi.fn();
+    render(<LandingPage onGetStarted={handleGetStarted} />);
+
+    // Pricing section existence
+    expect(screen.getByTestId('landing-pricing-section')).toBeInTheDocument();
+    expect(screen.getByText('cheaper than hiring')).toBeInTheDocument();
+    expect(screen.getByText(/one flat price. pause or cancel whenever./i)).toBeInTheDocument();
+    expect(screen.getByText(/Compare All Available Membership Tiers/i)).toBeInTheDocument();
+
+    // Default currency is ETB (Birr)
+    expect(screen.getAllByText(/ETB/i).length).toBeGreaterThan(0);
+
+    // Toggle currency to USD
+    const usdButton = screen.getByRole('button', { name: /USD \(\$\)/i });
+    fireEvent.click(usdButton);
+    expect(usdButton).toHaveClass('is-active');
+
+    // Toggle billing to Yearly
+    const yearlyButton = screen.getByRole('button', { name: /Yearly/i });
+    fireEvent.click(yearlyButton);
+    expect(yearlyButton).toHaveClass('is-active');
+
+    // Master CTA button triggers onGetStarted
+    const masterCta = screen.getByTestId('pricing-master-action-btn');
+    fireEvent.click(masterCta);
+    expect(handleGetStarted).toHaveBeenCalled();
+  });
 });

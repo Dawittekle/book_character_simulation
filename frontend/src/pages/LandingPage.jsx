@@ -122,6 +122,22 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
     };
   };
 
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || plans[0] || {
+    id: 'scholar',
+    name: 'Literary Scholar (Plus)',
+    price_monthly: 20,
+    badge: 'MOST POPULAR',
+    description: 'Advanced cognitive simulations, unlimited shelf imports, HD speech synthesis.',
+    features: [
+      'Unlimited book shelf imports',
+      'Unlimited daily dialogue turns',
+      'HD Voice mode simulation',
+      'Dynamic emotional drift telemetry',
+    ],
+  };
+
+  const currentPlanPrice = calculatePrice(selectedPlan.price_monthly || 0);
+
   // Card 2 Form States
   const [cognitiveDepth, setCognitiveDepth] = useState('Deep Analysis');
   const [spoilerBoundary, setSpoilerBoundary] = useState('Chapter 12 (Mid-Book)');
@@ -203,6 +219,9 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 </a>
                 <a href="#use-cases" className="landing-nav-link">
                   Use Cases
+                </a>
+                <a href="#pricing" className="landing-nav-link">
+                  Pricing
                 </a>
                 <a href="#features" className="landing-nav-link">
                   Features
@@ -308,6 +327,20 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Home
+                  </a>
+                  <a
+                    href="#use-cases"
+                    className="landing-mobile-link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Use Cases
+                  </a>
+                  <a
+                    href="#pricing"
+                    className="landing-mobile-link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Pricing
                   </a>
                   <a
                     href="#features"
@@ -761,6 +794,185 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 </div>
               </div>
             </article>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          PRICING SECTION: "PICK YOUR PLAN."
+          ========================================================================= */}
+      <section className="landing-pricing-section" id="pricing" data-testid="landing-pricing-section">
+        {/* Soft Dreamy Floating Sky Clouds matching Image 2 */}
+        <div className="sky-cloud sky-cloud-1" aria-hidden="true" />
+        <div className="sky-cloud sky-cloud-2" aria-hidden="true" />
+        <div className="sky-cloud sky-cloud-3" aria-hidden="true" />
+        <div className="sky-cloud sky-cloud-4" aria-hidden="true" />
+
+        <div className="landing-pricing-container">
+          <div className="landing-section-header pricing-header">
+            <span className="landing-script-tag">cheaper than hiring</span>
+            <h2 className="landing-section-title">
+              PICK YOUR <span className="text-orange">PLAN.</span>
+            </h2>
+            <div className="landing-taped-pill">
+              <span>one flat price. pause or cancel whenever.</span>
+            </div>
+          </div>
+
+          {/* Master White Rounded Container */}
+          <div className="pricing-master-card">
+            {/* Top Controls Bar: Currency + Billing Switchers */}
+            <div className="pricing-controls-bar">
+              <div className="pricing-toggle-wrap">
+                <span className="pricing-toggle-label">Currency:</span>
+                <div className="pricing-pill-toggle">
+                  <button
+                    type="button"
+                    className={`pricing-pill-btn ${currency === 'ETB' ? 'is-active' : ''}`}
+                    onClick={() => setCurrency('ETB')}
+                  >
+                    <span className="currency-flag-dot">🇪🇹</span> ETB (Birr)
+                  </button>
+                  <button
+                    type="button"
+                    className={`pricing-pill-btn ${currency === 'USD' ? 'is-active' : ''}`}
+                    onClick={() => setCurrency('USD')}
+                  >
+                    <span className="currency-flag-dot">🇺🇸</span> USD ($)
+                  </button>
+                </div>
+              </div>
+
+              <div className="pricing-toggle-wrap">
+                <span className="pricing-toggle-label">Billing:</span>
+                <div className="pricing-pill-toggle">
+                  <button
+                    type="button"
+                    className={`pricing-pill-btn ${billingPeriod === 'monthly' ? 'is-active' : ''}`}
+                    onClick={() => setBillingPeriod('monthly')}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    className={`pricing-pill-btn ${billingPeriod === 'yearly' ? 'is-active' : ''}`}
+                    onClick={() => setBillingPeriod('yearly')}
+                  >
+                    Yearly <span className="pricing-discount-tag">-20%</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Featured Showcase matching Image 2 */}
+            <div className="pricing-featured-showcase">
+              <div className="pricing-showcase-left">
+                <div className="pricing-showcase-tier-badge">
+                  <span className="showcase-badge-pill">{selectedPlan.badge || 'RECOMMENDED TIER'}</span>
+                  <h3 className="pricing-showcase-name">{selectedPlan.name}</h3>
+                </div>
+
+                <div className="pricing-showcase-price-box">
+                  <span className="pricing-showcase-symbol">{currency === 'USD' ? '$' : ''}</span>
+                  <span className="pricing-showcase-amount">{currentPlanPrice.amount.toLocaleString()}</span>
+                  {currency === 'ETB' && <span className="pricing-showcase-suffix"> ETB</span>}
+                  <span className="pricing-showcase-period">{currentPlanPrice.period}</span>
+                </div>
+
+                <p className="pricing-showcase-description">
+                  {selectedPlan.description || 'Full cognitive persona simulations, custom book ingestion, and neural speech synthesis.'}
+                </p>
+              </div>
+
+              <div className="pricing-showcase-right">
+                <div className="pricing-founding-badge">
+                  <span className="founding-pulse-dot" />
+                  <span>Founding rate, ends soon</span>
+                </div>
+
+                <ul className="pricing-checklist">
+                  {(selectedPlan.features && selectedPlan.features.length > 0
+                    ? selectedPlan.features
+                    : [
+                        'Unlimited book shelf imports',
+                        'Unlimited daily dialogue turns',
+                        'HD Voice mode simulation',
+                        'Dynamic emotional drift telemetry',
+                      ]
+                  ).map((feature, idx) => (
+                    <li key={idx} className="pricing-checklist-item">
+                      <span className="pricing-check-icon">✓</span>
+                      <span className="pricing-check-text">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  type="button"
+                  className="pricing-master-action-btn"
+                  onClick={handleCtaClick}
+                  data-testid="pricing-master-action-btn"
+                >
+                  <span>
+                    {selectedPlan.price_monthly === 0
+                      ? 'Start Free Reading'
+                      : `Upgrade to ${selectedPlan.name}`}
+                  </span>
+                  <span className="pricing-btn-arrow">→</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Comparison Strip: All Real Backend Plans */}
+            <div className="pricing-strip-section">
+              <div className="pricing-strip-header">
+                <span className="pricing-strip-title">Compare All Available Membership Tiers</span>
+                <span className="pricing-strip-subtitle">Select any tier to inspect its full allowance</span>
+              </div>
+
+              <div className="pricing-tiers-grid">
+                {plans.map((p) => {
+                  const pPrice = calculatePrice(p.price_monthly || 0);
+                  const isCurrent = p.id === selectedPlanId;
+                  return (
+                    <div
+                      key={p.id}
+                      className={`pricing-tier-card ${isCurrent ? 'is-current' : ''}`}
+                      onClick={() => setSelectedPlanId(p.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setSelectedPlanId(p.id);
+                        }
+                      }}
+                    >
+                      {p.badge && (
+                        <div className="tier-pill-badge">
+                          <span>{p.badge}</span>
+                        </div>
+                      )}
+                      <h4 className="tier-card-heading">{p.name}</h4>
+                      <div className="tier-card-price-row">
+                        <span className="tier-card-amount">{pPrice.display}</span>
+                        <span className="tier-card-period">{billingPeriod === 'yearly' ? '/mo (yr)' : '/mo'}</span>
+                      </div>
+                      <p className="tier-card-desc">{p.description}</p>
+                      <button
+                        type="button"
+                        className={`tier-card-select-btn ${isCurrent ? 'is-selected' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPlanId(p.id);
+                        }}
+                      >
+                        {isCurrent ? '✓ Active Plan' : 'Select Tier'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </section>
