@@ -50,13 +50,14 @@ describe('Phase 3: Independent Authentication Pages', () => {
       expect(screen.queryByText(/staff portal/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/curator or administrator/i)).not.toBeInTheDocument();
 
-      // Right side literary cognition metrics panel
-      expect(screen.getByText('Rodion Raskolnikov')).toBeInTheDocument();
-      expect(screen.getByText('Crime and Punishment')).toBeInTheDocument();
-      expect(screen.getByText('96.8%')).toBeInTheDocument();
-      expect(screen.getByText('Resonance')).toBeInTheDocument();
-      expect(screen.getByText('Elizabeth Bennet')).toBeInTheDocument();
-      expect(screen.getByText('Step Into the Minds of Literature')).toBeInTheDocument();
+      // Right side book and sky atmosphere (artistic open folio and clouds)
+      expect(screen.getByTestId('auth-book-graphic')).toBeInTheDocument();
+      expect(screen.getByText(/Step into the stories/i)).toBeInTheDocument();
+
+      // Ensure artificial metric cards are removed
+      expect(screen.queryByText('Rodion Raskolnikov')).not.toBeInTheDocument();
+      expect(screen.queryByText('Elizabeth Bennet')).not.toBeInTheDocument();
+      expect(screen.queryByText('Improvement rate')).not.toBeInTheDocument();
     });
 
     it('toggles password visibility when the eye button is clicked', () => {

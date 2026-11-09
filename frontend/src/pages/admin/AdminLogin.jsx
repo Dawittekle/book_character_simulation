@@ -45,91 +45,9 @@ export default function AdminLogin({ onBack }) {
     }
   };
 
-  const adminRightPanel = (
-    <>
-      <div className="auth-telemetry-stack">
-        {/* Admin Metric Card 1: System Telemetry */}
-        <div className="auth-metric-card-primary">
-          <div className="auth-telemetry-header">
-            <div className="auth-telemetry-subject">
-              <span className="auth-telemetry-avatar" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
-                SYS
-              </span>
-              <div>
-                <span className="auth-telemetry-character">Neural & RAG Engine</span>
-                <span className="auth-telemetry-work">Core Cluster &bull; v2.4</span>
-              </div>
-            </div>
-            <div className="auth-telemetry-score-badge">
-              <span className="auth-telemetry-score-val" style={{ color: '#10b981' }}>99.9%</span>
-              <span className="auth-telemetry-score-lbl">Uptime</span>
-            </div>
-          </div>
-
-          <div className="auth-telemetry-quote-box" style={{ borderLeftColor: '#10b981' }}>
-            <p className="auth-telemetry-quote">
-              142 Canonical Works Indexed &bull; 2.4M Embeddings &bull; Zero Hallucination Vector Filters
-            </p>
-          </div>
-
-          <div className="auth-telemetry-tags">
-            <span className="auth-pill-tag tag-active">
-              ● RAG Pipeline Active
-            </span>
-            <span className="auth-pill-tag tag-spoiler">
-              🛡 Spoiler Protocol Enforced
-            </span>
-          </div>
-        </div>
-
-        {/* Admin Metric Card 2: Security & Governance */}
-        <div className="auth-metric-card-secondary">
-          <div className="auth-telemetry-header">
-            <div className="auth-telemetry-subject">
-              <span className="auth-telemetry-avatar avatar-salon">ADM</span>
-              <div>
-                <span className="auth-telemetry-character">Curator Operations</span>
-                <span className="auth-telemetry-work">Role-Based Access Control</span>
-              </div>
-            </div>
-            <div className="auth-telemetry-stat-badge">
-              <span className="stat-count">12</span>
-              <span className="stat-sub">Pods</span>
-            </div>
-          </div>
-
-          <div className="auth-telemetry-memory-snippet">
-            <span className="memory-prefix">Audit Status:</span>
-            <p className="memory-text">
-              Multi-tenant isolation verified. Audit logging stream active.
-            </p>
-          </div>
-
-          <div className="auth-telemetry-tags">
-            <span className="auth-pill-tag tag-voice">
-              🔐 Encrypted Session
-            </span>
-            <span className="auth-pill-tag tag-tension">
-              Administrative Sphere
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="auth-visual-editorial">
-        <h3 className="auth-editorial-title">
-          Administrative Core & Governance
-        </h3>
-        <p className="auth-editorial-text">
-          Curator oversight for literary knowledge ingestion, persona calibration, RAG retrieval boundaries, and system-wide dialogue moderation.
-        </p>
-      </div>
-    </>
-  );
-
   return (
     <div data-testid="admin-login-page">
-      <AuthLayout onBack={onBack} backUrl="/" rightPanel={adminRightPanel}>
+      <AuthLayout onBack={onBack} backUrl="/">
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ display: 'inline-flex', marginBottom: '0.75rem' }}>
             <BrandLogo size={36} variant="orange" />
