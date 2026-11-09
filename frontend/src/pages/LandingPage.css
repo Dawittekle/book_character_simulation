@@ -1871,8 +1871,9 @@
    FOOTER SECTION: "VIEW BELOW" SPACER + PARALLAX FOOTER CARD
    ========================================================================== */
 .footer-top-spacer {
-  height: 50vh;
-  background-color: #fdfdfd;
+  height: 40vh;
+  min-height: 180px;
+  background: linear-gradient(180deg, #5297ec 0%, #448de8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1882,12 +1883,12 @@
 
 @media (min-width: 768px) and (max-width: 1024px) {
   .footer-top-spacer {
-    height: 30vh;
+    height: 25vh;
   }
 }
 
 .footer-spacer-text {
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.75);
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1895,28 +1896,70 @@
   font-family: ui-monospace, SFMono-Regular, monospace;
   margin: 0;
   padding-left: 0.5em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* Main Parallax Container */
+/* Main Parallax Container - Serene Blue Sky Atmosphere */
 .footer-parallax-section {
   position: relative;
-  height: 100vh;
-  min-height: 650px;
+  min-height: 800px;
   overflow: hidden;
-  background-image: url('https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260430_115327_3f256636-9e63-4885-8d0b-09317dc2b0a5.png&w=1280&q=85');
-  background-size: cover;
-  background-position: center;
+  background: linear-gradient(180deg, #448de8 0%, #68a9f6 30%, #90c2fc 65%, #cde5ff 100%);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
 }
 
-/* Top-Aligned Footer Card */
+/* Fluffy Atmospheric Clouds for Footer Sky */
+.sky-cloud-footer-1 {
+  width: 220px;
+  height: 64px;
+  top: 60px;
+  left: 6%;
+}
+
+.sky-cloud-footer-1::before {
+  width: 95px;
+  height: 95px;
+  top: -46px;
+  left: 32px;
+}
+
+.sky-cloud-footer-1::after {
+  width: 110px;
+  height: 110px;
+  top: -54px;
+  left: 92px;
+}
+
+.sky-cloud-footer-2 {
+  width: 180px;
+  height: 52px;
+  top: 130px;
+  right: 7%;
+  opacity: 0.75;
+}
+
+.sky-cloud-footer-2::before {
+  width: 80px;
+  height: 80px;
+  top: -38px;
+  left: 28px;
+}
+
+.sky-cloud-footer-2::after {
+  width: 92px;
+  height: 92px;
+  top: -44px;
+  left: 76px;
+}
+
+/* Top-Aligned Footer Card Container */
 .footer-card-container {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
   padding-top: 48px;
+  padding-bottom: 32px;
   padding-left: 20px;
   padding-right: 20px;
   box-sizing: border-box;
@@ -1925,22 +1968,23 @@
 
 @media (min-width: 768px) {
   .footer-card-container {
-    padding-top: 72px;
+    padding-top: 64px;
+    padding-bottom: 48px;
     padding-left: 32px;
     padding-right: 32px;
   }
 }
 
 .footer-card {
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 20px 50px rgba(11, 15, 26, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 24px 60px rgba(18, 54, 102, 0.18), 0 4px 16px rgba(0, 0, 0, 0.04);
   border-radius: 20px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   display: flex;
   flex-direction: column;
 }
@@ -2067,13 +2111,24 @@
   transition: color 0.2s ease;
 }
 
+.footer-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
 .footer-link:hover {
   color: var(--brand-orange, #ef4d23);
 }
 
 /* Bottom Bar */
 .footer-bottom-bar {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f1f5f9;
   background: #ffffff;
   padding: 20px 40px;
   display: flex;
@@ -2091,7 +2146,7 @@
 
 .footer-copyright-text {
   font-size: 13px;
-  color: #6b7280;
+  color: #475569;
   font-weight: 500;
 }
 
@@ -2105,11 +2160,11 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4b5563;
+  color: #475569;
   text-decoration: none;
   background: #ffffff;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2123,42 +2178,30 @@
   box-shadow: 0 4px 12px rgba(239, 77, 35, 0.3);
 }
 
-/* Foreground Truck Parallax Layer */
+/* Foreground Open Book Folio Parallax Layer */
 .footer-parallax-foreground {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 100%;
+  position: relative;
+  width: 100%;
   pointer-events: none;
-  z-index: 20;
+  z-index: 8;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  padding-bottom: 24px;
+  margin-top: -20px;
 }
 
-.footer-foreground-img {
+.footer-book-artwork-wrap {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: bottom;
-  transform-origin: bottom;
-  transform: scale(1.5);
+  max-width: 620px;
+  padding: 0 20px;
+  display: flex;
+  justify-content: center;
+  filter: drop-shadow(0 20px 30px rgba(30, 58, 138, 0.22));
 }
 
-@media (min-width: 640px) {
-  .footer-foreground-img {
-    transform: scale(1.1);
-  }
-}
-
-@media (min-width: 768px) {
-  .footer-foreground-img {
-    transform: scale(2.0);
-  }
-}
-
-@media (min-width: 1024px) {
-  .footer-foreground-img {
-    transform: scale(1.05);
-  }
+.footer-book-svg {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
 }

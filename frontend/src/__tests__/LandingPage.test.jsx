@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import LandingPage from '../pages/LandingPage';
 
@@ -16,19 +16,21 @@ describe('LandingPage Component', () => {
 
   it('renders floating navbar with flower logo and NO shopping cart icon', () => {
     const { container } = render(<LandingPage />);
+    const nav = container.querySelector('.landing-nav-pill');
+    expect(nav).toBeInTheDocument();
 
     // Brand title in nav
-    expect(screen.getAllByText('Lorely').length).toBeGreaterThan(0);
+    expect(within(nav).getByText('Lorely')).toBeInTheDocument();
     // Active Navigation Links
-    expect(screen.getByText('Home')).toBeInTheDocument();
-    expect(screen.getByText('Use Cases')).toBeInTheDocument();
-    expect(screen.getByText('Pricing')).toBeInTheDocument();
-    expect(screen.getByText('FAQ')).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /home/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /use cases/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /pricing/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /faq/i })).toBeInTheDocument();
 
     // Verify unused / section-less buttons are STRICTLY removed
-    expect(screen.queryByText('Features')).toBeNull();
-    expect(screen.queryByText('Library')).toBeNull();
-    expect(screen.queryByText('Pages')).toBeNull();
+    expect(within(nav).queryByText('Features')).toBeNull();
+    expect(within(nav).queryByText('Library')).toBeNull();
+    expect(within(nav).queryByText('Pages')).toBeNull();
 
     // Verify STRICTLY NO cart icon exists in DOM
     expect(container.querySelector('[aria-label="cart"]')).toBeNull();
@@ -49,10 +51,11 @@ describe('LandingPage Component', () => {
 
   it('triggers onGetStarted when primary CTA buttons are clicked', () => {
     const handleGetStarted = vi.fn();
-    render(<LandingPage onGetStarted={handleGetStarted} />);
+    const { container } = render(<LandingPage onGetStarted={handleGetStarted} />);
 
     // Nav CTA: "Start Free" (updated per design)
-    const navCta = screen.getByRole('button', { name: /start free/i });
+    const navCta = container.querySelector('.landing-nav-cta-btn');
+    expect(navCta).toBeInTheDocument();
     fireEvent.click(navCta);
     expect(handleGetStarted).toHaveBeenCalledTimes(1);
 
@@ -64,18 +67,20 @@ describe('LandingPage Component', () => {
 
   it('triggers onSignIn when Sign In nav button is clicked', () => {
     const handleSignIn = vi.fn();
-    render(<LandingPage onSignIn={handleSignIn} />);
+    const { container } = render(<LandingPage onSignIn={handleSignIn} />);
 
-    const signInBtn = screen.getByRole('button', { name: /sign in/i });
+    const signInBtn = container.querySelector('.landing-nav-signin-btn');
+    expect(signInBtn).toBeInTheDocument();
     fireEvent.click(signInBtn);
     expect(handleSignIn).toHaveBeenCalledTimes(1);
   });
 
   it('toggles mobile menu dropdown when hamburger button is clicked', () => {
-    render(<LandingPage />);
+    const { container } = render(<LandingPage />);
 
     const hamburger = screen.getByRole('button', { name: /toggle navigation menu/i });
-    expect(screen.queryByRole('link', { name: /home/i, hidden: false })).toBeInTheDocument();
+    const nav = container.querySelector('.landing-nav-pill');
+    expect(within(nav).getByRole('link', { name: /home/i })).toBeInTheDocument();
 
     fireEvent.click(hamburger);
     // Mobile dropdown opens
@@ -202,10 +207,14 @@ describe('LandingPage Component', () => {
     expect(screen.getByTestId('footer-parallax-section')).toBeInTheDocument();
     expect(screen.getByText(/Interactive Cognitive Casts\. Step into the stories\./i)).toBeInTheDocument();
 
-    // 3 Link column headers
+    // 3 Link column headers with real application links
+    expect(screen.getByText('Navigation')).toBeInTheDocument();
     expect(screen.getByText('Platform')).toBeInTheDocument();
-    expect(screen.getByText('Ecosystem')).toBeInTheDocument();
-    expect(screen.getByText('Governance')).toBeInTheDocument();
+    expect(screen.getByText('Reader Access')).toBeInTheDocument();
+
+    expect(screen.getByRole('link', { name: 'Pricing Plans' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Classical Library' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start Free' })).toBeInTheDocument();
 
     // Copyright
     expect(screen.getByText(/© 2026 Lorely Studio\. All Rights Reserved/i)).toBeInTheDocument();
@@ -216,8 +225,7 @@ describe('LandingPage Component', () => {
     expect(screen.getByLabelText('Instagram')).toBeInTheDocument();
     expect(screen.getByLabelText('LinkedIn')).toBeInTheDocument();
 
-    // Foreground image
-    const foregroundImg = screen.getByAltText('Foreground layer');
-    expect(foregroundImg).toBeInTheDocument();
+    // Book folio foreground graphic
+    expect(screen.getByTestId('footer-book-graphic')).toBeInTheDocument();
   });
 });
