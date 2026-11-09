@@ -201,6 +201,9 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                   <span className="landing-nav-dot" />
                   Home
                 </a>
+                <a href="#use-cases" className="landing-nav-link">
+                  Use Cases
+                </a>
                 <a href="#features" className="landing-nav-link">
                   Features
                 </a>
@@ -606,6 +609,158 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          USE CASES SECTION: "BUILT FOR LITERATURE."
+          ========================================================================= */}
+      <section className="landing-usecases-section" id="use-cases" data-testid="landing-usecases-section">
+        <div className="landing-usecases-container">
+          <div className="landing-section-header">
+            <span className="landing-script-tag">living literature in practice</span>
+            <h2 className="landing-section-title">
+              BUILT FOR <span className="text-orange">LITERATURE.</span>
+            </h2>
+            <div className="landing-taped-pill">
+              <span>four ways readers, researchers, and creators converse with the classics.</span>
+            </div>
+          </div>
+
+          <div className="landing-usecases-grid">
+            {/* Case 1: Scholars & Exegesis */}
+            <article className="usecase-card">
+              <div className="usecase-frame-tab">
+                <span className="frame-bracket">[ ]</span>
+                <span className="frame-text">TEXTUAL-EXEGESIS.FRAME</span>
+              </div>
+              <div className="usecase-card-inner">
+                <div className="usecase-card-meta">
+                  <span className="usecase-num">01</span>
+                  <span className="usecase-kicker">ACADEMIC RESEARCH & CRITICISM</span>
+                </div>
+                <h3 className="usecase-title">Ground-Truth Textual Exegesis</h3>
+                <p className="usecase-desc">
+                  Interrogate philosophical convictions and moral dilemmas directly with Dostoevsky, Austen, or Tolstoy. Every conversational response is anchored in verified book chunks with chapter citations and match fidelity.
+                </p>
+                <div className="usecase-interactive-widget widget-citation">
+                  <div className="citation-quote-pill">
+                    <span className="citation-quote-mark">“</span>
+                    <span className="citation-quote-body">I am a sick man... I am a wicked man. An unattractive man.</span>
+                  </div>
+                  <div className="citation-match-tag">
+                    <span className="citation-spark">✦</span>
+                    <span>Notes from Underground — Chapter 1</span>
+                    <strong className="citation-pct">96% Match</strong>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Case 2: Readers & Literary Salon */}
+            <article className="usecase-card">
+              <div className="usecase-frame-tab">
+                <span className="frame-bracket">[ ]</span>
+                <span className="frame-text">SALON-DIALOGUE.FRAME</span>
+              </div>
+              <div className="usecase-card-inner">
+                <div className="usecase-card-meta">
+                  <span className="usecase-num">02</span>
+                  <span className="usecase-kicker">IMMERSIVE READING ROOM</span>
+                </div>
+                <h3 className="usecase-title">Step Inside the Literary Salon</h3>
+                <p className="usecase-desc">
+                  Read from the inside out. Speak with secondary characters beside the St. Petersburg canals, examine unspoken motivations, and build ongoing memories across reading sessions.
+                </p>
+                <div className="usecase-interactive-widget widget-resonance">
+                  <div className="resonance-gauge-wrap">
+                    <RadialGauge
+                      value={94}
+                      color="#ef4d23"
+                      showLabels={false}
+                    />
+                    <div className="resonance-gauge-info">
+                      <span className="resonance-label">Persona Bond Resonance</span>
+                      <span className="resonance-status">● 4 Active Character Bonds</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Case 3: Creative Writers & Voice Lab */}
+            <article className="usecase-card">
+              <div className="usecase-frame-tab">
+                <span className="frame-bracket">[ ]</span>
+                <span className="frame-text">COGNITIVE-LAB.FRAME</span>
+              </div>
+              <div className="usecase-card-inner">
+                <div className="usecase-card-meta">
+                  <span className="usecase-num">03</span>
+                  <span className="usecase-kicker">VOICE & PERSONA DRIFT</span>
+                </div>
+                <h3 className="usecase-title">Cognitive Voice & State Laboratory</h3>
+                <p className="usecase-desc">
+                  Study dialogical tension and psychological nuance. Observe how character emotional baselines drift across hope, curiosity, and melancholy without breaking canonical persona rules.
+                </p>
+                <div className="usecase-interactive-widget widget-emotions">
+                  <div className="emotion-drift-row">
+                    <span className="emotion-name">Curiosity</span>
+                    <div className="emotion-bar-track">
+                      <div className="emotion-bar-fill fill-curiosity" style={{ width: '88%' }} />
+                    </div>
+                    <span className="emotion-val">88%</span>
+                  </div>
+                  <div className="emotion-drift-row">
+                    <span className="emotion-name">Hope</span>
+                    <div className="emotion-bar-track">
+                      <div className="emotion-bar-fill fill-hope" style={{ width: '65%' }} />
+                    </div>
+                    <span className="emotion-val">65%</span>
+                  </div>
+                  <div className="emotion-drift-row">
+                    <span className="emotion-name">Melancholy</span>
+                    <div className="emotion-bar-track">
+                      <div className="emotion-bar-fill fill-melancholy" style={{ width: '42%' }} />
+                    </div>
+                    <span className="emotion-val">42%</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Case 4: Curators & Custom Archives */}
+            <article className="usecase-card">
+              <div className="usecase-frame-tab">
+                <span className="frame-bracket">[ ]</span>
+                <span className="frame-text">PRIVATE-ARCHIVES.FRAME</span>
+              </div>
+              <div className="usecase-card-inner">
+                <div className="usecase-card-meta">
+                  <span className="usecase-num">04</span>
+                  <span className="usecase-kicker">PERSONAL SHELF INGESTION</span>
+                </div>
+                <h3 className="usecase-title">Bring Your Own Books to Life</h3>
+                <p className="usecase-desc">
+                  Ingest personal EPUBs, PDFs, and manuscripts into isolated Chroma vector namespaces. Our narrative classifier extracts characters, identifies chapters, and constructs cognitive dossiers in seconds.
+                </p>
+                <div className="usecase-interactive-widget widget-formats">
+                  <div className="format-chips-row">
+                    <span className="format-chip">EPUB</span>
+                    <span className="format-chip">PDF</span>
+                    <span className="format-chip">TXT</span>
+                  </div>
+                  <div className="pipeline-steps-row">
+                    <span className="pipeline-step done">✓ Cover Gate</span>
+                    <span className="pipeline-arrow">→</span>
+                    <span className="pipeline-step done">✓ Chunker</span>
+                    <span className="pipeline-arrow">→</span>
+                    <span className="pipeline-step active">✦ Cast Ready</span>
+                  </div>
+                </div>
+              </div>
+            </article>
           </div>
         </div>
       </section>

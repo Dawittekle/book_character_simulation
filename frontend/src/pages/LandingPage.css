@@ -679,3 +679,330 @@
 .landing-form-close-btn:hover {
   color: var(--brand-text-strong, #0b0f1a);
 }
+
+/* ==========================================================================
+   USE CASES SECTION: "BUILT FOR LITERATURE."
+   ========================================================================== */
+.landing-usecases-section {
+  padding: 104px 24px 96px;
+  background-color: #faf8f5;
+  border-top: 1px solid #ebd9c8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.landing-usecases-container {
+  width: 100%;
+  max-width: 1140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.landing-section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  margin-bottom: 52px;
+}
+
+.landing-script-tag {
+  font-family: 'Caveat', 'Playfair Display', Georgia, cursive, serif;
+  font-style: italic;
+  font-size: 24px;
+  color: var(--brand-orange, #ef4d23);
+  letter-spacing: 0.02em;
+}
+
+.landing-section-title {
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--brand-obsidian, #0b0f1a);
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.landing-section-title .text-orange {
+  color: var(--brand-orange, #ef4d23);
+}
+
+.landing-taped-pill {
+  background: #fbf5eb;
+  border: 1px solid #ebd9c8;
+  padding: 6px 18px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #78716c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.landing-usecases-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  width: 100%;
+}
+
+@media (max-width: 880px) {
+  .landing-usecases-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.usecase-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.usecase-frame-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  background: #f0ebe3;
+  border: 1px solid #e0d8cc;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  padding: 4px 10px;
+  width: fit-content;
+  margin-left: 12px;
+  letter-spacing: 0.04em;
+}
+
+.usecase-frame-tab .frame-bracket {
+  color: var(--brand-orange, #ef4d23);
+}
+
+.usecase-card-inner {
+  background: #ffffff;
+  border: 1px solid #ebd9c8;
+  border-radius: 16px;
+  padding: 28px 26px;
+  box-shadow: 0 4px 20px rgba(11, 15, 26, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  box-sizing: border-box;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.usecase-card-inner:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 36px rgba(11, 15, 26, 0.08);
+  border-color: rgba(239, 77, 35, 0.35);
+}
+
+.usecase-card-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.usecase-num {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--brand-orange, #ef4d23);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.usecase-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usecase-title {
+  font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--brand-obsidian, #0b0f1a);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.usecase-desc {
+  font-size: 13.5px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.usecase-interactive-widget {
+  background: #fbf9f6;
+  border: 1px solid #ebd9c8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Widget 1: Citations */
+.citation-quote-pill {
+  display: flex;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #1f2937;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.citation-quote-mark {
+  color: var(--brand-orange, #ef4d23);
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.citation-match-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+  border-top: 1px dashed #ebd9c8;
+  padding-top: 8px;
+}
+
+.citation-spark {
+  color: var(--brand-orange, #ef4d23);
+}
+
+.citation-pct {
+  color: #059669;
+  font-weight: 700;
+}
+
+/* Widget 2: Resonance Gauge */
+.resonance-gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.resonance-gauge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resonance-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-obsidian, #0b0f1a);
+}
+
+.resonance-status {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 500;
+}
+
+/* Widget 3: Emotion Drift Bars */
+.emotion-drift-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.emotion-name {
+  width: 72px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.emotion-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #e5e5e5;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.emotion-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.fill-curiosity {
+  background: #3b82f6;
+}
+
+.fill-hope {
+  background: #10b981;
+}
+
+.fill-melancholy {
+  background: #f59e0b;
+}
+
+.emotion-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1f2937;
+  width: 32px;
+  text-align: right;
+  font-family: ui-monospace, monospace;
+}
+
+/* Widget 4: Formats & Pipeline */
+.format-chips-row {
+  display: flex;
+  gap: 8px;
+}
+
+.format-chip {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #374151;
+  font-family: ui-monospace, monospace;
+}
+
+.pipeline-steps-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  border-top: 1px dashed #ebd9c8;
+  padding-top: 8px;
+}
+
+.pipeline-step.done {
+  color: #059669;
+  font-weight: 600;
+}
+
+.pipeline-step.active {
+  color: var(--brand-orange, #ef4d23);
+  font-weight: 700;
+}
+
+.pipeline-arrow {
+  color: #d1d5db;
+}

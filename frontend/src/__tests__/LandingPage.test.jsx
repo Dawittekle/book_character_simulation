@@ -107,4 +107,24 @@ describe('LandingPage Component', () => {
     expect(screen.getByText('128')).toBeInTheDocument();
     expect(screen.getByText('Acoustic Naturalness')).toBeInTheDocument();
   });
+
+  it('renders the Use Cases section with 4 domain cards and framed badges', () => {
+    render(<LandingPage />);
+
+    expect(screen.getByTestId('landing-usecases-section')).toBeInTheDocument();
+    expect(screen.getByText('living literature in practice')).toBeInTheDocument();
+    expect(screen.getByText(/four ways readers, researchers, and creators converse/i)).toBeInTheDocument();
+
+    // 4 framed tabs
+    expect(screen.getByText('TEXTUAL-EXEGESIS.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('SALON-DIALOGUE.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('COGNITIVE-LAB.FRAME')).toBeInTheDocument();
+    expect(screen.getByText('PRIVATE-ARCHIVES.FRAME')).toBeInTheDocument();
+
+    // 4 use cases
+    expect(screen.getByText('Ground-Truth Textual Exegesis')).toBeInTheDocument();
+    expect(screen.getByText('Step Inside the Literary Salon')).toBeInTheDocument();
+    expect(screen.getByText('Cognitive Voice & State Laboratory')).toBeInTheDocument();
+    expect(screen.getByText('Bring Your Own Books to Life')).toBeInTheDocument();
+  });
 });
