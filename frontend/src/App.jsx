@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-
 import './App.css';
 import AppShell from './components/AppShell';
 import AuthScreen from './components/AuthScreen';
+import LandingPage from './pages/LandingPage';
 import Discover from './pages/Discover';
 import MyLibrary from './pages/MyLibrary';
 import CharacterGallery from './pages/CharacterGallery';
@@ -89,6 +90,12 @@ function App() {
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [userRole, setUserRole] = useState('user');
   const [loadingRole, setLoadingRole] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(
+    typeof window !== 'undefined' &&
+      (window.location.pathname === '/login' ||
+        window.location.pathname === '/signup' ||
+        window.location.pathname.startsWith('/admin'))
+  );
 
   useEffect(() => {
     if (supabase === null) {
@@ -181,7 +188,27 @@ function App() {
   }
 
   if (session === null) {
-    return <AuthScreen />;
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      return (
+        <BrowserRouter>
+          <Routes>
+            <Route path="admin/login" element={<AdminLogin />} />
+            <Route path="*" element={<Navigate replace to="/admin/login" />} />
+          </Routes>
+        </BrowserRouter>
+      );
+    }
+
+    if (showAuthModal) {
+      return <AuthScreen onBackToLanding={() => setShowAuthModal(false)} />;
+    }
+
+    return (
+      <LandingPage
+        onGetStarted={() => setShowAuthModal(true)}
+        onSignIn={() => setShowAuthModal(true)}
+      />
+    );
   }
 
   const handlePromoteToAdmin = async () => {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './AuthScreen.css';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
-function AuthScreen({ setupMode = false }) {
+function AuthScreen({ setupMode = false, onBackToLanding }) {
   const [intent, setIntent] = useState('signin');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -127,6 +127,28 @@ function AuthScreen({ setupMode = false }) {
       </section>
 
       <section className="auth-panel">
+        {onBackToLanding && (
+          <button
+            type="button"
+            className="auth-back-link"
+            onClick={onBackToLanding}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--brand-orange, #ef4d23)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: '0.75rem',
+              padding: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
+            ← Back to Home
+          </button>
+        )}
         <div className="section-eyebrow">
           {setupMode ? 'Environment setup' : 'Sign in to continue'}
         </div>
