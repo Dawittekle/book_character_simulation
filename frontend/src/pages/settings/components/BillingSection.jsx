@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, ArrowUpRight, CheckCircle2, Download, AlertCircle, FileText } from 'lucide-react';
+import { CreditCard, Download, AlertCircle, FileText } from 'lucide-react';
 import { lorelyApi } from '../../../services/lorelyApi';
 
 export default function BillingSection({ onOpenPricingModal, accessToken }) {
@@ -15,7 +15,7 @@ export default function BillingSection({ onOpenPricingModal, accessToken }) {
       setData(res);
     } catch (err) {
       console.warn('Failed to fetch subscription data:', err);
-      // Fallback graceful free tier state
+      // Graceful fallback state
       setData({
         subscription: {
           plan_slug: 'free',
@@ -72,17 +72,8 @@ Thank you for reading with Lorely!
     currency: 'USD',
     is_paid: false,
   };
-  const usage = data?.usage || {
-    books: { used: 0, limit: 3 },
-    daily_messages: { used: 0, limit: 20 },
-    voice_minutes: { used: 0, limit: 0 },
-  };
   const invoices = data?.invoices || [];
   const paymentMethod = data?.payment_method;
-
-  const bookPct = usage.books.limit ? Math.min(100, Math.round((usage.books.used / usage.books.limit) * 100)) : 0;
-  const msgPct = usage.daily_messages.limit ? Math.min(100, Math.round((usage.daily_messages.used / usage.daily_messages.limit) * 100)) : 0;
-  const voicePct = usage.voice_minutes.limit ? Math.min(100, Math.round((usage.voice_minutes.used / usage.voice_minutes.limit) * 100)) : 0;
 
   return (
     <div className="settings-section-container" data-testid="billing-section">
@@ -98,7 +89,7 @@ Thank you for reading with Lorely!
       )}
 
       <div className="settings-section-body space-y-6">
-        {/* 1 & 2: Current Plan Card with Update Action */}
+        {/* 1 & 2: Current Plan Card with Compare/Change Action */}
         <div className="billing-main-card">
           <div className="billing-card-top">
             <h3 className="billing-card-title">Billing</h3>
@@ -107,80 +98,30 @@ Thank you for reading with Lorely!
 
           <div className="billing-plan-row">
             <div className="billing-plan-info">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-baseline gap-3 flex-wrap">
                 <span className="billing-plan-name font-serif">{sub.plan_name}</span>
-                <span className="settings-badge-pill success">
-                  {sub.is_paid ? 'Active' : 'Free Tier'}
-                </span>
-                <span className="settings-badge-pill">Monthly</span>
                 {sub.is_paid && (
                   <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-                    ${Number(sub.price_monthly).toFixed(2)} <span className="text-xs font-normal text-stone-500">/ month</span>
+                    ${Number(sub.price_monthly).toFixed(2)}{' '}
+                    <span className="text-xs font-normal text-stone-500">/ month</span>
                   </span>
                 )}
               </div>
 
               <p className="billing-plan-subtitle">
                 {sub.is_paid
-                  ? 'Self-serve premium tier with extended library quota and character voice turns.'
-                  : 'Classic public domain library, reader annotations, and AI character dialogues.'}
+                  ? 'Self-serve premium tier with extended library access and character voice simulation.'
+                  : 'Digital reading library, character dialogues & literary exploration.'}
               </p>
 
-              {/* Compact Quota Metrics */}
-              <div className="billing-quota-grid mt-4 pt-3 border-t border-stone-200 dark:border-stone-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400">
+              {paymentMethod && (
+                <div className="flex items-center gap-2 pt-3 text-xs text-stone-500">
+                  <CreditCard size={14} className="text-stone-400" />
                   <span>
-                    {usage.books.used} of {usage.books.is_unlimited ? '∞' : usage.books.limit} books uploaded
+                    {paymentMethod.brand} ending in {paymentMethod.last4} · Expires {paymentMethod.expiry}
                   </span>
-                  <span>{usage.books.is_unlimited ? 'Unlimited' : `${bookPct}%`}</span>
                 </div>
-                <div className="w-full bg-stone-100 dark:bg-stone-800 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-amber-600 h-full rounded-full transition-all duration-300"
-                    style={{ width: `${usage.books.is_unlimited ? 100 : bookPct}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400 pt-1">
-                  <span>
-                    {usage.daily_messages.used} of {usage.daily_messages.is_unlimited ? '∞' : usage.daily_messages.limit} daily messages
-                  </span>
-                  <span>{usage.daily_messages.is_unlimited ? 'Unlimited' : `${msgPct}%`}</span>
-                </div>
-                <div className="w-full bg-stone-100 dark:bg-stone-800 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-amber-600 h-full rounded-full transition-all duration-300"
-                    style={{ width: `${usage.daily_messages.is_unlimited ? 100 : msgPct}%` }}
-                  />
-                </div>
-
-                {usage.voice_minutes.limit > 0 && (
-                  <>
-                    <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400 pt-1">
-                      <span>
-                        {usage.voice_minutes.used} of {usage.voice_minutes.limit} voice minutes
-                      </span>
-                      <span>{voicePct}%</span>
-                    </div>
-                    <div className="w-full bg-stone-100 dark:bg-stone-800 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-amber-600 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${voicePct}%` }}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Optional Payment method line */}
-                {paymentMethod && (
-                  <div className="flex items-center gap-2 pt-2 text-xs text-stone-600 dark:text-stone-400">
-                    <CreditCard size={14} className="text-stone-400" />
-                    <span>
-                      {paymentMethod.brand} ending in {paymentMethod.last4} · Expires {paymentMethod.expiry}
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             {/* 2. Update Plan Button */}

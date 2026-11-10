@@ -60,13 +60,7 @@ describe('Phase 7: Subscription, Billing & Invoices (Stripe-Style)', () => {
       expect(screen.getByText('Scholar Edition')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('$12.00')).toBeInTheDocument();
-
-    // Verify quota text
-    expect(screen.getByText(/3 of 10 books uploaded/i)).toBeInTheDocument();
-    expect(screen.getByText(/15 of 100 daily messages/i)).toBeInTheDocument();
-    expect(screen.getByText(/25.5 of 120 voice minutes/i)).toBeInTheDocument();
 
     // Verify payment method
     expect(screen.getByText(/Visa ending in 4242/i)).toBeInTheDocument();
