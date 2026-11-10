@@ -43,7 +43,7 @@ def create_app(settings: Settings | None = None) -> Flask:
         resources={r"/api/*": {"origins": resolved_settings.cors_origins}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization", "X-Test-User-Id", "Accept"],
-        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     )
     database_manager = DatabaseManager(resolved_settings)
     auth_service = SupabaseAuthService(resolved_settings)

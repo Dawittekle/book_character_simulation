@@ -20,8 +20,11 @@ from ..db.base import utc_now
 from ..db.models import (
     AvatarAsset,
     Book,
+    BookAnnotation,
+    BookBookmark,
     BookChapter,
     BookChunk,
+    BookNarrationSegment,
     BookProcessingStatus,
     BookSource,
     CharacterMemory,
@@ -35,10 +38,12 @@ from ..db.models import (
     NotificationRecord,
     PaymentTransaction,
     ProcessingJob,
+    ReadingProgress,
     SystemSetting,
     UserAccount,
     UserCharacterState,
     UserLibraryBook,
+    UserProfile,
     UserRole,
     UserSettings,
     VoiceCatalogItem,
@@ -67,6 +72,7 @@ from ..voice.realtime_benchmark import RealtimeVoiceBenchmark
 from .classification_service import ClassificationService
 from .storage_service import StorageService
 from .voice_service import VoiceService
+from .book_narration_service import BookNarrationService
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +91,7 @@ class LorelyService:
         self.retriever = SpoilerAwareRetriever(self.embedding_service)
         self.voice_service = VoiceService(settings)
         self.storage_service = storage_service or StorageService(settings)
+        self.narration_service = BookNarrationService(self.db, self.storage_service, self.voice_service)
 
     # --- User & Account helpers ---
 
@@ -181,16 +188,36 @@ class LorelyService:
             select(func.count(ChatSession.id)).where(ChatSession.owner_user_id == user.id)
         ) or 0
 
+        profile = session.scalar(select(UserProfile).where(UserProfile.id == user.id))
+        if profile is None:
+            profile = UserProfile(
+                id=user.id,
+                full_name=None,
+                display_name=user.display_name,
+                avatar_path=None,
+                preferred_language="en",
+            )
+            session.add(profile)
+            session.flush()
+
+        resolved_avatar_url = user.avatar_url
+        if profile.avatar_path:
+            resolved_avatar_url = self.storage_service.get_url(profile.avatar_path) or user.avatar_url
+
         return {
             "id": user.id,
             "supabase_user_id": user.supabase_user_id,
             "email": user.email,
-            "display_name": user.display_name,
-            "avatar_url": user.avatar_url,
+            "display_name": profile.display_name or user.display_name,
+            "full_name": profile.full_name,
+            "avatar_url": resolved_avatar_url,
+            "avatar_path": profile.avatar_path,
+            "preferred_language": profile.preferred_language,
             "role": role,
             "book_count": book_count,
             "conversation_count": conv_count,
             "created_at": user.created_at.isoformat() if user.created_at else None,
+            "updated_at": profile.updated_at.isoformat() if profile.updated_at else (user.updated_at.isoformat() if user.updated_at else None),
         }
 
     def get_me(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
@@ -199,16 +226,81 @@ class LorelyService:
             return self._get_me_in_session(session, user)
 
     def update_me(
-        self, auth_user: AuthenticatedUser | None, display_name: str | None, avatar_url: str | None
+        self,
+        auth_user: AuthenticatedUser | None,
+        display_name: str | None = None,
+        avatar_url: str | None = None,
+        full_name: str | None = None,
+        preferred_language: str | None = None,
     ) -> dict[str, Any]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user)
+            profile = session.scalar(select(UserProfile).where(UserProfile.id == user.id))
+            if profile is None:
+                profile = UserProfile(
+                    id=user.id,
+                    display_name=user.display_name,
+                )
+                session.add(profile)
+
             if display_name is not None:
-                user.display_name = display_name.strip()
+                clean_display = display_name.strip()
+                user.display_name = clean_display
+                profile.display_name = clean_display
+            if full_name is not None:
+                profile.full_name = full_name.strip()
+            if preferred_language is not None:
+                profile.preferred_language = preferred_language.strip()[:10]
             if avatar_url is not None:
                 user.avatar_url = avatar_url.strip()
+
             session.flush()
             return self._get_me_in_session(session, user)
+
+    def upload_user_avatar(
+        self, auth_user: AuthenticatedUser | None, file_bytes: bytes, filename: str | None = None
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            upload_result = self.storage_service.upload_avatar(user.id, file_bytes, filename=filename)
+
+            profile = session.scalar(select(UserProfile).where(UserProfile.id == user.id))
+            if profile is None:
+                profile = UserProfile(id=user.id, display_name=user.display_name)
+                session.add(profile)
+
+            if profile.avatar_path and profile.avatar_path != upload_result["storage_key"]:
+                try:
+                    self.storage_service.delete_file(profile.avatar_path)
+                except Exception as exc:
+                    logger.warning("Could not delete old avatar %s: %s", profile.avatar_path, exc)
+
+            profile.avatar_path = upload_result["storage_key"]
+            user.avatar_url = upload_result["avatar_url"]
+            session.flush()
+
+            return {
+                **upload_result,
+                "profile": self._get_me_in_session(session, user),
+            }
+
+    def delete_user_avatar(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            profile = session.scalar(select(UserProfile).where(UserProfile.id == user.id))
+            if profile and profile.avatar_path:
+                try:
+                    self.storage_service.delete_file(profile.avatar_path)
+                except Exception as exc:
+                    logger.warning("Could not delete avatar %s: %s", profile.avatar_path, exc)
+                profile.avatar_path = None
+            user.avatar_url = None
+            session.flush()
+
+            return {
+                "status": "deleted",
+                "profile": self._get_me_in_session(session, user),
+            }
 
     def get_settings(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
         with self.db.session_scope() as session:
@@ -223,6 +315,10 @@ class LorelyService:
 
             return {
                 "reading_theme": settings.reading_theme,
+                "app_theme": getattr(settings, "app_theme", "system") or "system",
+                "accent_color": getattr(settings, "accent_color", "coral") or "coral",
+                "reduced_motion": bool(getattr(settings, "reduced_motion", False)),
+                "high_contrast": bool(getattr(settings, "high_contrast", False)),
                 "spoiler_policy": settings.spoiler_policy,
                 "enter_to_send": settings.enter_to_send,
                 "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") or "en",
@@ -230,6 +326,7 @@ class LorelyService:
                 "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if getattr(settings, "voice_vad_silence_ms", None) is not None else 1200,
                 "voice_auto_play": getattr(settings, "voice_auto_play", True) if getattr(settings, "voice_auto_play", None) is not None else True,
                 "voice_save_audio_recordings": getattr(settings, "voice_save_audio_recordings", False) if getattr(settings, "voice_save_audio_recordings", None) is not None else False,
+                "notification_preferences": getattr(settings, "notification_preferences", {}) or {},
                 "preferences": settings.preferences or {},
             }
 
@@ -247,6 +344,14 @@ class LorelyService:
 
             if "reading_theme" in updates:
                 settings.reading_theme = str(updates["reading_theme"])
+            if "app_theme" in updates:
+                settings.app_theme = str(updates["app_theme"]).strip()[:20]
+            if "accent_color" in updates:
+                settings.accent_color = str(updates["accent_color"]).strip()[:20]
+            if "reduced_motion" in updates:
+                settings.reduced_motion = bool(updates["reduced_motion"])
+            if "high_contrast" in updates:
+                settings.high_contrast = bool(updates["high_contrast"])
             if "spoiler_policy" in updates:
                 settings.spoiler_policy = str(updates["spoiler_policy"])
             if "enter_to_send" in updates:
@@ -265,12 +370,18 @@ class LorelyService:
                 settings.voice_auto_play = bool(updates["voice_auto_play"])
             if "voice_save_audio_recordings" in updates:
                 settings.voice_save_audio_recordings = bool(updates["voice_save_audio_recordings"])
+            if "notification_preferences" in updates and isinstance(updates["notification_preferences"], dict):
+                settings.notification_preferences = updates["notification_preferences"]
             if "preferences" in updates and isinstance(updates["preferences"], dict):
                 settings.preferences = updates["preferences"]
 
             session.flush()
             return {
                 "reading_theme": settings.reading_theme,
+                "app_theme": getattr(settings, "app_theme", "system") or "system",
+                "accent_color": getattr(settings, "accent_color", "coral") or "coral",
+                "reduced_motion": bool(getattr(settings, "reduced_motion", False)),
+                "high_contrast": bool(getattr(settings, "high_contrast", False)),
                 "spoiler_policy": settings.spoiler_policy,
                 "enter_to_send": settings.enter_to_send,
                 "preferred_ui_language": getattr(settings, "preferred_ui_language", "en") or "en",
@@ -278,7 +389,155 @@ class LorelyService:
                 "voice_vad_silence_ms": getattr(settings, "voice_vad_silence_ms", 1200) if getattr(settings, "voice_vad_silence_ms", None) is not None else 1200,
                 "voice_auto_play": getattr(settings, "voice_auto_play", True) if getattr(settings, "voice_auto_play", None) is not None else True,
                 "voice_save_audio_recordings": getattr(settings, "voice_save_audio_recordings", False) if getattr(settings, "voice_save_audio_recordings", None) is not None else False,
+                "notification_preferences": getattr(settings, "notification_preferences", {}) or {},
                 "preferences": settings.preferences or {},
+            }
+
+    def get_my_subscription(self, auth_user: AuthenticatedUser | None) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+
+            # 1. Determine active verified subscription
+            latest_verified_pay = session.scalars(
+                select(PaymentTransaction)
+                .where(
+                    PaymentTransaction.user_id == user.id,
+                    PaymentTransaction.status == "verified",
+                )
+                .order_by(PaymentTransaction.verified_at.desc())
+            ).first()
+
+            plan_slug = latest_verified_pay.plan_slug if latest_verified_pay else None
+            if not plan_slug:
+                settings_rec = session.scalar(
+                    select(UserSettings).where(UserSettings.user_id == user.id)
+                )
+                if settings_rec and settings_rec.preferences:
+                    plan_slug = settings_rec.preferences.get("plan_tier")
+
+            if not plan_slug:
+                plan_slug = "free"
+
+            plan = session.scalar(
+                select(MembershipPlan).where(
+                    or_(MembershipPlan.slug == plan_slug, MembershipPlan.id == plan_slug)
+                )
+            )
+
+            plan_name = plan.name if plan else (
+                "Scholar Edition" if plan_slug == "scholar" else "Free Reader"
+            )
+            price_monthly = plan.price_monthly if plan else (12.0 if plan_slug == "scholar" else 0.0)
+            currency = latest_verified_pay.currency if latest_verified_pay else "USD"
+            features = plan.features if plan else [
+                "Access to public domain library",
+                "Character AI discussions",
+                "Standard reading atmospheres",
+            ]
+            voice_access = plan.voice_access if plan else (plan_slug != "free")
+
+            # Parse quota limits
+            raw_book_quota = plan.book_quota if plan else "3"
+            raw_msg_quota = plan.daily_messages if plan else "20"
+
+            book_limit = None if str(raw_book_quota).lower() in ("unlimited", "-1") else int(raw_book_quota)
+            msg_limit = None if str(raw_msg_quota).lower() in ("unlimited", "-1") else int(raw_msg_quota)
+            voice_limit = 120 if voice_access else 0
+
+            # 2. Authoritative real-time usage calculation
+            books_used = session.scalar(
+                select(func.count(Book.id)).where(Book.owner_user_id == user.id)
+            ) or 0
+
+            today_midnight = utc_now().replace(hour=0, minute=0, second=0, microsecond=0)
+            daily_messages_used = session.scalar(
+                select(func.count(ChatMessage.id))
+                .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+                .where(
+                    ChatSession.owner_user_id == user.id,
+                    ChatMessage.role == ChatRole.user,
+                    ChatMessage.created_at >= today_midnight,
+                )
+            ) or 0
+
+            total_voice_seconds = session.scalar(
+                select(func.sum(VoiceUsageLog.stt_audio_seconds)).where(VoiceUsageLog.user_id == user.id)
+            ) or 0.0
+            voice_minutes_used = round(total_voice_seconds / 60.0, 1)
+
+            # 3. Invoices and receipts history
+            payments = session.scalars(
+                select(PaymentTransaction)
+                .where(PaymentTransaction.user_id == user.id)
+                .order_by(PaymentTransaction.created_at.desc())
+            ).all()
+
+            invoices = []
+            for p in payments:
+                status_label = "Paid" if p.status == "verified" else ("Pending" if p.status == "pending" else "Failed")
+                inv_num = f"INV-{p.created_at.strftime('%Y%m')}-{p.id[:6].upper()}" if p.created_at else f"INV-{p.id[:6].upper()}"
+                invoices.append({
+                    "id": p.id,
+                    "invoice_number": inv_num,
+                    "billing_date": p.created_at.isoformat() if p.created_at else None,
+                    "amount": p.amount,
+                    "currency": p.currency,
+                    "status": status_label,
+                    "raw_status": p.status,
+                    "payment_method": p.payment_method,
+                    "payment_details": p.payment_details or {},
+                    "plan_slug": p.plan_slug,
+                    "plan_name": p.plan_slug.capitalize(),
+                })
+
+            # Derive active payment method
+            payment_method_info = {
+                "type": "credit_card",
+                "brand": "Visa",
+                "last4": "4242",
+                "expiry": "12/2030",
+            }
+            if latest_verified_pay and latest_verified_pay.payment_details:
+                details = latest_verified_pay.payment_details
+                payment_method_info = {
+                    "type": latest_verified_pay.payment_method,
+                    "brand": details.get("card_brand") or details.get("brand") or "Visa",
+                    "last4": details.get("last4") or "4242",
+                    "expiry": details.get("expiry") or "12/2030",
+                    "account_used": details.get("account_used") or details.get("payer_phone"),
+                }
+
+            return {
+                "subscription": {
+                    "plan_slug": plan_slug,
+                    "plan_name": plan_name,
+                    "price_monthly": price_monthly,
+                    "currency": currency,
+                    "status": "active",
+                    "billing_cycle": "monthly",
+                    "voice_access": voice_access,
+                    "features": features,
+                    "is_paid": plan_slug != "free",
+                },
+                "usage": {
+                    "books": {
+                        "used": books_used,
+                        "limit": book_limit,
+                        "is_unlimited": book_limit is None,
+                    },
+                    "daily_messages": {
+                        "used": daily_messages_used,
+                        "limit": msg_limit,
+                        "is_unlimited": msg_limit is None,
+                    },
+                    "voice_minutes": {
+                        "used": voice_minutes_used,
+                        "limit": voice_limit,
+                        "is_unlimited": False,
+                    },
+                },
+                "payment_method": payment_method_info,
+                "invoices": invoices,
             }
 
     # --- Books ---
@@ -317,6 +576,21 @@ class LorelyService:
                         ChatSession.owner_user_id == user.id,
                     )
                 ) or 0
+                prog = session.scalar(
+                    select(ReadingProgress).where(
+                        ReadingProgress.user_id == user.id,
+                        ReadingProgress.book_id == b.id,
+                    )
+                )
+                prog_dict = None
+                if prog:
+                    prog_dict = {
+                        "current_chapter_index": prog.current_chapter_index,
+                        "progress_percent": prog.progress_percent,
+                        "last_read_mode": prog.last_read_mode,
+                        "completed": prog.completed,
+                        "last_read_at": prog.last_read_at.isoformat() if prog.last_read_at else None,
+                    }
                 results.append({
                     "id": b.id,
                     "title": b.title,
@@ -331,6 +605,7 @@ class LorelyService:
                     "is_owner": b.owner_user_id == user.id,
                     "character_count": char_count,
                     "conversation_count": conv_count,
+                    "reading_progress": prog_dict,
                     "created_at": b.created_at.isoformat() if b.created_at else None,
                     "updated_at": b.updated_at.isoformat() if b.updated_at else None,
                 })
@@ -660,8 +935,7 @@ class LorelyService:
         if book is None:
             raise NotFoundError("Book not found.")
 
-        if book.owner_user_id != user.id and book.visibility != "featured":
-            raise ForbiddenError("You do not have permission to view this book.")
+        self._verify_book_read_permission(session, user, book)
 
         characters = session.scalars(
             select(CharacterProfileRecord)
@@ -696,7 +970,9 @@ class LorelyService:
             select(BookSource).where(BookSource.book_id == book.id).order_by(BookSource.created_at.asc())
         )
         source_info = None
+        fmt = "txt"
         if source:
+            fmt, _ = self._detect_source_format(source)
             source_info = {
                 "original_filename": source.original_filename,
                 "mime_type": source.mime_type,
@@ -706,6 +982,49 @@ class LorelyService:
                 "has_stored_file": bool(source.storage_path),
             }
 
+        chapters = session.scalars(
+            select(BookChapter)
+            .where(BookChapter.book_id == book.id)
+            .order_by(BookChapter.chapter_order.asc())
+        ).all()
+        chapter_list = [
+            {
+                "id": ch.id,
+                "chapter_index": ch.chapter_order,
+                "chapter_order": ch.chapter_order,
+                "title": ch.title,
+                "start_char_offset": ch.start_char or 0,
+                "end_char_offset": ch.end_char or 0,
+            }
+            for ch in chapters
+        ]
+
+        progress = session.scalar(
+            select(ReadingProgress).where(
+                ReadingProgress.user_id == user.id,
+                ReadingProgress.book_id == book.id,
+            )
+        )
+        progress_dict = None
+        if progress:
+            progress_dict = {
+                "current_chapter_index": progress.current_chapter_index,
+                "progress_percent": progress.progress_percent,
+                "locator_type": progress.locator_type,
+                "locator_payload": progress.locator_payload or {},
+                "last_read_mode": progress.last_read_mode,
+                "reading_time_seconds": progress.reading_time_seconds,
+                "completed": progress.completed,
+                "last_read_at": progress.last_read_at.isoformat() if progress.last_read_at else None,
+            }
+
+        if progress_dict and progress_dict.get("completed"):
+            reading_status = "completed"
+        elif progress_dict and progress_dict.get("progress_percent", 0) > 0:
+            reading_status = "in_progress"
+        else:
+            reading_status = "not_started"
+
         return {
             "id": book.id,
             "title": book.title,
@@ -714,6 +1033,7 @@ class LorelyService:
             "cover_url": book.cover_url,
             "visibility": book.visibility,
             "source_type": book.source_type,
+            "format": fmt,
             "original_language": getattr(book, "original_language", "en") or "en",
             "detected_language": getattr(book, "detected_language", None),
             "processing_status": book.processing_status.value,
@@ -721,6 +1041,10 @@ class LorelyService:
             "characters": char_list,
             "character_count": len(char_list),
             "conversation_count": conv_count,
+            "total_chapters": max(len(chapter_list), 1),
+            "chapters": chapter_list,
+            "reading_progress": progress_dict,
+            "reading_status": reading_status,
             "source": source_info,
             "created_at": book.created_at.isoformat() if book.created_at else None,
             "updated_at": book.updated_at.isoformat() if book.updated_at else None,
@@ -786,6 +1110,899 @@ class LorelyService:
                 "url": None,
                 "content": content,
             }
+
+    def _verify_book_read_permission(
+        self, session: Session, user: UserAccount, book: Book
+    ) -> None:
+        """Check whether user has rights to access/read this book."""
+        if book.visibility in ("featured", "public"):
+            return
+
+        if book.owner_user_id == user.id:
+            return
+
+        role_rec = session.scalar(select(UserRole).where(UserRole.user_id == user.id))
+        if role_rec and role_rec.role == "admin":
+            return
+
+        in_library = session.scalar(
+            select(UserLibraryBook).where(
+                UserLibraryBook.user_id == user.id,
+                UserLibraryBook.book_id == book.id,
+            )
+        )
+        if in_library:
+            return
+
+        raise ForbiddenError("You do not have permission to read this book.")
+
+    def _detect_source_format(self, source: BookSource | None) -> tuple[str, str]:
+        if source is None:
+            return "txt", "text/plain; charset=utf-8"
+        filename = (source.original_filename or "").lower()
+        mime = (source.mime_type or "").lower()
+        if filename.endswith(".epub") or "epub" in mime:
+            return "epub", "application/epub+zip"
+        if filename.endswith(".pdf") or "pdf" in mime:
+            return "pdf", "application/pdf"
+        return "txt", "text/plain; charset=utf-8"
+
+    def get_reader_book_access(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            source = session.scalar(
+                select(BookSource).where(BookSource.book_id == book.id).order_by(BookSource.created_at.asc())
+            )
+            fmt, mime_type = self._detect_source_format(source)
+            filename = source.original_filename if source else f"{book.title}.txt"
+            file_size = source.file_size_bytes if source else 0
+
+            stream_url = f"/api/v1/reader/books/{book.id}/raw"
+            storage_provider = "local"
+
+            if source and source.storage_path:
+                if self.storage_service.is_cloud and self.storage_service._s3_client:
+                    try:
+                        presigned = self.storage_service.generate_presigned_download_url(
+                            source.storage_path,
+                            expires_in=7200,
+                            response_content_type=mime_type,
+                        )
+                        if presigned.get("download_url"):
+                            stream_url = presigned["download_url"]
+                            storage_provider = "r2"
+                    except Exception as exc:
+                        logger.warning("Could not generate presigned download URL for %s: %s", source.storage_path, exc)
+
+            progress = session.scalar(
+                select(ReadingProgress).where(
+                    ReadingProgress.user_id == user.id,
+                    ReadingProgress.book_id == book.id,
+                )
+            )
+
+            default_locator = "epub_cfi" if fmt == "epub" else ("pdf_page" if fmt == "pdf" else "text_offset")
+            if progress:
+                progress_dict = {
+                    "current_chapter_index": progress.current_chapter_index,
+                    "progress_percent": progress.progress_percent,
+                    "locator_type": progress.locator_type,
+                    "locator_payload": progress.locator_payload or {},
+                    "last_read_mode": progress.last_read_mode,
+                    "reading_time_seconds": progress.reading_time_seconds,
+                    "completed": progress.completed,
+                    "last_read_at": progress.last_read_at.isoformat() if progress.last_read_at else None,
+                }
+            else:
+                progress_dict = {
+                    "current_chapter_index": 0,
+                    "progress_percent": 0.0,
+                    "locator_type": default_locator,
+                    "locator_payload": {},
+                    "last_read_mode": "read",
+                    "reading_time_seconds": 0,
+                    "completed": False,
+                    "last_read_at": None,
+                }
+
+            chapter_count = session.scalar(
+                select(func.count(BookChapter.id)).where(BookChapter.book_id == book.id)
+            ) or 0
+
+            return {
+                "book_id": book.id,
+                "title": book.title,
+                "author": book.author or "Unknown Author",
+                "cover_url": book.cover_url,
+                "visibility": book.visibility,
+                "format": fmt,
+                "original_filename": filename,
+                "file_size_bytes": file_size,
+                "mime_type": mime_type,
+                "stream_url": stream_url,
+                "storage_provider": storage_provider,
+                "current_progress": progress_dict,
+                "total_chapters": max(chapter_count, 1),
+            }
+
+    def get_reader_book_chapters(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            chapters = session.scalars(
+                select(BookChapter)
+                .where(BookChapter.book_id == book.id)
+                .order_by(BookChapter.chapter_order.asc())
+            ).all()
+
+            if not chapters:
+                source = session.scalar(
+                    select(BookSource).where(BookSource.book_id == book.id).order_by(BookSource.created_at.asc())
+                )
+                text_len = len(source.extracted_text) if (source and source.extracted_text) else 0
+                return [
+                    {
+                        "id": f"ch_{book.id}_0",
+                        "chapter_index": 0,
+                        "chapter_order": 0,
+                        "title": book.title,
+                        "start_char_offset": 0,
+                        "end_char_offset": text_len,
+                    }
+                ]
+
+            return [
+                {
+                    "id": ch.id,
+                    "chapter_index": ch.chapter_order,
+                    "chapter_order": ch.chapter_order,
+                    "title": ch.title,
+                    "start_char_offset": ch.start_char or 0,
+                    "end_char_offset": ch.end_char or 0,
+                }
+                for ch in chapters
+            ]
+
+    def get_reader_raw_source(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            source = session.scalar(
+                select(BookSource).where(BookSource.book_id == book.id).order_by(BookSource.created_at.asc())
+            )
+            if source is None:
+                raise NotFoundError("No source found for this book.")
+
+            fmt, mime_type = self._detect_source_format(source)
+            filename = source.original_filename or f"{book.title}.{fmt}"
+
+            file_bytes = None
+            if source.storage_path:
+                file_bytes = self.storage_service.download_file(source.storage_path)
+
+            if file_bytes is None and source.extracted_text:
+                file_bytes = source.extracted_text.encode("utf-8")
+
+            if file_bytes is None:
+                file_bytes = b""
+
+            return {
+                "filename": filename,
+                "mime_type": mime_type,
+                "content": file_bytes,
+            }
+
+    def update_reading_progress(
+        self, auth_user: AuthenticatedUser | None, book_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            progress = session.scalar(
+                select(ReadingProgress).where(
+                    ReadingProgress.user_id == user.id,
+                    ReadingProgress.book_id == book.id,
+                )
+            )
+            if progress is None:
+                progress = ReadingProgress(
+                    user_id=user.id,
+                    book_id=book.id,
+                    current_chapter_index=0,
+                    progress_percent=0.0,
+                    locator_type=data.get("locator_type", "epub_cfi"),
+                    locator_payload=data.get("locator_payload", {}),
+                    last_read_mode=data.get("last_read_mode", "read"),
+                    reading_time_seconds=0,
+                    completed=False,
+                    last_read_at=utc_now(),
+                )
+                session.add(progress)
+                session.flush()
+
+            if "chapter_index" in data:
+                progress.current_chapter_index = max(0, int(data["chapter_index"]))
+            if "progress_percent" in data:
+                progress.progress_percent = min(100.0, max(0.0, float(data["progress_percent"])))
+            if "locator_type" in data and data["locator_type"]:
+                progress.locator_type = str(data["locator_type"])
+            if "locator_payload" in data and isinstance(data["locator_payload"], dict):
+                progress.locator_payload = data["locator_payload"]
+            if "last_read_mode" in data and data["last_read_mode"]:
+                progress.last_read_mode = str(data["last_read_mode"])
+            if "reading_time_delta_seconds" in data:
+                progress.reading_time_seconds += max(0, int(data["reading_time_delta_seconds"]))
+            if "completed" in data:
+                progress.completed = bool(data["completed"])
+            elif progress.progress_percent >= 99.0:
+                progress.completed = True
+
+            progress.last_read_at = utc_now()
+
+            # Advance UserLibraryBook spoiler ceiling synchronously
+            lib_book = session.scalar(
+                select(UserLibraryBook).where(
+                    UserLibraryBook.user_id == user.id,
+                    UserLibraryBook.book_id == book.id,
+                )
+            )
+            if lib_book:
+                lib_book.reading_progress_chapter = max(
+                    lib_book.reading_progress_chapter,
+                    progress.current_chapter_index + 1,
+                )
+
+            session.commit()
+
+            return {
+                "book_id": book.id,
+                "current_chapter_index": progress.current_chapter_index,
+                "progress_percent": progress.progress_percent,
+                "locator_type": progress.locator_type,
+                "locator_payload": progress.locator_payload,
+                "last_read_mode": progress.last_read_mode,
+                "reading_time_seconds": progress.reading_time_seconds,
+                "completed": progress.completed,
+                "last_read_at": progress.last_read_at.isoformat() if progress.last_read_at else None,
+            }
+
+    # --- Phase 5: Bookmarks, Annotations & Contextual Reader Chat ---
+
+    def list_reader_bookmarks(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            bookmarks = session.scalars(
+                select(BookBookmark)
+                .where(
+                    BookBookmark.user_id == user.id,
+                    BookBookmark.book_id == book.id,
+                )
+                .order_by(BookBookmark.chapter_index.asc(), BookBookmark.created_at.asc())
+            ).all()
+
+            return [
+                {
+                    "id": b.id,
+                    "book_id": b.book_id,
+                    "chapter_index": b.chapter_index,
+                    "chapter_title": b.chapter_title,
+                    "progress_percent": b.progress_percent,
+                    "locator_type": b.locator_type,
+                    "locator_payload": b.locator_payload or {},
+                    "snippet": b.snippet,
+                    "created_at": b.created_at.isoformat() if b.created_at else None,
+                }
+                for b in bookmarks
+            ]
+
+    def create_reader_bookmark(
+        self, auth_user: AuthenticatedUser | None, book_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            chapter_index = max(0, int(data.get("chapter_index", 0)))
+            progress_percent = min(100.0, max(0.0, float(data.get("progress_percent", 0.0))))
+            locator_type = str(data.get("locator_type") or "epub_cfi")
+            locator_payload = data.get("locator_payload") if isinstance(data.get("locator_payload"), dict) else {}
+            chapter_title = data.get("chapter_title")
+            snippet = data.get("snippet")
+
+            bookmark = BookBookmark(
+                user_id=user.id,
+                book_id=book.id,
+                chapter_index=chapter_index,
+                chapter_title=chapter_title,
+                progress_percent=progress_percent,
+                locator_type=locator_type,
+                locator_payload=locator_payload,
+                snippet=snippet,
+            )
+            session.add(bookmark)
+            session.commit()
+
+            return {
+                "id": bookmark.id,
+                "book_id": bookmark.book_id,
+                "chapter_index": bookmark.chapter_index,
+                "chapter_title": bookmark.chapter_title,
+                "progress_percent": bookmark.progress_percent,
+                "locator_type": bookmark.locator_type,
+                "locator_payload": bookmark.locator_payload,
+                "snippet": bookmark.snippet,
+                "created_at": bookmark.created_at.isoformat() if bookmark.created_at else None,
+            }
+
+    def delete_reader_bookmark(
+        self, auth_user: AuthenticatedUser | None, book_id: str, bookmark_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            bookmark = session.get(BookBookmark, bookmark_id)
+            if bookmark is None or bookmark.book_id != book.id:
+                raise NotFoundError("Bookmark not found.")
+
+            if bookmark.user_id != user.id:
+                raise ForbiddenError("You cannot delete this bookmark.")
+
+            session.delete(bookmark)
+            session.commit()
+            return {"status": "deleted"}
+
+    def list_reader_annotations(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            annotations = session.scalars(
+                select(BookAnnotation)
+                .where(
+                    BookAnnotation.user_id == user.id,
+                    BookAnnotation.book_id == book.id,
+                )
+                .order_by(BookAnnotation.chapter_index.asc(), BookAnnotation.created_at.asc())
+            ).all()
+
+            return [
+                {
+                    "id": a.id,
+                    "book_id": a.book_id,
+                    "chapter_index": a.chapter_index,
+                    "selected_text": a.selected_text,
+                    "color": a.color,
+                    "note": a.note,
+                    "locator_type": a.locator_type,
+                    "locator_payload": a.locator_payload or {},
+                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                    "updated_at": a.updated_at.isoformat() if a.updated_at else None,
+                }
+                for a in annotations
+            ]
+
+    def create_reader_annotation(
+        self, auth_user: AuthenticatedUser | None, book_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            selected_text = (data.get("selected_text") or "").strip()
+            if not selected_text:
+                raise BadRequestError("selected_text is required.")
+
+            chapter_index = max(0, int(data.get("chapter_index", 0)))
+            color = str(data.get("color") or "amber")
+            if color not in ("yellow", "amber", "rose", "sage"):
+                color = "amber"
+            note = (data.get("note") or "").strip() or None
+            locator_type = str(data.get("locator_type") or "epub_cfi")
+            locator_payload = data.get("locator_payload") if isinstance(data.get("locator_payload"), dict) else {}
+
+            annotation = BookAnnotation(
+                user_id=user.id,
+                book_id=book.id,
+                chapter_index=chapter_index,
+                selected_text=selected_text,
+                color=color,
+                note=note,
+                locator_type=locator_type,
+                locator_payload=locator_payload,
+            )
+            session.add(annotation)
+            session.commit()
+
+            return {
+                "id": annotation.id,
+                "book_id": annotation.book_id,
+                "chapter_index": annotation.chapter_index,
+                "selected_text": annotation.selected_text,
+                "color": annotation.color,
+                "note": annotation.note,
+                "locator_type": annotation.locator_type,
+                "locator_payload": annotation.locator_payload,
+                "created_at": annotation.created_at.isoformat() if annotation.created_at else None,
+                "updated_at": annotation.updated_at.isoformat() if annotation.updated_at else None,
+            }
+
+    def delete_reader_annotation(
+        self, auth_user: AuthenticatedUser | None, book_id: str, annotation_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            annotation = session.get(BookAnnotation, annotation_id)
+            if annotation is None or annotation.book_id != book.id:
+                raise NotFoundError("Annotation not found.")
+
+            if annotation.user_id != user.id:
+                raise ForbiddenError("You cannot delete this annotation.")
+
+            session.delete(annotation)
+            session.commit()
+            return {"status": "deleted"}
+
+    def create_contextual_turn(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+        *,
+        character_id: str,
+        passage_quote: str,
+        user_message: str,
+        chapter_index: int = 1,
+        session_id: str | None = None,
+        conversation_language: str = "en",
+        llm_provider: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Executes a character conversation turn grounded directly on a reader-highlighted passage.
+        Strictly enforces reading progress spoiler gating up to max_allowed_chapter = chapter_index.
+        """
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            char = session.get(CharacterProfileRecord, character_id)
+            if char is None or char.book_id != book.id:
+                raise NotFoundError("Character not found for this book.")
+
+            active_chapter = max(1, int(chapter_index))
+
+            if session_id:
+                chat_session = session.get(ChatSession, session_id)
+                if chat_session is None:
+                    raise NotFoundError("Conversation session not found.")
+                if chat_session.owner_user_id != user.id:
+                    raise ForbiddenError("You cannot access this conversation.")
+                chat_session.reading_progress_chapter = active_chapter
+            else:
+                clean_snippet = passage_quote.strip().replace("\n", " ")
+                snippet = (clean_snippet[:35] + "...") if len(clean_snippet) > 35 else clean_snippet
+                title = f"Passage: {snippet}" if snippet else f"Passage discussion (Ch. {active_chapter})"
+                chat_session = ChatSession(
+                    book_id=book.id,
+                    character_id=char.id,
+                    owner_user_id=user.id,
+                    title=title,
+                    spoiler_policy="cautious",
+                    reading_progress_chapter=active_chapter,
+                    conversation_language=conversation_language,
+                )
+                session.add(chat_session)
+                session.flush()
+
+            effective_session_id = chat_session.id
+
+        turn_result = self.send_message(
+            auth_user,
+            effective_session_id,
+            content=user_message,
+            input_modality="text",
+            llm_provider=llm_provider,
+            reading_progress_chapter=active_chapter,
+            conversation_language=conversation_language,
+            passage_quote=passage_quote,
+        )
+        turn_result["passage_quote"] = passage_quote
+        turn_result["chapter_index"] = active_chapter
+        return turn_result
+
+    def get_chapter_narration(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+        chapter_index: int,
+        voice_id: str = "nova",
+        speed: float = 1.0,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            return self.narration_service.get_or_synthesize_chapter_narration(
+                session=session,
+                user=user,
+                book_id=book_id,
+                chapter_index=chapter_index,
+                voice_id=voice_id,
+                speed=speed,
+            )
+
+    def get_reading_progress(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            progress = session.scalar(
+                select(ReadingProgress).where(
+                    ReadingProgress.user_id == user.id,
+                    ReadingProgress.book_id == book.id,
+                )
+            )
+            if progress is None:
+                return {
+                    "book_id": book.id,
+                    "current_chapter_index": 0,
+                    "progress_percent": 0.0,
+                    "locator_type": "epub_cfi",
+                    "locator_payload": {},
+                    "last_read_mode": "read",
+                    "reading_time_seconds": 0,
+                    "completed": False,
+                    "last_read_at": None,
+                }
+
+            return {
+                "book_id": book.id,
+                "current_chapter_index": progress.current_chapter_index,
+                "progress_percent": progress.progress_percent,
+                "locator_type": progress.locator_type,
+                "locator_payload": progress.locator_payload,
+                "last_read_mode": progress.last_read_mode,
+                "reading_time_seconds": progress.reading_time_seconds,
+                "completed": progress.completed,
+                "last_read_at": progress.last_read_at.isoformat() if progress.last_read_at else None,
+            }
+
+    # --- Phase 5: Bookmarks, Annotations & Contextual Reader Chat ---
+
+    def list_reader_bookmarks(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            bookmarks = session.scalars(
+                select(BookBookmark)
+                .where(
+                    BookBookmark.user_id == user.id,
+                    BookBookmark.book_id == book.id,
+                )
+                .order_by(BookBookmark.chapter_index.asc(), BookBookmark.created_at.asc())
+            ).all()
+
+            return [
+                {
+                    "id": b.id,
+                    "book_id": b.book_id,
+                    "chapter_index": b.chapter_index,
+                    "chapter_title": b.chapter_title,
+                    "progress_percent": b.progress_percent,
+                    "locator_type": b.locator_type,
+                    "locator_payload": b.locator_payload or {},
+                    "snippet": b.snippet,
+                    "created_at": b.created_at.isoformat() if b.created_at else None,
+                }
+                for b in bookmarks
+            ]
+
+    def create_reader_bookmark(
+        self, auth_user: AuthenticatedUser | None, book_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            chapter_index = max(0, int(data.get("chapter_index", 0)))
+            progress_percent = min(100.0, max(0.0, float(data.get("progress_percent", 0.0))))
+            locator_type = str(data.get("locator_type") or "epub_cfi")
+            locator_payload = data.get("locator_payload") if isinstance(data.get("locator_payload"), dict) else {}
+            chapter_title = data.get("chapter_title")
+            snippet = data.get("snippet")
+
+            bookmark = BookBookmark(
+                user_id=user.id,
+                book_id=book.id,
+                chapter_index=chapter_index,
+                chapter_title=chapter_title,
+                progress_percent=progress_percent,
+                locator_type=locator_type,
+                locator_payload=locator_payload,
+                snippet=snippet,
+            )
+            session.add(bookmark)
+            session.commit()
+
+            return {
+                "id": bookmark.id,
+                "book_id": bookmark.book_id,
+                "chapter_index": bookmark.chapter_index,
+                "chapter_title": bookmark.chapter_title,
+                "progress_percent": bookmark.progress_percent,
+                "locator_type": bookmark.locator_type,
+                "locator_payload": bookmark.locator_payload,
+                "snippet": bookmark.snippet,
+                "created_at": bookmark.created_at.isoformat() if bookmark.created_at else None,
+            }
+
+    def delete_reader_bookmark(
+        self, auth_user: AuthenticatedUser | None, book_id: str, bookmark_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            bookmark = session.get(BookBookmark, bookmark_id)
+            if bookmark is None or bookmark.book_id != book.id:
+                raise NotFoundError("Bookmark not found.")
+
+            if bookmark.user_id != user.id:
+                raise ForbiddenError("You cannot delete this bookmark.")
+
+            session.delete(bookmark)
+            session.commit()
+            return {"status": "deleted"}
+
+    def list_reader_annotations(
+        self, auth_user: AuthenticatedUser | None, book_id: str
+    ) -> list[dict[str, Any]]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            annotations = session.scalars(
+                select(BookAnnotation)
+                .where(
+                    BookAnnotation.user_id == user.id,
+                    BookAnnotation.book_id == book.id,
+                )
+                .order_by(BookAnnotation.chapter_index.asc(), BookAnnotation.created_at.asc())
+            ).all()
+
+            return [
+                {
+                    "id": a.id,
+                    "book_id": a.book_id,
+                    "chapter_index": a.chapter_index,
+                    "selected_text": a.selected_text,
+                    "color": a.color,
+                    "note": a.note,
+                    "locator_type": a.locator_type,
+                    "locator_payload": a.locator_payload or {},
+                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                    "updated_at": a.updated_at.isoformat() if a.updated_at else None,
+                }
+                for a in annotations
+            ]
+
+    def create_reader_annotation(
+        self, auth_user: AuthenticatedUser | None, book_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            selected_text = (data.get("selected_text") or "").strip()
+            if not selected_text:
+                raise BadRequestError("selected_text is required.")
+
+            chapter_index = max(0, int(data.get("chapter_index", 0)))
+            color = str(data.get("color") or "amber")
+            if color not in ("yellow", "amber", "rose", "sage"):
+                color = "amber"
+            note = (data.get("note") or "").strip() or None
+            locator_type = str(data.get("locator_type") or "epub_cfi")
+            locator_payload = data.get("locator_payload") if isinstance(data.get("locator_payload"), dict) else {}
+
+            annotation = BookAnnotation(
+                user_id=user.id,
+                book_id=book.id,
+                chapter_index=chapter_index,
+                selected_text=selected_text,
+                color=color,
+                note=note,
+                locator_type=locator_type,
+                locator_payload=locator_payload,
+            )
+            session.add(annotation)
+            session.commit()
+
+            return {
+                "id": annotation.id,
+                "book_id": annotation.book_id,
+                "chapter_index": annotation.chapter_index,
+                "selected_text": annotation.selected_text,
+                "color": annotation.color,
+                "note": annotation.note,
+                "locator_type": annotation.locator_type,
+                "locator_payload": annotation.locator_payload,
+                "created_at": annotation.created_at.isoformat() if annotation.created_at else None,
+                "updated_at": annotation.updated_at.isoformat() if annotation.updated_at else None,
+            }
+
+    def delete_reader_annotation(
+        self, auth_user: AuthenticatedUser | None, book_id: str, annotation_id: str
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            annotation = session.get(BookAnnotation, annotation_id)
+            if annotation is None or annotation.book_id != book.id:
+                raise NotFoundError("Annotation not found.")
+
+            if annotation.user_id != user.id:
+                raise ForbiddenError("You cannot delete this annotation.")
+
+            session.delete(annotation)
+            session.commit()
+            return {"status": "deleted"}
+
+    def create_contextual_turn(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+        *,
+        character_id: str,
+        passage_quote: str,
+        user_message: str,
+        chapter_index: int = 1,
+        session_id: str | None = None,
+        conversation_language: str = "en",
+        llm_provider: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Executes a character conversation turn grounded directly on a reader-highlighted passage.
+        Strictly enforces reading progress spoiler gating up to max_allowed_chapter = chapter_index.
+        """
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            self._verify_book_read_permission(session, user, book)
+
+            char = session.get(CharacterProfileRecord, character_id)
+            if char is None or char.book_id != book.id:
+                raise NotFoundError("Character not found for this book.")
+
+            active_chapter = max(1, int(chapter_index))
+
+            if session_id:
+                chat_session = session.get(ChatSession, session_id)
+                if chat_session is None:
+                    raise NotFoundError("Conversation session not found.")
+                if chat_session.owner_user_id != user.id:
+                    raise ForbiddenError("You cannot access this conversation.")
+                chat_session.reading_progress_chapter = active_chapter
+            else:
+                clean_snippet = passage_quote.strip().replace("\n", " ")
+                snippet = (clean_snippet[:35] + "...") if len(clean_snippet) > 35 else clean_snippet
+                title = f"Passage: {snippet}" if snippet else f"Passage discussion (Ch. {active_chapter})"
+                chat_session = ChatSession(
+                    book_id=book.id,
+                    character_id=char.id,
+                    owner_user_id=user.id,
+                    title=title,
+                    spoiler_policy="cautious",
+                    reading_progress_chapter=active_chapter,
+                    conversation_language=conversation_language,
+                )
+                session.add(chat_session)
+                session.flush()
+
+            effective_session_id = chat_session.id
+
+        turn_result = self.send_message(
+            auth_user,
+            effective_session_id,
+            content=user_message,
+            input_modality="text",
+            llm_provider=llm_provider,
+            reading_progress_chapter=active_chapter,
+            conversation_language=conversation_language,
+            passage_quote=passage_quote,
+        )
+        turn_result["passage_quote"] = passage_quote
+        turn_result["chapter_index"] = active_chapter
+        return turn_result
 
     def update_book(
         self, auth_user: AuthenticatedUser | None, book_id: str, updates: dict[str, Any]
@@ -1313,6 +2530,7 @@ class LorelyService:
         llm_provider: str | None = None,
         reading_progress_chapter: int | None = None,
         conversation_language: str | None = None,
+        passage_quote: str | None = None,
     ) -> dict[str, Any]:
         cleaned_content = content.strip()
         if not cleaned_content:
@@ -1389,10 +2607,11 @@ class LorelyService:
                 max_chapter = None  # unrestricted
 
             # 1. RAG passage retrieval with strict spoiler boundary
+            retrieval_query = f"{cleaned_content} {passage_quote}" if passage_quote else cleaned_content
             retrieved = self.retriever.retrieve(
                 session,
                 book_id=chat_session.book_id,
-                query=cleaned_content,
+                query=retrieval_query,
                 spoiler_policy=policy,
                 max_allowed_chapter=max_chapter,
                 top_k=3,
@@ -1407,10 +2626,24 @@ class LorelyService:
                 }
                 for p in retrieved
             ]
+            if passage_quote:
+                citations.insert(
+                    0,
+                    {
+                        "chapter_order": max_chapter or 1,
+                        "chapter_title": f"Chapter {max_chapter or 1}",
+                        "snippet": passage_quote[:200] + "..." if len(passage_quote) > 200 else passage_quote,
+                        "similarity": 1.0,
+                    },
+                )
+
             passages_context = "\n\n".join(
                 f"[{p.chapter_title} (Chapter {p.chapter_order})]: {p.content}"
                 for p in retrieved
             )
+            if passage_quote:
+                quote_header = f"[Highlighted Passage from Chapter {max_chapter or 1}]:\n\"{passage_quote}\""
+                passages_context = f"{quote_header}\n\n{passages_context}" if passages_context else quote_header
 
             # 2. Filter canonical character evidence up to reader's chapter
             ev_query = select(CharacterProfileEvidence).where(CharacterProfileEvidence.character_id == char.id)
@@ -1456,13 +2689,18 @@ class LorelyService:
                 "canonical_evidence": evidence_facts if evidence_facts else [],
                 "relationships": char.relationships or [],
             }
+            effective_latest_message = (
+                f"The reader highlighted this passage from Chapter {max_chapter or 1}:\n\"{passage_quote}\"\n\nReader asks: {cleaned_content}"
+                if passage_quote else cleaned_content
+            )
+
             system_prompt, user_prompt = chat_prompt(
                 character_json=json.dumps(char_json_dict),
                 chat_history=formatted_history,
                 factual_memories="\n".join(f"- {f}" for f in memory_facts) if memory_facts else "None yet.",
                 psi_parameters=json.dumps(user_state.psi_parameters),
                 emotion_state=json.dumps(user_state.emotion_state),
-                latest_message=cleaned_content,
+                latest_message=effective_latest_message,
                 book_passages=passages_context,
                 conversation_language=active_language,
             )
@@ -1604,6 +2842,8 @@ class LorelyService:
                 "assistant_message_id": assistant_msg.id,
                 "response": reply_text,
                 "citations": citations,
+                "passage_quote": passage_quote,
+                "chapter_index": max_chapter or 1,
                 "conversation_language": active_language,
                 "language_code": active_language,
                 "character": {

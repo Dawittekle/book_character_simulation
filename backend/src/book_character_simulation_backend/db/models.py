@@ -47,6 +47,21 @@ class UserRole(IdentifierMixin, Base):
     user: Mapped["UserAccount"] = relationship(back_populates="role_assignment")
 
 
+class UserProfile(TimestampMixin, Base):
+    __tablename__ = "profiles"
+
+    id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    full_name: Mapped[str | None] = mapped_column(String(255))
+    display_name: Mapped[str | None] = mapped_column(String(255), index=True)
+    avatar_path: Mapped[str | None] = mapped_column(String(512))
+    preferred_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+
+    user: Mapped["UserAccount"] = relationship(back_populates="profile", uselist=False)
+
+
 class UserSettings(IdentifierMixin, TimestampMixin, Base):
     __tablename__ = "user_settings"
 
@@ -56,6 +71,10 @@ class UserSettings(IdentifierMixin, TimestampMixin, Base):
         nullable=False,
     )
     reading_theme: Mapped[str] = mapped_column(String(50), default="parchment", nullable=False)
+    app_theme: Mapped[str] = mapped_column(String(20), default="system", nullable=False)
+    accent_color: Mapped[str] = mapped_column(String(20), default="coral", nullable=False)
+    reduced_motion: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    high_contrast: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     spoiler_policy: Mapped[str] = mapped_column(String(50), default="cautious", nullable=False)
     enter_to_send: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     preferred_ui_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
@@ -63,6 +82,7 @@ class UserSettings(IdentifierMixin, TimestampMixin, Base):
     voice_vad_silence_ms: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
     voice_auto_play: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     voice_save_audio_recordings: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    notification_preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     user: Mapped["UserAccount"] = relationship(back_populates="settings")
@@ -104,6 +124,11 @@ class UserAccount(IdentifierMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
         uselist=False,
     )
+    profile: Mapped[UserProfile | None] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
     settings: Mapped[UserSettings | None] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
@@ -125,6 +150,15 @@ class UserAccount(IdentifierMixin, TimestampMixin, Base):
     )
     processing_jobs: Mapped[list["ProcessingJob"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
+    )
+    reading_progress_records: Mapped[list["ReadingProgress"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    bookmarks: Mapped[list["BookBookmark"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    annotations: Mapped[list["BookAnnotation"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -188,6 +222,18 @@ class Book(IdentifierMixin, TimestampMixin, Base):
         back_populates="book", cascade="all, delete-orphan"
     )
     chunks: Mapped[list["BookChunk"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
+    reading_progress_records: Mapped[list["ReadingProgress"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
+    bookmarks: Mapped[list["BookBookmark"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
+    annotations: Mapped[list["BookAnnotation"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
+    narration_segments: Mapped[list["BookNarrationSegment"]] = relationship(
         back_populates="book", cascade="all, delete-orphan"
     )
 
@@ -539,6 +585,76 @@ class UserLibraryBook(IdentifierMixin, Base):
 
     user: Mapped["UserAccount"] = relationship()
     book: Mapped["Book"] = relationship()
+
+
+class ReadingProgress(IdentifierMixin, Base):
+    __tablename__ = "reading_progress"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    current_chapter_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    progress_percent: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    locator_type: Mapped[str] = mapped_column(String(50), default="epub_cfi", nullable=False)
+    locator_payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    last_read_mode: Mapped[str] = mapped_column(String(30), default="read", nullable=False)
+    reading_time_seconds: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    last_read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", "book_id", name="uq_reading_progress_user_book"),)
+
+    user: Mapped["UserAccount"] = relationship(back_populates="reading_progress_records")
+    book: Mapped["Book"] = relationship(back_populates="reading_progress_records")
+
+
+class BookBookmark(IdentifierMixin, Base):
+    __tablename__ = "book_bookmarks"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    chapter_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    chapter_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    progress_percent: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    locator_type: Mapped[str] = mapped_column(String(50), default="epub_cfi", nullable=False)
+    locator_payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["UserAccount"] = relationship(back_populates="bookmarks")
+    book: Mapped["Book"] = relationship(back_populates="bookmarks")
+
+
+class BookAnnotation(IdentifierMixin, TimestampMixin, Base):
+    __tablename__ = "book_annotations"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    chapter_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    selected_text: Mapped[str] = mapped_column(Text, nullable=False)
+    color: Mapped[str] = mapped_column(String(30), default="amber", nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    locator_type: Mapped[str] = mapped_column(String(50), default="epub_cfi", nullable=False)
+    locator_payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+
+    user: Mapped["UserAccount"] = relationship(back_populates="annotations")
+    book: Mapped["Book"] = relationship(back_populates="annotations")
+
+
+class BookNarrationSegment(IdentifierMixin, Base):
+    __tablename__ = "book_narration_segments"
+
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    chapter_index: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    voice_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    audio_storage_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    alignment_data: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (UniqueConstraint("book_id", "chapter_index", "voice_id", name="uq_narration_book_chapter_voice"),)
+
+    book: Mapped["Book"] = relationship(back_populates="narration_segments")
+
 
 
 

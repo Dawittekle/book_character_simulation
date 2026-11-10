@@ -83,7 +83,46 @@ def update_me():
     user = _authenticated_user()
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
-    return jsonify(service.update_me(user, body.get("display_name"), body.get("avatar_url")))
+    return jsonify(
+        service.update_me(
+            user,
+            display_name=body.get("display_name"),
+            avatar_url=body.get("avatar_url"),
+            full_name=body.get("full_name"),
+            preferred_language=body.get("preferred_language"),
+        )
+    )
+
+
+@v1_blueprint.route("/me/avatar", methods=["POST"])
+def upload_avatar():
+    user = _authenticated_user()
+    service = _lorely_service()
+
+    file_bytes = None
+    filename = None
+
+    if request.files:
+        file_obj = request.files.get("avatar") or request.files.get("file")
+        if file_obj:
+            filename = file_obj.filename
+            file_bytes = file_obj.read()
+
+    if not file_bytes:
+        file_bytes = request.get_data()
+
+    if not file_bytes:
+        raise BadRequestError("No avatar image file was provided in the request.")
+
+    result = service.upload_user_avatar(user, file_bytes, filename=filename)
+    return jsonify(result), 200
+
+
+@v1_blueprint.route("/me/avatar", methods=["DELETE"])
+def delete_avatar():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.delete_user_avatar(user)), 200
 
 
 @v1_blueprint.route("/me/settings", methods=["GET"])
@@ -99,6 +138,13 @@ def update_settings():
     service = _lorely_service()
     body = request.get_json(silent=True) or {}
     return jsonify(service.update_settings(user, body))
+
+
+@v1_blueprint.route("/me/subscription", methods=["GET"])
+def get_my_subscription():
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.get_my_subscription(user)), 200
 
 
 # --- Books & Ingestion ---
@@ -236,6 +282,169 @@ def download_book(book_id: str):
         as_attachment=True,
         download_name=info.get("filename", "book.txt"),
     )
+
+
+@v1_blueprint.route("/reader/books/<book_id>/access", methods=["GET"])
+def get_reader_access(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.get_reader_book_access(user, book_id))
+
+
+@v1_blueprint.route("/reader/books/<book_id>/chapters", methods=["GET"])
+def get_reader_chapters(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify({"chapters": service.get_reader_book_chapters(user, book_id)})
+
+
+@v1_blueprint.route("/reader/books/<book_id>/progress", methods=["GET"])
+def get_reader_progress(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.get_reading_progress(user, book_id))
+
+
+@v1_blueprint.route("/reader/books/<book_id>/progress", methods=["PUT"])
+def update_reader_progress(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    data = request.get_json(silent=True) or {}
+    return jsonify(service.update_reading_progress(user, book_id, data))
+
+
+@v1_blueprint.route("/reader/books/<book_id>/narration/<int:chapter_index>", methods=["GET"])
+def get_reader_chapter_narration(book_id: str, chapter_index: int):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    voice_id = request.args.get("voice_id", "nova")
+    try:
+        speed = float(request.args.get("speed", "1.0"))
+    except ValueError:
+        speed = 1.0
+    return jsonify(
+        service.get_chapter_narration(
+            user, book_id, chapter_index, voice_id=voice_id, speed=speed
+        )
+    )
+
+
+@v1_blueprint.route("/reader/books/<book_id>/raw", methods=["GET"])
+def stream_reader_raw_book(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    info = service.get_reader_raw_source(user, book_id)
+    return send_file(
+        io.BytesIO(info["content"]),
+        mimetype=info.get("mime_type", "application/octet-stream"),
+        as_attachment=False,
+        download_name=info.get("filename", "book.bin"),
+    )
+
+
+@v1_blueprint.route("/reader/storage-proxy/<path:storage_key>", methods=["GET"])
+def get_reader_storage_proxy(storage_key: str):
+    service = _lorely_service()
+    data = service.storage_service.download_file(storage_key)
+    if data is None:
+        raise NotFoundError("Stored asset not found.")
+    filename = storage_key.rsplit("/", 1)[-1].lower()
+    if filename.endswith(".epub"):
+        mimetype = "application/epub+zip"
+    elif filename.endswith(".pdf"):
+        mimetype = "application/pdf"
+    elif filename.endswith(".mp3"):
+        mimetype = "audio/mpeg"
+    elif filename.endswith(".wav"):
+        mimetype = "audio/wav"
+    elif filename.endswith(".txt"):
+        mimetype = "text/plain; charset=utf-8"
+    else:
+        mimetype = "application/octet-stream"
+
+    return send_file(
+        io.BytesIO(data),
+        mimetype=mimetype,
+        as_attachment=False,
+        download_name=filename,
+    )
+
+
+# --- Phase 5: Bookmarks, Annotations & Contextual Reader Chat ---
+
+@v1_blueprint.route("/reader/books/<book_id>/bookmarks", methods=["GET"])
+def get_reader_bookmarks(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify({"bookmarks": service.list_reader_bookmarks(user, book_id)})
+
+
+@v1_blueprint.route("/reader/books/<book_id>/bookmarks", methods=["POST"])
+def create_reader_bookmark(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    data = request.get_json(silent=True) or {}
+    return jsonify({"bookmark": service.create_reader_bookmark(user, book_id, data)}), 201
+
+
+@v1_blueprint.route("/reader/books/<book_id>/bookmarks/<bookmark_id>", methods=["DELETE"])
+def delete_reader_bookmark(book_id: str, bookmark_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.delete_reader_bookmark(user, book_id, bookmark_id)), 200
+
+
+@v1_blueprint.route("/reader/books/<book_id>/annotations", methods=["GET"])
+def get_reader_annotations(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    return jsonify({"annotations": service.list_reader_annotations(user, book_id)})
+
+
+@v1_blueprint.route("/reader/books/<book_id>/annotations", methods=["POST"])
+def create_reader_annotation(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    data = request.get_json(silent=True) or {}
+    return jsonify({"annotation": service.create_reader_annotation(user, book_id, data)}), 201
+
+
+@v1_blueprint.route("/reader/books/<book_id>/annotations/<annotation_id>", methods=["DELETE"])
+def delete_reader_annotation(book_id: str, annotation_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    return jsonify(service.delete_reader_annotation(user, book_id, annotation_id)), 200
+
+
+@v1_blueprint.route("/reader/books/<book_id>/contextual-chat", methods=["POST"])
+def reader_contextual_chat(book_id: str):
+    user = _optional_authenticated_user()
+    service = _lorely_service()
+    data = request.get_json(silent=True) or {}
+    character_id = data.get("character_id")
+    if not character_id:
+        raise BadRequestError("character_id is required.")
+    passage_quote = (data.get("passage_quote") or "").strip()
+    user_message = (data.get("user_message") or data.get("content") or "").strip()
+    if not user_message:
+        raise BadRequestError("user_message is required.")
+    chapter_index = int(data.get("chapter_index", 1))
+    session_id = data.get("session_id")
+    conversation_language = data.get("conversation_language", "en")
+    llm_provider = data.get("llm_provider")
+
+    result = service.create_contextual_turn(
+        user,
+        book_id,
+        character_id=character_id,
+        passage_quote=passage_quote,
+        user_message=user_message,
+        chapter_index=chapter_index,
+        session_id=session_id,
+        conversation_language=conversation_language,
+        llm_provider=llm_provider,
+    )
+    return jsonify(result), 201
 
 
 @v1_blueprint.route("/storage/<path:storage_key>", methods=["GET"])

@@ -4,11 +4,13 @@ import io
 import logging
 import os
 import shutil
+import struct
+import uuid
 from pathlib import Path
 from typing import Any, BinaryIO
 
 from book_character_simulation_backend.config import Settings
-from book_character_simulation_backend.errors import ConfigurationError, StorageError
+from book_character_simulation_backend.errors import BadRequestError, ConfigurationError, StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +119,47 @@ class StorageService:
             "storage_provider": "local",
             "bucket": "local",
             "headers": {"Content-Type": content_type} if content_type else {},
+        }
+
+    def generate_presigned_download_url(
+        self,
+        key: str,
+        expires_in: int = 3600,
+        response_content_type: str | None = None,
+        response_content_disposition: str | None = None,
+    ) -> dict[str, Any]:
+        """Generate a presigned download URL for secure client-side streaming (EPUB, PDF, Audio)."""
+        clean_key = key.lstrip("/")
+
+        if self.is_cloud and self._s3_client is not None:
+            params: dict[str, Any] = {"Bucket": self.bucket_name, "Key": clean_key}
+            if response_content_type:
+                params["ResponseContentType"] = response_content_type
+            if response_content_disposition:
+                params["ResponseContentDisposition"] = response_content_disposition
+            try:
+                url = self._s3_client.generate_presigned_url(
+                    "get_object",
+                    Params=params,
+                    ExpiresIn=expires_in,
+                )
+                return {
+                    "download_url": str(url),
+                    "storage_provider": "r2",
+                    "bucket": self.bucket_name,
+                    "key": clean_key,
+                    "expires_in": expires_in,
+                }
+            except Exception as exc:
+                logger.warning("Could not generate presigned download URL for %s: %s", clean_key, exc)
+
+        # Local mode fallback: returns local stream proxy URL
+        return {
+            "download_url": f"/api/v1/reader/storage-proxy/{clean_key}",
+            "storage_provider": "local",
+            "bucket": "local",
+            "key": clean_key,
+            "expires_in": expires_in,
         }
 
     def upload_file(
@@ -286,3 +329,99 @@ class StorageService:
             count = 1
 
         return count
+
+    def validate_image_data(
+        self, data: bytes, max_size_bytes: int = 10 * 1024 * 1024
+    ) -> tuple[str, int, int]:
+        """Validate image size, format (JPEG, PNG, WebP), and extract dimensions without external dependencies."""
+        if not data:
+            raise BadRequestError("Empty image file provided.")
+        if len(data) > max_size_bytes:
+            mb_limit = max_size_bytes // (1024 * 1024)
+            raise BadRequestError(f"Avatar file size exceeds maximum limit of {mb_limit}MB.")
+
+        parsed = self._parse_image_header(data)
+        if not parsed:
+            raise BadRequestError(
+                "Invalid or unsupported image format. Supported formats are JPEG, PNG, and WebP."
+            )
+
+        content_type, width, height = parsed
+        if width > 0 and height > 0:
+            if width < 32 or height < 32:
+                raise BadRequestError("Image dimensions too small. Minimum resolution is 32x32 pixels.")
+            if width > 4096 or height > 4096:
+                raise BadRequestError("Image dimensions too large. Maximum resolution is 4096x4096 pixels.")
+
+        return content_type, width, height
+
+    def _parse_image_header(self, data: bytes) -> tuple[str, int, int] | None:
+        """Parse image binary header to extract (mime_type, width, height) safely."""
+        if len(data) < 24:
+            return None
+
+        # 1. PNG
+        if data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) >= 24 and data[12:16] == b"IHDR":
+            width, height = struct.unpack(">II", data[16:24])
+            return "image/png", width, height
+
+        # 2. JPEG
+        if data.startswith(b"\xff\xd8"):
+            idx = 2
+            while idx < len(data) - 8:
+                if data[idx] != 0xFF:
+                    break
+                marker = data[idx + 1]
+                # SOF0, SOF1, SOF2 markers
+                if marker in (0xC0, 0xC1, 0xC2, 0xC3):
+                    height, width = struct.unpack(">HH", data[idx + 5 : idx + 9])
+                    return "image/jpeg", width, height
+                if marker in (0xD9, 0xDA):
+                    break
+                length = struct.unpack(">H", data[idx + 2 : idx + 4])[0]
+                idx += 2 + length
+            return "image/jpeg", 0, 0
+
+        # 3. WebP (RIFF....WEBP)
+        if data.startswith(b"RIFF") and len(data) >= 30 and data[8:12] == b"WEBP":
+            subchunk = data[12:16]
+            if subchunk == b"VP8 " and len(data) >= 30:
+                width = struct.unpack("<H", data[26:28])[0] & 0x3FFF
+                height = struct.unpack("<H", data[28:30])[0] & 0x3FFF
+                return "image/webp", width, height
+            elif subchunk == b"VP8L" and len(data) >= 25:
+                b = struct.unpack("<I", data[21:25])[0]
+                width = (b & 0x3FFF) + 1
+                height = ((b >> 14) & 0x3FFF) + 1
+                return "image/webp", width, height
+            elif subchunk == b"VP8X" and len(data) >= 31:
+                width = (struct.unpack("<I", data[24:28])[0] & 0xFFFFFF) + 1
+                height = (struct.unpack("<I", data[27:31])[0] >> 8) + 1
+                return "image/webp", width, height
+
+        return None
+
+    def upload_avatar(
+        self,
+        user_id: str,
+        data: bytes,
+        filename: str | None = None,
+    ) -> dict[str, Any]:
+        """Validate avatar image and store securely in Cloudflare R2 / storage."""
+        content_type, width, height = self.validate_image_data(data)
+        ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+        ext = ext_map.get(content_type, "jpg")
+        unique_name = f"{uuid.uuid4().hex[:12]}.{ext}"
+        storage_key = f"avatars/{user_id}/{unique_name}"
+
+        self.upload_file(storage_key, data, content_type=content_type)
+        avatar_url = self.get_url(storage_key)
+
+        return {
+            "storage_key": storage_key,
+            "avatar_url": avatar_url,
+            "content_type": content_type,
+            "width": width,
+            "height": height,
+            "size_bytes": len(data),
+        }
