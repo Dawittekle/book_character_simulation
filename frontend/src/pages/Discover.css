@@ -258,7 +258,7 @@
 }
 
 .add-book-cta-card {
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1.5px dashed var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-2xl, 1rem);
   padding: 24px;
@@ -367,7 +367,7 @@
    Bottom Feature Strip
    ========================================================================== */
 .discover-feature-strip {
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-2xl, 1rem);
   padding: 20px 28px;

@@ -29,7 +29,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #ffffff;
+  background: var(--brand-surface, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   color: var(--brand-obsidian, #0b0f1a);
   border-radius: 9999px;
@@ -43,8 +43,8 @@
 }
 
 .page-back-btn:hover {
-  border-color: #d4d4d8;
-  background: #fafafa;
+  border-color: var(--brand-border-subtle, #d4d4d8);
+  background: var(--brand-tray-bg, #f5f2ee);
   transform: translateX(-2px);
 }
 
@@ -153,7 +153,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #ffffff;
+  background: var(--brand-surface, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   padding: 4px 12px;
   border-radius: 9999px;
@@ -211,7 +211,7 @@
    Empty State
    ========================================================================== */
 .library-empty-shelf-card {
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-3xl, 1.5rem);
   padding: 48px 24px;

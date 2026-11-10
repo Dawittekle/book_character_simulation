@@ -34,6 +34,29 @@
   --shadow-soft: 0 4px 14px rgba(17, 17, 17, 0.04);
 }
 
+:root[data-theme='dark'],
+.dark {
+  color-scheme: dark;
+  --page-bg: #0b0f19;
+  --page-bg-strong: #101524;
+  --surface: #101524;
+  --surface-strong: #151c2e;
+  --surface-muted: #171f33;
+  --surface-ink: #f8fafc;
+  --line: #232c42;
+  --line-strong: #333f5c;
+  --text-strong: #f8fafc;
+  --text-base: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent: #f8fafc;
+  --accent-strong: #ffffff;
+  --accent-soft: #382d14;
+  --accent-ink: #fdebae;
+  --shadow-large: 0 28px 90px rgba(0, 0, 0, 0.5);
+  --shadow-medium: 0 14px 42px rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
 *,
 *::before,
 *::after {

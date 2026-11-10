@@ -73,3 +73,46 @@
   --brand-shadow-modal: 0 24px 64px -12px rgba(11, 15, 26, 0.16);
   --brand-shadow-orange: 0 4px 14px rgba(239, 77, 35, 0.28);
 }
+
+:root[data-theme='dark'],
+.dark {
+  /* ==========================================================================
+     Dark Mode Token Overrides
+     ========================================================================== */
+  --brand-obsidian: #f8fafc;
+  --brand-obsidian-hover: #ffffff;
+  --brand-obsidian-soft: rgba(248, 250, 252, 0.08);
+
+  --brand-page-bg: #0b0f19;
+  --brand-hero-bg: #111726;
+  --brand-tray-bg: #171f33;
+  --brand-surface: #101524;
+  --brand-surface-elevated: #151c2e;
+
+  --brand-text-strong: #f8fafc;
+  --brand-text-base: #cbd5e1;
+  --brand-text-muted: #94a3b8;
+  --brand-text-subtle: #64748b;
+
+  --brand-border: #232c42;
+  --brand-border-subtle: #1c2336;
+  --brand-border-hero: rgba(255, 255, 255, 0.08);
+
+  /* Status Accents */
+  --brand-sky-bg: #0c2340;
+  --brand-sky-card: #0f2d52;
+  --brand-sky-text: #38bdf8;
+  --brand-sky-chart: #0284c7;
+
+  --brand-red-negative: #f87171;
+  --brand-red-negative-bg: #450a0a;
+  --brand-green-positive: #34d399;
+  --brand-green-positive-bg: #064e3b;
+  --brand-amber-warning: #fbbf24;
+  --brand-amber-warning-bg: #451a03;
+
+  --brand-shadow-pill: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --brand-shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+  --brand-shadow-card-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.55);
+  --brand-shadow-modal: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
+}

@@ -19,7 +19,7 @@
 }
 
 .pricing-modal-container {
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-3xl, 1.5rem);
   width: 100%;

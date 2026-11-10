@@ -65,7 +65,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-2xl, 1rem);
   padding: 16px 20px;
@@ -181,7 +181,7 @@
 }
 
 .conv-delete-btn {
-  background: #ffffff;
+  background: var(--brand-surface, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   color: #9ca3af;
   width: 32px;
@@ -207,7 +207,7 @@
    Empty State
    ========================================================================== */
 .conversations-empty-state {
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-3xl, 1.5rem);
   padding: 56px 24px;
