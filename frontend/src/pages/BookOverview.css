@@ -1,0 +1,299 @@
+.book-overview-container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+  color: var(--color-ink, #2a2521);
+}
+
+.book-overview-loading,
+.book-overview-error {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.book-overview-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.book-overview-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.book-overview-back-btn:hover {
+  opacity: 1;
+  transform: translateX(-2px);
+}
+
+.book-overview-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  border-radius: 1.5rem;
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .book-overview-hero {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 2.5rem;
+  }
+}
+
+.book-overview-cover-wrap {
+  position: relative;
+  width: 180px;
+  height: 260px;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin: 0 auto;
+}
+
+.book-overview-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-overview-cover-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2a2018 0%, #17130f 100%);
+  color: #f3efe6;
+}
+
+.book-overview-cover-spine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 10px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+  pointer-events: none;
+}
+
+.book-overview-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-overview-title {
+  font-family: var(--font-serif, "Merriweather", serif);
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+}
+
+.book-overview-author {
+  font-family: var(--font-serif, "Merriweather", serif);
+  font-size: 1rem;
+  font-style: italic;
+  opacity: 0.75;
+  margin-bottom: 1.25rem;
+}
+
+.book-overview-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.book-overview-progress-card {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  margin-bottom: 1.5rem;
+}
+
+.dark .book-overview-progress-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.book-overview-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.dark .book-overview-progress-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.book-overview-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.book-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.book-overview-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  background: #d97706;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+}
+
+.book-overview-btn-primary:hover {
+  background: #b45309;
+  transform: translateY(-1px);
+}
+
+.book-overview-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  color: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .book-overview-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.book-overview-btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.dark .book-overview-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.book-overview-tabs-wrap {
+  margin-top: 1rem;
+}
+
+.book-overview-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  margin-bottom: 1.5rem;
+}
+
+.book-overview-tab-btn {
+  background: none;
+  border: none;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: inherit;
+  opacity: 0.6;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.book-overview-tab-btn:hover {
+  opacity: 0.9;
+}
+
+.book-overview-tab-btn.active {
+  opacity: 1;
+  font-weight: 600;
+  color: #d97706;
+}
+
+.book-overview-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #d97706;
+  border-radius: 2px;
+}
+
+.book-overview-tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+.book-overview-chapter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.02));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.book-overview-chapter-row:hover {
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.2);
+  transform: translateX(4px);
+}
+
+.book-overview-char-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.02));
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -1,7 +1,7 @@
 .lorely-book-card {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--brand-surface-elevated, #ffffff);
   border: 1px solid var(--brand-border, #e5e5e5);
   border-radius: var(--brand-radius-2xl, 1rem);
   padding: 10px;
@@ -55,10 +55,39 @@
   pointer-events: none;
 }
 
+.lorely-book-progress-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(11, 15, 26, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 2;
+}
+
+.lorely-book-progress-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-orange, #ef4d23);
+  box-shadow: 0 0 6px var(--brand-orange, #ef4d23);
+}
+
 .lorely-book-hover-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(11, 15, 26, 0.72) 0%, rgba(11, 15, 26, 0.15) 45%, transparent 100%);
+  background: linear-gradient(to top, rgba(11, 15, 26, 0.88) 0%, rgba(11, 15, 26, 0.3) 50%, transparent 100%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -66,30 +95,79 @@
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
+  z-index: 3;
 }
 
 .lorely-book-card:hover .lorely-book-hover-overlay {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.lorely-book-hover-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: calc(100% - 20px);
 }
 
 .lorely-book-hover-cta {
+  width: 100%;
+  justify-content: center;
   background: #ffffff;
   color: var(--brand-obsidian, #0b0f1a);
   font-family: var(--brand-font-sans, 'Inter', sans-serif);
   font-size: 11px;
   font-weight: 600;
-  padding: 5px 12px;
+  padding: 7px 12px;
   border-radius: 9999px;
+  border: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   transform: translateY(4px);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, color 0.15s ease;
+}
+
+.lorely-book-hover-cta:hover {
+  background: var(--brand-orange, #ef4d23);
+  color: #ffffff;
 }
 
 .lorely-book-card:hover .lorely-book-hover-cta {
   transform: translateY(0);
+}
+
+.lorely-book-hover-subactions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.lorely-book-hover-subbtn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.lorely-book-hover-subbtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .lorely-book-arrow-icon {
