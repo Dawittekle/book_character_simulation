@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: lorely-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: HOST
+        value: 0.0.0.0
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: LLM_TEMPERATURE
+        value: "0.7"
+      - key: MAX_SOURCE_CHARACTERS
+        value: "50000"
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: DATABASE_CONNECT_TIMEOUT
+        value: "10"
+      - key: SQLALCHEMY_ECHO
+        value: "false"
+      - key: AUTO_CREATE_RELATIONAL_SCHEMA
+        value: "false"
+      - key: CORS_ORIGINS
+        value: https://lorely.dawalink.space
+      - key: ANONYMIZED_TELEMETRY
+        value: "false"
+      - key: ADMIN_EMAIL
+        value: admin@lorely.app
+      - key: R2_BUCKET_NAME
+        value: lorly
+      - key: STORAGE_LOCAL_DIR
+        value: storage
+      # Fill these in the Render dashboard when prompted (sync: false).
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
