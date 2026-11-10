@@ -1,26 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Volume2, ShieldAlert, Check, Sliders, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Volume2, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { READER_THEMES, FONT_FAMILIES } from '../../../components/reader/ReaderThemes';
 
 const SPOILER_POLICIES = [
-  {
-    id: 'cautious',
-    title: 'Cautious (Recommended)',
-    description: 'Warns before disclosing plot twists or character arcs past your current chapter.',
-    badge: 'Default',
-  },
-  {
-    id: 'strict',
-    title: 'Strict Quarantine',
-    description: 'Hard-blocks characters from referencing unread chapters under any circumstances.',
-    badge: 'Maximum Safety',
-  },
-  {
-    id: 'unrestricted',
-    title: 'Unrestricted Scholar',
-    description: 'Characters freely analyze the entire novel, foreshadowing, and analytical climaxes.',
-    badge: 'Full Lore',
-  },
+  { id: 'cautious', label: 'Cautious (Default)' },
+  { id: 'strict', label: 'Strict Quarantine' },
+  { id: 'unrestricted', label: 'Unrestricted Scholar' },
 ];
 
 export default function ReadingAudioSection({ settings, onUpdateSettings }) {
@@ -130,12 +115,7 @@ export default function ReadingAudioSection({ settings, onUpdateSettings }) {
     <div className="settings-section-container" data-testid="reading-audio-section">
       <div className="settings-section-header">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="settings-section-title">Reading &amp; Audio Preferences</h2>
-            <p className="settings-section-subtitle">
-              Configure your default reader atmosphere, typography layout, voice sensitivity, and narrative boundaries.
-            </p>
-          </div>
+          <h2 className="settings-section-title">Reading &amp; Audio</h2>
           {savingStatus === 'saved' && (
             <div className="settings-saved-pill" role="status">
               <CheckCircle2 size={13} className="text-emerald-500" />
@@ -146,185 +126,102 @@ export default function ReadingAudioSection({ settings, onUpdateSettings }) {
       </div>
 
       <div className="settings-section-body space-y-6">
-        {/* Default Reader Atmosphere Theme */}
+        {/* Card 1: Reader Display & Typography */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="flex items-center gap-2">
               <BookOpen size={16} className="text-amber-600 dark:text-amber-400" />
-              <h3 className="settings-card-title">Default Reader Atmosphere</h3>
+              <h3 className="settings-card-title">Reader Display &amp; Typography</h3>
             </div>
-            <p className="settings-card-description">
-              Choose your default reading backdrop. (Stored separately from the application UI theme).
-            </p>
           </div>
 
-          <div
-            className="reader-theme-grid"
-            role="radiogroup"
-            aria-label="Default reader theme"
-          >
-            {Object.values(READER_THEMES).map((theme) => {
-              const isSelected = readingTheme === theme.id;
-
-              return (
-                <button
-                  key={theme.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  aria-label={`Select ${theme.name} reader theme`}
-                  className={`reader-theme-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => handleSelectTheme(theme.id)}
-                  style={{
-                    backgroundColor: theme.bg,
-                    borderColor: isSelected ? 'var(--lorely-settings-accent, #e05a47)' : theme.border,
-                    color: theme.text,
-                  }}
-                >
-                  <div className="reader-theme-header">
-                    <span className="reader-theme-name" style={{ color: theme.text }}>
-                      {theme.name}
-                    </span>
-                    {isSelected && (
-                      <span
-                        className="reader-theme-check"
-                        style={{
-                          backgroundColor: 'var(--lorely-settings-accent, #e05a47)',
-                          color: '#ffffff',
-                        }}
-                      >
-                        <Check size={12} />
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className="reader-theme-preview-box"
-                    style={{
-                      backgroundColor: theme.cardBg,
-                      borderColor: theme.border,
-                      color: theme.textMuted,
-                    }}
-                  >
-                    <div
-                      className="reader-preview-line accent"
-                      style={{ backgroundColor: theme.accent }}
-                    />
-                    <div
-                      className="reader-preview-line full"
-                      style={{ backgroundColor: theme.border }}
-                    />
-                    <div
-                      className="reader-preview-line half"
-                      style={{ backgroundColor: theme.border }}
-                    />
-                  </div>
-                  <span className="reader-theme-desc" style={{ color: theme.textMuted }}>
-                    {theme.description}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Default Typography Settings */}
-        <div className="settings-card">
-          <div className="settings-card-header">
-            <h3 className="settings-card-title">Default Typography</h3>
-            <p className="settings-card-description">
-              Fine-tune reading font family, base size, and line spacing across your library.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {/* Font Family Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            {/* Reading Atmosphere Dropdown */}
             <div className="settings-field-group">
-              <label className="settings-label">Font Family</label>
-              <div
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-                role="radiogroup"
-                aria-label="Font family selection"
+              <label htmlFor="reading-theme-select" className="settings-label">
+                Reading Atmosphere
+              </label>
+              <select
+                id="reading-theme-select"
+                aria-label="Reading Atmosphere"
+                className="settings-select"
+                value={readingTheme}
+                onChange={(e) => handleSelectTheme(e.target.value)}
               >
-                {Object.values(FONT_FAMILIES).map((font) => {
-                  const isSelected = fontFamily === font.id;
-                  return (
-                    <button
-                      key={font.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      aria-label={`Select ${font.name} font`}
-                      className={`font-select-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleSelectFontFamily(font.id)}
-                    >
-                      <span className="font-select-name" style={{ fontFamily: font.cssFamily }}>
-                        {font.name}
-                      </span>
-                      <span className="font-select-sample" style={{ fontFamily: font.cssFamily }}>
-                        Aa Bb Gg 123
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                {Object.values(READER_THEMES).map((theme) => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Base Font Size */}
+            {/* Font Family Dropdown */}
             <div className="settings-field-group">
-              <div className="flex items-center justify-between mb-2">
-                <label className="settings-label">Base Font Size</label>
-                <span className="settings-value-badge">{fontSize}px</span>
-              </div>
-              <div className="flex items-center gap-2" role="group" aria-label="Font size options">
+              <label htmlFor="reading-font-select" className="settings-label">
+                Font Family
+              </label>
+              <select
+                id="reading-font-select"
+                aria-label="Font Family"
+                className="settings-select"
+                value={fontFamily}
+                onChange={(e) => handleSelectFontFamily(e.target.value)}
+              >
+                {Object.values(FONT_FAMILIES).map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Font Size Dropdown */}
+            <div className="settings-field-group">
+              <label htmlFor="reading-size-select" className="settings-label">
+                Font Size
+              </label>
+              <select
+                id="reading-size-select"
+                aria-label="Font Size"
+                className="settings-select"
+                value={fontSize}
+                onChange={(e) => handleSelectFontSize(Number(e.target.value))}
+              >
                 {[14, 16, 18, 20, 22].map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    className={`btn-settings-pill ${fontSize === size ? 'active' : ''}`}
-                    onClick={() => handleSelectFontSize(size)}
-                    aria-label={`Set font size ${size}px`}
-                  >
-                    {size}px
-                  </button>
+                  <option key={size} value={size}>
+                    {size}px {size === 18 ? '(Default)' : ''}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
-            {/* Line Height */}
+            {/* Line Spacing Dropdown */}
             <div className="settings-field-group">
-              <div className="flex items-center justify-between mb-2">
-                <label className="settings-label">Line Spacing</label>
-                <span className="settings-value-badge">
-                  {lineHeight === 1.5 ? 'Compact' : lineHeight === 1.75 ? 'Relaxed' : 'Loose'} ({lineHeight}x)
-                </span>
-              </div>
-              <div className="flex items-center gap-2" role="group" aria-label="Line spacing options">
-                {[
-                  { value: 1.5, label: 'Compact (1.5x)' },
-                  { value: 1.75, label: 'Relaxed (1.75x)' },
-                  { value: 2.0, label: 'Loose (2.0x)' },
-                ].map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    className={`btn-settings-pill ${lineHeight === item.value ? 'active' : ''}`}
-                    onClick={() => handleSelectLineHeight(item.value)}
-                    aria-label={`Set line height ${item.label}`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              <label htmlFor="reading-spacing-select" className="settings-label">
+                Line Spacing
+              </label>
+              <select
+                id="reading-spacing-select"
+                aria-label="Line Spacing"
+                className="settings-select"
+                value={lineHeight}
+                onChange={(e) => handleSelectLineHeight(Number(e.target.value))}
+              >
+                <option value={1.5}>Compact (1.5x)</option>
+                <option value={1.75}>Relaxed (1.75x)</option>
+                <option value={2.0}>Loose (2.0x)</option>
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Audio Narration & Voice Settings */}
+        {/* Card 2: Audio & Voice */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="flex items-center gap-2">
               <Volume2 size={16} className="text-amber-600 dark:text-amber-400" />
-              <h3 className="settings-card-title">Audio Narration &amp; Speech Detection</h3>
+              <h3 className="settings-card-title">Audio &amp; Voice</h3>
             </div>
           </div>
 
@@ -350,9 +247,9 @@ export default function ReadingAudioSection({ settings, onUpdateSettings }) {
             </div>
 
             {/* VAD Silence Sensitivity Slider */}
-            <div className="security-row flex-col items-start gap-3">
+            <div className="security-row flex-col items-start gap-2">
               <div className="w-full flex items-center justify-between">
-                <span className="security-row-title">Speech Pause Sensitivity (VAD)</span>
+                <span className="security-row-title">Speech Pause Sensitivity</span>
                 <span className="settings-value-badge">
                   {(vadSilenceMs / 1000).toFixed(1)}s
                 </span>
@@ -402,48 +299,32 @@ export default function ReadingAudioSection({ settings, onUpdateSettings }) {
           </div>
         </div>
 
-        {/* Spoiler Protection Policies */}
+        {/* Card 3: Spoiler Guardrail */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="flex items-center gap-2">
               <ShieldAlert size={16} className="text-amber-600 dark:text-amber-400" />
-              <h3 className="settings-card-title">Spoiler Protection Guardrail</h3>
+              <h3 className="settings-card-title">Spoiler Guardrail</h3>
             </div>
           </div>
 
-          <div
-            className="space-y-3"
-            role="radiogroup"
-            aria-label="Spoiler protection policy"
-          >
-            {SPOILER_POLICIES.map((policy) => {
-              const isSelected = spoilerPolicy === policy.id;
-
-              return (
-                <button
-                  key={policy.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  aria-label={`Select ${policy.title} spoiler policy`}
-                  className={`spoiler-policy-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => handleSelectSpoiler(policy.id)}
-                >
-                  <div className="spoiler-card-left">
-                    <div className="spoiler-radio-circle">
-                      {isSelected && <span className="spoiler-radio-dot" />}
-                    </div>
-                    <div className="spoiler-card-info">
-                      <div className="flex items-center gap-2">
-                        <span className="spoiler-card-title">{policy.title}</span>
-                        <span className="settings-badge-pill">{policy.badge}</span>
-                      </div>
-                      <span className="spoiler-card-desc">{policy.description}</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="settings-field-group pt-1">
+            <label htmlFor="spoiler-policy-select" className="settings-label">
+              Narrative Boundary Policy
+            </label>
+            <select
+              id="spoiler-policy-select"
+              aria-label="Spoiler protection policy"
+              className="settings-select"
+              value={spoilerPolicy}
+              onChange={(e) => handleSelectSpoiler(e.target.value)}
+            >
+              {SPOILER_POLICIES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

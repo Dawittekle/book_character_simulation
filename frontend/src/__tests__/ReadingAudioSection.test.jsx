@@ -9,7 +9,7 @@ describe('Phase 6: Reading & Audio Preferences', () => {
     localStorage.clear();
   });
 
-  it('renders all 5 curated reader atmosphere themes with active selection', () => {
+  it('renders all dropdown selectors with initial values', () => {
     const settings = {
       reading_theme: 'parchment',
       preferences: { fontFamily: 'serif', fontSize: 18, lineHeight: 1.75 },
@@ -20,20 +20,12 @@ describe('Phase 6: Reading & Audio Preferences', () => {
 
     render(<ReadingAudioSection settings={settings} onUpdateSettings={vi.fn()} />);
 
-    expect(screen.getByText('Reading & Audio Preferences')).toBeInTheDocument();
-    expect(screen.getByText('Default Reader Atmosphere')).toBeInTheDocument();
-
-    expect(screen.getByRole('radio', { name: /Select Warm Paper reader theme/i })).toHaveAttribute(
-      'aria-checked',
-      'true'
-    );
-    expect(screen.getByRole('radio', { name: /Select Pure White reader theme/i })).toHaveAttribute(
-      'aria-checked',
-      'false'
-    );
-    expect(screen.getByRole('radio', { name: /Select Quiet Sepia reader theme/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /Select Dark Slate reader theme/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /Select Obsidian OLED reader theme/i })).toBeInTheDocument();
+    expect(screen.getByText('Reading & Audio')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reading Atmosphere')).toHaveValue('parchment');
+    expect(screen.getByLabelText('Font Family')).toHaveValue('serif');
+    expect(screen.getByLabelText('Font Size')).toHaveValue('18');
+    expect(screen.getByLabelText('Line Spacing')).toHaveValue('1.75');
+    expect(screen.getByLabelText('Spoiler protection policy')).toHaveValue('cautious');
   });
 
   it('changes reader theme, persists to localStorage and triggers onUpdateSettings', () => {
@@ -45,8 +37,8 @@ describe('Phase 6: Reading & Audio Preferences', () => {
 
     render(<ReadingAudioSection settings={settings} onUpdateSettings={handleUpdate} />);
 
-    const obsidianRadio = screen.getByRole('radio', { name: /Select Obsidian OLED reader theme/i });
-    fireEvent.click(obsidianRadio);
+    const themeSelect = screen.getByLabelText('Reading Atmosphere');
+    fireEvent.change(themeSelect, { target: { value: 'obsidian' } });
 
     expect(handleUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ reading_theme: 'obsidian' })
@@ -56,7 +48,7 @@ describe('Phase 6: Reading & Audio Preferences', () => {
     expect(savedReader.theme).toBe('obsidian');
   });
 
-  it('adjusts default typography: font family, font size, and line height', () => {
+  it('adjusts default typography: font family, font size, and line height via dropdowns', () => {
     const handleUpdate = vi.fn().mockResolvedValue({});
     const settings = {
       reading_theme: 'parchment',
@@ -66,8 +58,8 @@ describe('Phase 6: Reading & Audio Preferences', () => {
     render(<ReadingAudioSection settings={settings} onUpdateSettings={handleUpdate} />);
 
     // Switch font family to Modern Sans
-    const sansBtn = screen.getByRole('radio', { name: /Select Modern Sans font/i });
-    fireEvent.click(sansBtn);
+    const fontSelect = screen.getByLabelText('Font Family');
+    fireEvent.change(fontSelect, { target: { value: 'sans' } });
     expect(handleUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         preferences: expect.objectContaining({ fontFamily: 'sans' }),
@@ -75,8 +67,8 @@ describe('Phase 6: Reading & Audio Preferences', () => {
     );
 
     // Switch base font size to 20px
-    const size20Btn = screen.getByRole('button', { name: /Set font size 20px/i });
-    fireEvent.click(size20Btn);
+    const sizeSelect = screen.getByLabelText('Font Size');
+    fireEvent.change(sizeSelect, { target: { value: '20' } });
     expect(handleUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         preferences: expect.objectContaining({ fontSize: 20 }),
@@ -84,11 +76,11 @@ describe('Phase 6: Reading & Audio Preferences', () => {
     );
 
     // Switch line height to Loose (2.0x)
-    const looseBtn = screen.getByRole('button', { name: /Set line height Loose \(2.0x\)/i });
-    fireEvent.click(looseBtn);
+    const spacingSelect = screen.getByLabelText('Line Spacing');
+    fireEvent.change(spacingSelect, { target: { value: '2' } });
     expect(handleUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        preferences: expect.objectContaining({ lineHeight: 2.0 }),
+        preferences: expect.objectContaining({ lineHeight: 2 }),
       })
     );
   });
@@ -117,7 +109,7 @@ describe('Phase 6: Reading & Audio Preferences', () => {
     expect(handleUpdate).toHaveBeenCalledWith({ voice_vad_silence_ms: 2500 });
   });
 
-  it('selects spoiler protection policy', () => {
+  it('selects spoiler protection policy via dropdown', () => {
     const handleUpdate = vi.fn().mockResolvedValue({});
     const settings = {
       spoiler_policy: 'cautious',
@@ -125,8 +117,8 @@ describe('Phase 6: Reading & Audio Preferences', () => {
 
     render(<ReadingAudioSection settings={settings} onUpdateSettings={handleUpdate} />);
 
-    const strictRadio = screen.getByRole('radio', { name: /Select Strict Quarantine spoiler policy/i });
-    fireEvent.click(strictRadio);
+    const spoilerSelect = screen.getByLabelText('Spoiler protection policy');
+    fireEvent.change(spoilerSelect, { target: { value: 'strict' } });
 
     expect(handleUpdate).toHaveBeenCalledWith({ spoiler_policy: 'strict' });
   });
