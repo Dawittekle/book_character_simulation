@@ -8,6 +8,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Discover from './pages/Discover';
 import MyLibrary from './pages/MyLibrary';
+import BookOverview from './pages/BookOverview';
 import CharacterGallery from './pages/CharacterGallery';
 import ChatScreen from './pages/ChatScreen';
 import Conversations from './pages/Conversations';
@@ -24,9 +25,11 @@ import AdminPlans from './pages/admin/AdminPlans';
 import AdminSubscribers from './pages/admin/AdminSubscribers';
 import AdminSettings from './pages/admin/AdminSettings';
 import BrandLogo from './components/brand/BrandLogo';
+import ReaderShell from './components/reader/ReaderShell';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { lorelyApi } from './services/lorelyApi';
 import { checkAndMigrateLegacyWorkspaces } from './lib/workspaceMigration';
+import { initThemePreferences } from './lib/themeManager';
 
 function LegacyWorkspaceRedirect() {
   const { textId } = useParams();
@@ -70,6 +73,9 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
         {/* Dedicated Authoritative Admin Portal */}
         {renderAdminRoutes()}
 
+        {/* Dedicated Full-Screen Immersive Reader */}
+        <Route path="books/:bookId/read" element={<ReaderShell session={session} />} />
+
         {/* Reader Application Layout */}
         <Route
           path="/"
@@ -83,7 +89,8 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
           <Route index element={<Discover />} />
           <Route path="discover" element={<Discover />} />
           <Route path="library" element={<MyLibrary />} />
-          <Route path="books/:bookId" element={<CharacterGallery />} />
+          <Route path="books/:bookId" element={<BookOverview />} />
+          <Route path="books/:bookId/characters" element={<CharacterGallery />} />
           <Route path="characters" element={<CharacterGallery />} />
           <Route path="chat/:characterId" element={<ChatScreen />} />
           <Route path="chat/:characterId/:sessionId" element={<ChatScreen />} />
@@ -108,6 +115,10 @@ function App() {
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [userRole, setUserRole] = useState('user');
   const [loadingRole, setLoadingRole] = useState(true);
+
+  useEffect(() => {
+    initThemePreferences();
+  }, []);
 
   useEffect(() => {
     if (supabase === null) {
@@ -263,6 +274,7 @@ function App() {
           />
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
+          <Route path="books/:bookId/read" element={<ReaderShell session={null} />} />
           <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </BrowserRouter>

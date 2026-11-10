@@ -310,6 +310,8 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
               openAddBookModal: () => setIsAddBookOpen(true),
               openPricingModal: () => setIsPricingModalOpen(true),
               accessToken,
+              session,
+              onSignOut,
             }}
           />
         </main>

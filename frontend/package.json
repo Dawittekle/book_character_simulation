@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
+    "epubjs": "^0.3.93",
     "framer-motion": "^14.10.1",
     "lucide-react": "^1.70.0",
+    "pdfjs-dist": "^6.5.438",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.4.0"

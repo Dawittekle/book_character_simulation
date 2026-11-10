@@ -5,9 +5,12 @@ const BASE_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api').r
 const V1_URL = `${BASE_URL}/api/v1`;
 
 async function request(endpoint, { method = 'GET', body, accessToken, signal } = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-  };
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers = {};
+
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
@@ -18,7 +21,7 @@ async function request(endpoint, { method = 'GET', body, accessToken, signal } =
     response = await fetch(`${V1_URL}${endpoint}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       signal,
     });
   } catch (networkErr) {
@@ -42,10 +45,32 @@ export const lorelyApi = {
     return request('/me', { accessToken });
   },
 
-  updateMe: async ({ displayName, avatarUrl }, accessToken) => {
+  updateMe: async (updates, accessToken) => {
     return request('/me', {
       method: 'PATCH',
-      body: { display_name: displayName, avatar_url: avatarUrl },
+      body: {
+        display_name: updates?.displayName ?? updates?.display_name,
+        avatar_url: updates?.avatarUrl ?? updates?.avatar_url,
+        full_name: updates?.fullName ?? updates?.full_name,
+        preferred_language: updates?.preferredLanguage ?? updates?.preferred_language,
+      },
+      accessToken,
+    });
+  },
+
+  uploadAvatar: async (fileOrBlob, accessToken) => {
+    const formData = new FormData();
+    formData.append('avatar', fileOrBlob);
+    return request('/me/avatar', {
+      method: 'POST',
+      body: formData,
+      accessToken,
+    });
+  },
+
+  deleteAvatar: async (accessToken) => {
+    return request('/me/avatar', {
+      method: 'DELETE',
       accessToken,
     });
   },
@@ -60,6 +85,10 @@ export const lorelyApi = {
       body: settings,
       accessToken,
     });
+  },
+
+  getMySubscription: async (accessToken) => {
+    return request('/me/subscription', { accessToken });
   },
 
   // Books
@@ -664,6 +693,92 @@ export const lorelyApi = {
       method: 'POST',
       body: data,
       accessToken: token,
+    });
+  },
+
+  // Reader Engine APIs
+  getReaderAccess: async (bookId, accessToken) => {
+    return request(`/reader/books/${bookId}/access`, { accessToken });
+  },
+
+  getReaderChapters: async (bookId, accessToken) => {
+    return request(`/reader/books/${bookId}/chapters`, { accessToken });
+  },
+
+  getReaderRawSourceUrl: (bookId) => {
+    return `${V1_URL}/reader/books/${bookId}/raw`;
+  },
+
+  updateReaderProgress: async (bookId, progressData, accessToken) => {
+    return request(`/reader/books/${bookId}/progress`, {
+      method: 'PUT',
+      body: progressData,
+      accessToken,
+    });
+  },
+
+  getReaderProgress: async (bookId, accessToken) => {
+    return request(`/reader/books/${bookId}/progress`, { accessToken });
+  },
+
+  getChapterNarration: async (bookId, chapterIndex, options = {}, accessToken) => {
+    const params = new URLSearchParams();
+    if (options.voiceId) params.append('voice_id', options.voiceId);
+    if (options.speed) params.append('speed', options.speed.toString());
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+    return request(`/reader/books/${bookId}/narration/${chapterIndex}${queryStr}`, { accessToken });
+  },
+
+  // Reader Bookmarks
+  getReaderBookmarks: async (bookId, accessToken) => {
+    const res = await request(`/reader/books/${bookId}/bookmarks`, { accessToken });
+    return res.bookmarks || [];
+  },
+
+  createReaderBookmark: async (bookId, bookmarkData, accessToken) => {
+    const res = await request(`/reader/books/${bookId}/bookmarks`, {
+      method: 'POST',
+      body: bookmarkData,
+      accessToken,
+    });
+    return res.bookmark;
+  },
+
+  deleteReaderBookmark: async (bookId, bookmarkId, accessToken) => {
+    return request(`/reader/books/${bookId}/bookmarks/${bookmarkId}`, {
+      method: 'DELETE',
+      accessToken,
+    });
+  },
+
+  // Reader Annotations & Highlights
+  getReaderAnnotations: async (bookId, accessToken) => {
+    const res = await request(`/reader/books/${bookId}/annotations`, { accessToken });
+    return res.annotations || [];
+  },
+
+  createReaderAnnotation: async (bookId, annotationData, accessToken) => {
+    const res = await request(`/reader/books/${bookId}/annotations`, {
+      method: 'POST',
+      body: annotationData,
+      accessToken,
+    });
+    return res.annotation;
+  },
+
+  deleteReaderAnnotation: async (bookId, annotationId, accessToken) => {
+    return request(`/reader/books/${bookId}/annotations/${annotationId}`, {
+      method: 'DELETE',
+      accessToken,
+    });
+  },
+
+  // Reader "Ask a Character" Contextual Chat
+  sendReaderContextualChat: async (bookId, payload, accessToken) => {
+    return request(`/reader/books/${bookId}/contextual-chat`, {
+      method: 'POST',
+      body: payload,
+      accessToken,
     });
   },
 };
