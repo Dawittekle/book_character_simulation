@@ -217,10 +217,11 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
                   className="dropdown-item"
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    navigate('/settings');
+                    navigate('/settings?tab=appearance');
                   }}
+                  aria-label="Appearance"
                 >
-                  ⚙️ Preferences
+                  🎨 Appearance
                 </button>
                 <div className="dropdown-divider" />
                 <button

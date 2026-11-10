@@ -86,7 +86,7 @@ describe('Phase 4: Reader App Shell & Navigation', () => {
     // Open dropdown
     fireEvent.click(userButton);
     expect(screen.getByText('dawit@lorely.ai')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /preferences/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /appearance/i })).toBeInTheDocument();
 
     const signOutBtn = screen.getByRole('button', { name: /sign out/i });
     fireEvent.click(signOutBtn);
