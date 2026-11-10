@@ -298,10 +298,10 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 SUPABASE_SECRET_KEY=sb_secret_...
 
 # Cloudflare R2 Object Storage (Live & Verified)
-R2_ACCOUNT_ID=a7157189109e85abcfe2e5626aa99086
-R2_ACCESS_KEY_ID=c1a2910ba980ee8a31b07cffbc052517
-R2_SECRET_ACCESS_KEY=ad618370b1ced225c55b58ee97ac1f4ed31adc187fc0798946a4cbe820de12f1
-R2_BUCKET_NAME=lorly
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+R2_BUCKET_NAME=your-bucket-name
 R2_PUBLIC_URL=https://pub-8cc6d8415c22493487979ef72ed2316a.r2.dev
 STORAGE_LOCAL_DIR=storage
 ```

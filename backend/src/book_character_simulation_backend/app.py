@@ -50,7 +50,11 @@ def create_app(settings: Settings | None = None) -> Flask:
     if database_manager.is_configured:
         database_manager.create_schema()
         try:
-            purge_demo_and_test_data(database_manager, resolved_settings)
+            # Destructive demo cleanup is only safe outside production. On a
+            # production database it would delete every non-featured book,
+            # including books uploaded by real readers.
+            if resolved_settings.app_env.lower() not in {"production", "prod"}:
+                purge_demo_and_test_data(database_manager, resolved_settings)
             seed_dostoevsky_books(database_manager, resolved_settings)
             seed_membership_plans(database_manager)
             seed_payment_config(database_manager)

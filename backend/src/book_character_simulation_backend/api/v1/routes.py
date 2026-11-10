@@ -30,8 +30,11 @@ def _authenticated_user() -> AuthenticatedUser:
     auth_header = request.headers.get("Authorization")
     test_user_id = request.headers.get("X-Test-User-Id")
 
-    # In test environments or when explicit test header is provided
-    if test_user_id:
+    # The test identity header is a test-only shortcut. Never accept it in
+    # deployed environments, otherwise any caller could impersonate any user.
+    settings = current_app.config.get("SETTINGS")
+    allow_test_identity = getattr(settings, "app_env", "development") in {"testing", "test"}
+    if test_user_id and allow_test_identity:
         return AuthenticatedUser(
             subject=test_user_id,
             email=f"{test_user_id}@test.lorely.app",

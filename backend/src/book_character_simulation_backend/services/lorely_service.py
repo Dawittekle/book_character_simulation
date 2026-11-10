@@ -4233,6 +4233,13 @@ class LorelyService:
             return results
 
     def switch_my_role(self, auth_user: AuthenticatedUser | None, target_role: str) -> dict[str, Any]:
+        # Development/test convenience only. In production, role changes must go
+        # through the administrator-only admin_update_user_role endpoint.
+        if getattr(self.settings, "app_env", "development") in ("production", "prod"):
+            raise ForbiddenError(
+                "Role changes must be performed by an administrator."
+            )
+
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
             if target_role not in ("admin", "user"):

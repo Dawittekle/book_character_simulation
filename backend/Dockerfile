@@ -18,4 +18,5 @@ ENV PORT=5000 \
 
 EXPOSE 5000
 
-CMD ["python", "run.py"]
+# Production WSGI server (never use the Flask development server in production)
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 4 --timeout 180 'book_character_simulation_backend:create_app()'"]
