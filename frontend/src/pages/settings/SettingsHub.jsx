@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { ArrowLeft, User as UserIcon } from 'lucide-react';
-import { lorelyApi } from '../../services/lorelyApi';
+import { lorelyApi, resolveAvatarUrl } from '../../services/lorelyApi';
 import SettingsSidebar, { SETTINGS_SECTIONS } from './SettingsSidebar';
 import ProfileSection from './components/ProfileSection';
 import SecuritySection from './components/SecuritySection';
@@ -28,6 +28,7 @@ export default function SettingsHub() {
   const session = outletContext.session;
   const openPricingModal = outletContext.openPricingModal;
   const onSignOut = outletContext.onSignOut;
+  const onProfileUpdated = outletContext.onProfileUpdated;
 
   const activeTab = searchParams.get('tab') || 'profile';
   const [mobileSubpageOpen, setMobileSubpageOpen] = useState(Boolean(searchParams.get('tab')));
@@ -68,6 +69,9 @@ export default function SettingsHub() {
       ]);
       setMe(meData);
       setSettings(settingsData);
+      if (meData && onProfileUpdated) {
+        onProfileUpdated(meData);
+      }
       if (settingsData) {
         if (settingsData.app_theme) applyAppTheme(settingsData.app_theme);
         if (settingsData.accent_color) applyAccentColor(settingsData.accent_color);
@@ -117,14 +121,22 @@ export default function SettingsHub() {
             onUpdateProfile={async (updates) => {
               const res = await lorelyApi.updateMe(updates, accessToken);
               setMe(res);
+              if (onProfileUpdated) onProfileUpdated(res);
+              window.dispatchEvent(new CustomEvent('lorely:profile-updated', { detail: res }));
             }}
             onUploadAvatar={async (file) => {
               const res = await lorelyApi.uploadAvatar(file, accessToken);
-              setMe(res.profile);
+              const updatedProfile = res.profile || res;
+              setMe(updatedProfile);
+              if (onProfileUpdated) onProfileUpdated(updatedProfile);
+              window.dispatchEvent(new CustomEvent('lorely:profile-updated', { detail: updatedProfile }));
             }}
             onDeleteAvatar={async () => {
               const res = await lorelyApi.deleteAvatar(accessToken);
-              setMe(res.profile);
+              const updatedProfile = res.profile || res;
+              setMe(updatedProfile);
+              if (onProfileUpdated) onProfileUpdated(updatedProfile);
+              window.dispatchEvent(new CustomEvent('lorely:profile-updated', { detail: updatedProfile }));
             }}
             loading={loading}
           />

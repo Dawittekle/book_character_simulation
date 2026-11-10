@@ -4,7 +4,7 @@ import AddBookModal from './AddBookModal';
 import NotificationsDropdown from './NotificationsDropdown';
 import PricingModal from './PricingModal';
 import { BrandLogo } from './brand';
-import { lorelyApi } from '../services/lorelyApi';
+import { lorelyApi, resolveAvatarUrl } from '../services/lorelyApi';
 import './AppShell.css';
 
 export default function AppShell({ session, onSignOut, onBookAdded }) {
@@ -26,10 +26,19 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
     user?.user_metadata?.name ||
     (user?.email ? user.email.split('@')[0] : 'Reader');
   const userAvatar =
-    profile?.avatar_url ||
+    resolveAvatarUrl(profile?.avatar_url) ||
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
     '/avatars/user_avatar.svg';
+
+  const handleProfileUpdated = (updatedProfile) => {
+    if (!updatedProfile) return;
+    setProfile((prev) => ({
+      ...prev,
+      ...updatedProfile,
+      avatar_url: resolveAvatarUrl(updatedProfile.avatar_url ?? prev?.avatar_url),
+    }));
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -48,6 +57,18 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
       mounted = false;
     };
   }, [accessToken]);
+
+  useEffect(() => {
+    function handleCustomProfileUpdate(event) {
+      if (event?.detail) {
+        handleProfileUpdated(event.detail);
+      }
+    }
+    window.addEventListener('lorely:profile-updated', handleCustomProfileUpdate);
+    return () => {
+      window.removeEventListener('lorely:profile-updated', handleCustomProfileUpdate);
+    };
+  }, []);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -189,6 +210,10 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
                 src={userAvatar}
                 alt={displayName}
                 className="sidebar-user-avatar"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/avatars/user_avatar.svg';
+                }}
               />
               <span className="sidebar-user-name">{displayName}</span>
               <span className="sidebar-caret">▾</span>
@@ -300,6 +325,10 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
               alt={displayName}
               className="header-avatar"
               onClick={() => navigate('/settings')}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/avatars/user_avatar.svg';
+              }}
             />
           </div>
         </header>
@@ -312,6 +341,9 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
               openPricingModal: () => setIsPricingModalOpen(true),
               accessToken,
               session,
+              profile,
+              userAvatar,
+              onProfileUpdated: handleProfileUpdated,
               onSignOut,
             }}
           />

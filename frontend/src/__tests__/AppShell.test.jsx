@@ -6,6 +6,7 @@ import AppShell from '../components/AppShell';
 import { lorelyApi } from '../services/lorelyApi';
 
 vi.mock('../services/lorelyApi', () => ({
+  resolveAvatarUrl: (url) => url || null,
   lorelyApi: {
     getMe: vi.fn(),
     listNotifications: vi.fn(() => Promise.resolve([])),

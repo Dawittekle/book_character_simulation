@@ -4,6 +4,36 @@ const BASE_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api').r
 );
 const V1_URL = `${BASE_URL}/api/v1`;
 
+/**
+ * Resolves an avatar URL into an absolute URL accessible by the browser.
+ * Handles null/undefined, absolute URLs (http/https/data/blob), and relative storage paths.
+ */
+export function resolveAvatarUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed;
+  }
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${BASE_URL}${cleanPath}`;
+}
+
+function normalizeProfile(profile) {
+  if (!profile || typeof profile !== 'object') return profile;
+  const resolvedAvatar = resolveAvatarUrl(profile.avatar_url);
+  if (!resolvedAvatar) return profile;
+  return {
+    ...profile,
+    avatar_url: resolvedAvatar,
+  };
+}
+
 async function request(endpoint, { method = 'GET', body, accessToken, signal } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const headers = {};
@@ -42,11 +72,12 @@ async function request(endpoint, { method = 'GET', body, accessToken, signal } =
 export const lorelyApi = {
   // User Profile & Settings
   getMe: async (accessToken) => {
-    return request('/me', { accessToken });
+    const res = await request('/me', { accessToken });
+    return normalizeProfile(res);
   },
 
   updateMe: async (updates, accessToken) => {
-    return request('/me', {
+    const res = await request('/me', {
       method: 'PATCH',
       body: {
         display_name: updates?.displayName ?? updates?.display_name,
@@ -56,23 +87,33 @@ export const lorelyApi = {
       },
       accessToken,
     });
+    return normalizeProfile(res);
   },
 
   uploadAvatar: async (fileOrBlob, accessToken) => {
     const formData = new FormData();
     formData.append('avatar', fileOrBlob);
-    return request('/me/avatar', {
+    const res = await request('/me/avatar', {
       method: 'POST',
       body: formData,
       accessToken,
     });
+    return {
+      ...res,
+      avatar_url: resolveAvatarUrl(res.avatar_url),
+      profile: normalizeProfile(res.profile),
+    };
   },
 
   deleteAvatar: async (accessToken) => {
-    return request('/me/avatar', {
+    const res = await request('/me/avatar', {
       method: 'DELETE',
       accessToken,
     });
+    return {
+      ...res,
+      profile: normalizeProfile(res.profile),
+    };
   },
 
   getSettings: async (accessToken) => {
