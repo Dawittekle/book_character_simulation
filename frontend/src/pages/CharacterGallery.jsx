@@ -25,7 +25,8 @@ const setStoredCasts = (key, data) => {
 
 export default function CharacterGallery() {
   const { bookId } = useParams();
-  const { accessToken } = useOutletContext();
+  const outletContext = useOutletContext() || {};
+  const { accessToken } = outletContext;
   
   const cacheKey = bookId || '__all__';
   const cachedData = getStoredCasts(cacheKey);
@@ -33,6 +34,7 @@ export default function CharacterGallery() {
   const [characters, setCharacters] = useState(cachedData?.characters || []);
   const [bookTitle, setBookTitle] = useState(cachedData?.title || (bookId ? 'Literary Work' : 'All Literary Casts'));
   const [loading, setLoading] = useState(!cachedData);
+  const [fetchError, setFetchError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export default function CharacterGallery() {
         }
       } catch (err) {
         console.warn('Error loading character cast:', err);
+        if (mounted) setFetchError(err.message || 'Could not load characters.');
       } finally {
         if (mounted) {
           setLoading(false);
@@ -80,6 +83,28 @@ export default function CharacterGallery() {
       mounted = false;
     };
   }, [bookId, accessToken]);
+
+  if (fetchError && characters.length === 0) {
+    return (
+      <div className="lorely-gallery-page" data-testid="character-gallery-page">
+        <header className="gallery-header">
+          <div className="gallery-header-nav-row">
+            <button type="button" className="page-back-btn" onClick={() => navigate(-1)} aria-label="Go back">
+              ← Back
+            </button>
+          </div>
+        </header>
+        <div className="gallery-empty-state">
+          <div className="gallery-empty-bubble">📖</div>
+          <h3 className="gallery-empty-title">Characters Unavailable</h3>
+          <p className="gallery-empty-sub">{fetchError}</p>
+          <PillButton variant="orange" size="md" hasChevron onClick={() => navigate('/library')}>
+            Browse Library
+          </PillButton>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="lorely-gallery-page" data-testid="character-gallery-page">
