@@ -8,8 +8,6 @@ import {
   ChevronRight,
   Sparkles,
   Moon,
-  Volume2,
-  VolumeX,
   Loader2,
   BookOpen,
   Headphones,
@@ -19,12 +17,12 @@ import { lorelyApi } from '../../services/lorelyApi';
 import SleepTimerModal from './SleepTimerModal';
 
 const NARRATOR_VOICES = [
-  { id: 'nova', name: 'Nova', desc: 'Warm & Clear (Female)' },
-  { id: 'alloy', name: 'Alloy', desc: 'Balanced & Neutral' },
-  { id: 'echo', name: 'Echo', desc: 'Calm & Deep (Male)' },
-  { id: 'fable', name: 'Fable', desc: 'Theatrical & Expressive' },
-  { id: 'onyx', name: 'Onyx', desc: 'Resonant Baritone' },
-  { id: 'shimmer', name: 'Shimmer', desc: 'Bright & Lyrical' },
+  { id: 'nova', name: 'Nova', desc: 'Warm & Clear' },
+  { id: 'alloy', name: 'Alloy', desc: 'Balanced' },
+  { id: 'echo', name: 'Echo', desc: 'Deep & Calm' },
+  { id: 'fable', name: 'Fable', desc: 'Expressive' },
+  { id: 'onyx', name: 'Onyx', desc: 'Baritone' },
+  { id: 'shimmer', name: 'Shimmer', desc: 'Lyrical' },
 ];
 
 const SPEED_OPTIONS = [0.75, 1.0, 1.25, 1.5, 2.0];
@@ -56,26 +54,22 @@ export default function ListenModeView({
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [audioError, setAudioError] = useState(null);
 
-  // Settings
   const [voiceId, setVoiceId] = useState('nova');
   const [speed, setSpeed] = useState(1.0);
-  const [isMuted, setIsMuted] = useState(false);
   const [isVoicePickerOpen, setIsVoicePickerOpen] = useState(false);
   const [isSleepModalOpen, setIsSleepModalOpen] = useState(false);
 
-  // Sleep timer
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(0);
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState(0);
   const sleepIntervalRef = useRef(null);
 
-  // Segments & Active Sentence
   const [narrationData, setNarrationData] = useState(null);
   const [activeSentence, setActiveSentence] = useState(null);
 
   const bookId = bookData?.book_id || bookData?.id;
-  const currentChapter = chapters.find(
-    (c) => (c.chapter_order ?? c.chapter_index) === currentChapterIndex
-  ) || chapters[0];
+  const currentChapter =
+    chapters.find((c) => (c.chapter_order ?? c.chapter_index) === currentChapterIndex) ||
+    chapters[0];
 
   // Fetch chapter narration
   useEffect(() => {
@@ -110,30 +104,28 @@ export default function ListenModeView({
     };
   }, [bookId, currentChapterIndex, voiceId, speed, session]);
 
-  // Synchronize time and active sentence
   const handleTimeUpdate = () => {
     if (!audioRef.current) return;
     const curSec = audioRef.current.currentTime;
     setCurrentTime(curSec);
-
-    if (narrationData?.segments && narrationData.segments.length > 0) {
+    if (narrationData?.segments?.length > 0) {
       const curMs = curSec * 1000;
       const found = narrationData.segments.find(
         (seg) => seg.start_time_ms <= curMs && curMs < seg.end_time_ms
       );
-
       if (found && (!activeSentence || activeSentence.segment_index !== found.segment_index)) {
         setActiveSentence(found);
-        if (onActiveSentenceChange) {
-          onActiveSentenceChange(found.segment_index, found);
-        }
+        if (onActiveSentenceChange) onActiveSentenceChange(found.segment_index, found);
       }
     }
   };
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      setDuration(audioRef.current.duration || (narrationData?.duration_ms ? narrationData.duration_ms / 1000 : 0));
+      setDuration(
+        audioRef.current.duration ||
+          (narrationData?.duration_ms ? narrationData.duration_ms / 1000 : 0)
+      );
       audioRef.current.playbackRate = speed;
     }
   };
@@ -145,9 +137,7 @@ export default function ListenModeView({
       setSleepRemainingSeconds(0);
       return;
     }
-    if (hasNextChapter && onNextChapter) {
-      onNextChapter();
-    }
+    if (hasNextChapter && onNextChapter) onNextChapter();
   };
 
   const togglePlay = () => {
@@ -185,9 +175,7 @@ export default function ListenModeView({
     const curIdx = SPEED_OPTIONS.indexOf(speed);
     const nextSpeed = SPEED_OPTIONS[(curIdx + 1) % SPEED_OPTIONS.length];
     setSpeed(nextSpeed);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = nextSpeed;
-    }
+    if (audioRef.current) audioRef.current.playbackRate = nextSpeed;
   };
 
   // Sleep timer countdown
@@ -195,7 +183,6 @@ export default function ListenModeView({
     if (sleepTimerMinutes > 0) {
       setSleepRemainingSeconds(sleepTimerMinutes * 60);
       if (sleepIntervalRef.current) clearInterval(sleepIntervalRef.current);
-
       sleepIntervalRef.current = setInterval(() => {
         setSleepRemainingSeconds((prev) => {
           if (prev <= 1) {
@@ -212,7 +199,6 @@ export default function ListenModeView({
       if (sleepIntervalRef.current) clearInterval(sleepIntervalRef.current);
       setSleepRemainingSeconds(0);
     }
-
     return () => {
       if (sleepIntervalRef.current) clearInterval(sleepIntervalRef.current);
     };
@@ -220,13 +206,42 @@ export default function ListenModeView({
 
   const coverUrl = getBookCoverUrl(bookData?.title, bookData?.cover_url);
 
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (audioError) {
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center gap-6 p-8 select-none animate-fade-in"
+        style={{ backgroundColor: theme?.bg || '#faf8f5', color: theme?.text || '#1c1917' }}
+      >
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-md"
+          style={{
+            backgroundColor: theme?.cardBg || '#f3efe6',
+            border: `1px solid ${theme?.border || '#e8e1d3'}`,
+          }}
+        >
+          <Headphones className="w-9 h-9 opacity-40" />
+        </div>
+        <div className="text-center max-w-xs">
+          <h3 className="text-lg font-serif font-semibold mb-2">Audio Unavailable</h3>
+          <p className="text-sm opacity-60 leading-relaxed">{audioError}</p>
+        </div>
+        <button
+          onClick={() => onSwitchMode('read')}
+          className="px-5 py-2.5 rounded-xl font-medium text-sm text-white shadow transition-transform active:scale-95"
+          style={{ backgroundColor: '#ef4d23' }}
+        >
+          Switch to Reading Mode
+        </button>
+      </div>
+    );
+  }
+
+  // ── Main layout ────────────────────────────────────────────────────────────
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-between p-6 sm:p-10 select-none overflow-y-auto animate-fade-in"
-      style={{
-        backgroundColor: theme?.bg || '#fbf0d9',
-        color: theme?.text || '#1c1917',
-      }}
+      className="w-full h-full flex flex-col select-none overflow-hidden animate-fade-in"
+      style={{ backgroundColor: theme?.bg || '#fbf0d9', color: theme?.text || '#1c1917' }}
     >
       <audio
         ref={audioRef}
@@ -237,90 +252,98 @@ export default function ListenModeView({
         onPause={() => setIsPlaying(false)}
       />
 
-      {/* Top Spacer / Mode Pill Indicator */}
-      <div className="w-full max-w-lg flex items-center justify-between opacity-70 text-xs font-mono">
+      {/* Top pill row */}
+      <div className="flex-shrink-0 px-6 pt-5 pb-2 w-full max-w-lg mx-auto flex items-center justify-between opacity-70 text-xs font-mono">
         <span className="flex items-center gap-1.5">
           <Headphones className="w-4 h-4 text-amber-500" />
           <span>Audiobook Mode</span>
         </span>
         <button
           onClick={() => onSwitchMode('follow_along')}
-          className="hover:underline flex items-center gap-1 text-amber-600 dark:text-amber-400 font-sans font-medium"
+          className="hover:underline flex items-center gap-1 text-amber-600 font-sans font-medium"
         >
           <BookOpen className="w-3.5 h-3.5" />
-          <span>Switch to Follow Along</span>
+          <span>Follow Along</span>
         </button>
       </div>
 
-      {/* Center Artwork & Metadata */}
-      <div className="my-auto flex flex-col items-center text-center max-w-md w-full">
-        {/* Cover Art with Vinyl Elevation */}
-        <div className="relative mb-6 group">
+      {/* Center: cover + metadata — flex-1 so it fills available space without overflow */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 min-h-0 overflow-hidden">
+        <div className="flex flex-col items-center text-center w-full max-w-xs">
+          {/* Book cover — compact, never cut off */}
           <div
-            className={`w-44 sm:w-56 aspect-[5/7] rounded-2xl shadow-2xl overflow-hidden border transition-all duration-700 ${
-              isPlaying ? 'scale-105 shadow-amber-500/20' : 'scale-100'
+            className={`relative mb-5 flex-shrink-0 transition-all duration-500 ${
+              isPlaying ? 'drop-shadow-2xl scale-[1.03]' : 'drop-shadow-lg scale-100'
             }`}
-            style={{ borderColor: theme?.border || 'rgba(0,0,0,0.1)' }}
           >
-            <img
-              src={coverUrl}
-              alt={`Cover of ${bookData?.title}`}
-              className="w-full h-full object-cover"
-            />
+            <div
+              className="w-36 sm:w-44 rounded-2xl overflow-hidden shadow-xl border"
+              style={{
+                aspectRatio: '5/7',
+                borderColor: theme?.border || 'rgba(0,0,0,0.08)',
+              }}
+            >
+              <img
+                src={coverUrl}
+                alt={`Cover of ${bookData?.title}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Subtle playing pulse */}
+            {isPlaying && (
+              <div
+                className="absolute inset-0 rounded-2xl border-2 border-amber-500/40 animate-ping pointer-events-none"
+                style={{ animationDuration: '2s' }}
+              />
+            )}
           </div>
-          {/* Subtle Vinyl Groove Indicator */}
+
+          {/* Title & Author */}
+          <h2 className="text-lg sm:text-xl font-serif font-bold tracking-tight mb-0.5 leading-snug">
+            {bookData?.title}
+          </h2>
+          <p className="text-xs font-serif italic opacity-60 mb-3">
+            {bookData?.author || 'Literary Classic'}
+          </p>
+
+          {/* Chapter badge */}
           <div
-            className={`absolute -right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 border-black/40 bg-black/80 -z-10 shadow-xl transition-all duration-700 hidden sm:block ${
-              isPlaying ? 'translate-x-6 rotate-180 animate-spin-slow' : 'translate-x-0'
-            }`}
-            style={{ animationDuration: '8s' }}
-          >
-            <div className="w-8 h-8 rounded-full bg-amber-500/80 m-auto mt-11" />
-          </div>
-        </div>
-
-        {/* Title & Author */}
-        <h2 className="text-xl sm:text-2xl font-serif font-bold tracking-tight mb-1">
-          {bookData?.title}
-        </h2>
-        <p className="text-sm font-serif italic opacity-75 mb-3">
-          {bookData?.author || 'Literary Classic'}
-        </p>
-
-        {/* Chapter Title Badge */}
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono border mb-6"
-          style={{
-            borderColor: theme?.border || '#e5e7eb',
-            backgroundColor: theme?.cardBg || 'rgba(255, 255, 255, 0.5)',
-          }}
-        >
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
-          <span>
-            {currentChapter?.title || `Chapter ${currentChapterIndex + 1}`}
-          </span>
-        </div>
-
-        {/* Spoken Passage Quote Box */}
-        {activeSentence && (
-          <div
-            className="w-full p-4 rounded-2xl border transition-all duration-300 shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono border"
             style={{
-              backgroundColor: theme?.cardBg || 'rgba(255, 255, 255, 0.7)',
               borderColor: theme?.border || '#e5e7eb',
+              backgroundColor: theme?.cardBg || 'rgba(255,255,255,0.5)',
             }}
           >
-            <p className="text-sm font-serif italic leading-relaxed line-clamp-3 opacity-90 text-justify">
-              “{activeSentence.text}”
-            </p>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className="truncate max-w-[180px]">
+              {currentChapter?.title || `Chapter ${currentChapterIndex + 1}`}
+            </span>
           </div>
-        )}
+
+          {/* Active sentence quote */}
+          {activeSentence && (
+            <div
+              className="w-full mt-4 px-4 py-3 rounded-xl border text-left"
+              style={{
+                backgroundColor: theme?.cardBg || 'rgba(255,255,255,0.7)',
+                borderColor: theme?.border || '#e5e7eb',
+              }}
+            >
+              <p className="text-xs font-serif italic leading-relaxed line-clamp-2 opacity-80">
+                "{activeSentence.text}"
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom Playback Controls Container */}
-      <div className="w-full max-w-lg mt-auto flex flex-col gap-4">
-        {/* Scrubber Slider */}
-        <div className="flex flex-col gap-1.5 font-mono text-xs opacity-80">
+      {/* Bottom controls — flex-shrink-0 so always visible */}
+      <div
+        className="flex-shrink-0 w-full max-w-lg mx-auto px-6 pb-6 pt-4 flex flex-col gap-3"
+        style={{ borderTop: `1px solid ${theme?.border || 'rgba(0,0,0,0.06)'}` }}
+      >
+        {/* Scrubber */}
+        <div className="flex flex-col gap-1 font-mono text-[11px] opacity-70">
           <input
             type="range"
             min="0"
@@ -328,123 +351,107 @@ export default function ListenModeView({
             step="0.1"
             value={currentTime}
             onChange={handleSeek}
-            role="slider"
-            aria-valuemin="0"
-            aria-valuemax={Math.round(duration || 100)}
-            aria-valuenow={Math.round(currentTime)}
-            aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-            className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-            aria-label="Audiobook timeline scrubber"
+            className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            aria-label="Audiobook timeline"
           />
-          <div className="flex items-center justify-between text-[11px]">
+          <div className="flex justify-between">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
         </div>
 
-        {/* Main Transport Bar */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Previous Chapter */}
+        {/* Transport bar */}
+        <div className="flex items-center justify-center gap-5">
           <button
             onClick={onPrevChapter}
             disabled={!hasPrevChapter}
-            className="p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-25 transition-all"
-            title="Previous Chapter"
+            className="p-2 rounded-full hover:bg-black/5 disabled:opacity-25 transition-all"
             aria-label="Previous chapter"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Rewind 15s */}
           <button
             onClick={() => handleSkip(-15)}
             disabled={loadingAudio || duration <= 0}
-            className="p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-25 transition-all flex flex-col items-center"
-            title="Rewind 15 seconds"
-            aria-label="Rewind 15 seconds"
+            className="p-2 rounded-full hover:bg-black/5 disabled:opacity-25 transition-all flex flex-col items-center gap-0.5"
+            aria-label="Rewind 15s"
           >
-            <RotateCcw className="w-6 h-6" />
-            <span className="text-[10px] font-mono mt-0.5">15</span>
+            <RotateCcw className="w-5 h-5" />
+            <span className="text-[9px] font-mono">15</span>
           </button>
 
-          {/* Big Play / Pause Button */}
+          {/* Primary play button */}
           <button
             onClick={togglePlay}
             disabled={loadingAudio}
-            className="w-16 h-16 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-2xl transition-transform active:scale-95 disabled:opacity-50"
-            aria-label={isPlaying ? 'Pause narration' : 'Play narration'}
+            className="w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl transition-transform active:scale-95 disabled:opacity-50"
+            style={{ backgroundColor: '#ef4d23' }}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {loadingAudio ? (
-              <Loader2 className="w-7 h-7 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : isPlaying ? (
-              <Pause className="w-8 h-8 fill-white" />
+              <Pause className="w-7 h-7 fill-white" />
             ) : (
-              <Play className="w-8 h-8 fill-white ml-1" />
+              <Play className="w-7 h-7 fill-white ml-0.5" />
             )}
           </button>
 
-          {/* Forward 15s */}
           <button
             onClick={() => handleSkip(15)}
             disabled={loadingAudio || duration <= 0}
-            className="p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-25 transition-all flex flex-col items-center"
-            title="Forward 15 seconds"
-            aria-label="Forward 15 seconds"
+            className="p-2 rounded-full hover:bg-black/5 disabled:opacity-25 transition-all flex flex-col items-center gap-0.5"
+            aria-label="Forward 15s"
           >
-            <RotateCw className="w-6 h-6" />
-            <span className="text-[10px] font-mono mt-0.5">15</span>
+            <RotateCw className="w-5 h-5" />
+            <span className="text-[9px] font-mono">15</span>
           </button>
 
-          {/* Next Chapter */}
           <button
             onClick={onNextChapter}
             disabled={!hasNextChapter}
-            className="p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-25 transition-all"
-            title="Next Chapter"
+            className="p-2 rounded-full hover:bg-black/5 disabled:opacity-25 transition-all"
             aria-label="Next chapter"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Secondary Auxiliary Controls Row (Speed, Voice, Sleep) */}
-        <div className="flex items-center justify-center gap-3 pt-2 text-xs">
-          {/* Speed Toggle */}
+        {/* Secondary: speed · voice · sleep */}
+        <div className="flex items-center justify-center gap-2 text-xs">
           <button
             onClick={handleSpeedCycle}
-            className="px-3 py-1.5 rounded-xl border font-mono font-semibold hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            className="px-3 py-1.5 rounded-lg border font-mono font-semibold hover:bg-black/5 transition-colors"
             style={{ borderColor: theme?.border || '#ccc' }}
-            title="Playback Speed"
-            aria-label={`Playback speed: ${speed}x`}
+            aria-label={`Speed ${speed}x`}
           >
             {speed}x
           </button>
 
-          {/* Narrator Voice Popover */}
           <div className="relative">
             <button
               onClick={() => setIsVoicePickerOpen(!isVoicePickerOpen)}
-              className="px-3 py-1.5 rounded-xl border hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-1.5 font-medium"
+              className="px-3 py-1.5 rounded-lg border hover:bg-black/5 transition-colors flex items-center gap-1.5 font-medium"
               style={{ borderColor: theme?.border || '#ccc' }}
-              title="Narrator Voice"
-              aria-label="Select voice"
+              aria-label="Voice picker"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Sparkles className="w-3 h-3 text-amber-500" />
               <span className="capitalize">{voiceId}</span>
             </button>
 
             {isVoicePickerOpen && (
               <div
-                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-56 rounded-2xl p-2 shadow-2xl border transition-all z-50 animate-scale-in"
+                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 rounded-2xl p-2 shadow-2xl border z-50"
                 style={{
                   backgroundColor: theme?.cardBg || '#ffffff',
                   borderColor: theme?.border || '#eee',
                 }}
               >
-                <div className="px-2 py-1 text-[11px] font-serif font-bold opacity-60 uppercase tracking-wider">
+                <div className="px-2 py-1 text-[10px] font-serif font-bold opacity-50 uppercase tracking-wider">
                   Narrator Voice
                 </div>
-                <div className="space-y-1 mt-1">
+                <div className="space-y-0.5 mt-1">
                   {NARRATOR_VOICES.map((v) => (
                     <button
                       key={v.id}
@@ -455,11 +462,11 @@ export default function ListenModeView({
                       className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
                         voiceId === v.id
                           ? 'bg-amber-500 text-white font-medium'
-                          : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-80'
+                          : 'hover:bg-black/5 opacity-80'
                       }`}
                     >
                       <span>{v.name}</span>
-                      <span className="text-[10px] opacity-75">{v.desc.split(' ')[0]}</span>
+                      <span className="text-[10px] opacity-70">{v.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -467,19 +474,17 @@ export default function ListenModeView({
             )}
           </div>
 
-          {/* Sleep Timer */}
           <button
             onClick={() => setIsSleepModalOpen(true)}
-            className={`px-3 py-1.5 rounded-xl border transition-colors flex items-center gap-1.5 font-medium ${
+            className={`px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 font-medium ${
               sleepTimerMinutes > 0
-                ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400'
-                : 'hover:bg-black/5 dark:hover:bg-white/10'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-600'
+                : 'hover:bg-black/5'
             }`}
             style={{ borderColor: sleepTimerMinutes > 0 ? undefined : theme?.border || '#ccc' }}
-            title="Sleep Timer"
             aria-label="Sleep timer"
           >
-            <Moon className="w-3.5 h-3.5" />
+            <Moon className="w-3 h-3" />
             <span>
               {sleepRemainingSeconds > 0 ? `${Math.ceil(sleepRemainingSeconds / 60)}m` : 'Sleep'}
             </span>
@@ -487,7 +492,6 @@ export default function ListenModeView({
         </div>
       </div>
 
-      {/* Sleep Timer Modal */}
       <SleepTimerModal
         isOpen={isSleepModalOpen}
         onClose={() => setIsSleepModalOpen(false)}

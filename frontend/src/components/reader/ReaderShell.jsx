@@ -404,12 +404,57 @@ export default function ReaderShell({ session }) {
   if (loading) {
     return (
       <div
-        className="w-screen h-screen flex flex-col items-center justify-center transition-colors duration-300"
-        style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}
+        className="w-screen h-screen flex flex-col items-center justify-center relative overflow-hidden"
+        style={{ backgroundColor: '#faf8f5' }}
       >
-        <Loader2 className="w-10 h-10 animate-spin text-amber-600 mb-4" />
-        <h2 className="text-xl font-serif font-medium">Opening Reader...</h2>
-        <p className="text-xs font-mono opacity-60 mt-1">Preparing distraction-free canvas</p>
+        {/* Subtle radial vignette */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.04) 100%)',
+          }}
+        />
+
+        {/* Lorely wordmark / logo */}
+        <div className="flex flex-col items-center gap-6 relative z-10">
+          {/* Book icon emblem */}
+          <div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
+            style={{ backgroundColor: '#ef4d23' }}
+          >
+            <BookOpen className="w-10 h-10 text-white" strokeWidth={1.5} />
+          </div>
+
+          {/* Brand name */}
+          <div className="text-center">
+            <h1
+              className="text-3xl font-bold tracking-tight"
+              style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#0b0f1a' }}
+            >
+              Lorely
+            </h1>
+            <p
+              className="text-sm mt-1"
+              style={{ color: '#6b6560', fontFamily: '"Inter", sans-serif' }}
+            >
+              Your reading experience is loading…
+            </p>
+          </div>
+
+          {/* Spinner */}
+          <Loader2
+            className="w-6 h-6 animate-spin mt-2"
+            style={{ color: '#ef4d23', opacity: 0.75 }}
+          />
+        </div>
+
+        {/* Bottom gradient fade */}
+        <div
+          className="absolute bottom-0 inset-x-0 h-32 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to top, rgba(250,248,245,0.8), transparent)',
+          }}
+        />
       </div>
     );
   }
