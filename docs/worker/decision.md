@@ -93,3 +93,22 @@ Each decision entry follows this structure:
   4. Ensure `backend/.env` holds the cloud credentials safely while remaining completely gitignored.
 - **Rationale**: Establishes a clean, typed configuration foundation with sensible defaults, strict environment variable cleaning, and zero secret leakage.
 - **Consequences**: Downstream phases (QdrantRepository, Retriever, IngestionWorker) can safely consume strongly-typed Qdrant settings from `Settings`.
+
+---
+
+### DEC-008: Qdrant Vector Repository with Tenant Isolation & Spoiler Protection (Phase 2)
+- **Date**: 2026-11-15
+- **Status**: Accepted
+- **Context**: Lorely requires a high-performance vector store repository for book chunk storage and retrieval that enforces multi-tenant isolation, chapter-based spoiler protection, deterministic point IDs, and payload indexing.
+- **Decision**:
+  1. Implement `QdrantRepository` in `backend/src/book_character_simulation_backend/repositories/qdrant.py`.
+  2. Use 1536-dimensional Cosine similarity for the collection (`lorely_book_chunks`).
+  3. Create payload indexes for `book_id` (keyword), `owner_user_id` (keyword), `chapter_order` (integer), `language` (keyword), and `visibility` (keyword).
+  4. Generate deterministic, reproducible Qdrant point IDs using `uuid.uuid5(uuid.NAMESPACE_DNS, f"chunk:{chunk_id}")` so re-indexing the same chunk is idempotent.
+  5. Enforce strict filter conditions on search:
+     - `book_id` filter (must match target book).
+     - Spoiler guard: `chapter_order <= max_allowed_chapter`.
+     - Multi-tenant guard: match `owner_user_id` OR `visibility == "public"`.
+  6. Provide `upsert_chunks`, `search` (via modern `client.query_points`), `delete_by_book_id`, `count_by_book`, and `health_check`.
+- **Rationale**: Isolates vector storage cleanly behind a repository interface, ensuring relational data remains in Postgres/SQLite while vector indexing and retrieval leverage Qdrant Cloud's native filtering and indexing capabilities.
+- **Consequences**: Unit-tested hermetically via `:memory:` client in `test_qdrant_repository.py`; ready for integration with embedding services (Phase 3) and retrieval engines (Phase 4).
