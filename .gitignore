@@ -5,6 +5,7 @@
 !.env.example
 backend/.env
 frontend/.env
+docs/test/quadrant.py
 
 # Python
 __pycache__/
