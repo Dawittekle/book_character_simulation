@@ -801,6 +801,7 @@ class LorelyService:
 
             return {
                 "temp_source_id": job.id,
+                "job_id": job.id,
                 "document_type": classification.document_type,
                 "genre": classification.genre,
                 "language": classification.language,

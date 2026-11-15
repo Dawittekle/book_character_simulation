@@ -69,3 +69,13 @@ Each decision entry follows this structure:
   - `research/`: Dedicated technical research and benchmark studies (including BookFusion reverse engineering and database audits).
 - **Rationale**: Keeps context persistent, clean, and directly accessible across development sessions.
 - **Consequences**: All future tasks must log decisions here and update research files as new features are investigated.
+
+---
+
+### DEC-006: Harmonize Ingest Source Job IDs & Inspection Contract
+- **Date**: 2026-11-15
+- **Status**: Accepted
+- **Context**: The `/books/inspect` endpoint returned `temp_source_id`, but `AddBookModal.jsx` looked up `inspectionResult.job_id`, causing `temp_source_id` to be undefined during ingestion confirmation and throwing a 400 error (`temp_source_id is required.`).
+- **Decision**: Support both keys bi-directionally: return both `temp_source_id` and `job_id` from the backend service, and defensively extract `inspectionResult.temp_source_id || inspectionResult.job_id` in the frontend modal.
+- **Rationale**: Ensures backward and forward compatibility between frontend components and API endpoints without brittle key assumptions.
+- **Consequences**: Upload and ingestion pipeline is robust against either property name.

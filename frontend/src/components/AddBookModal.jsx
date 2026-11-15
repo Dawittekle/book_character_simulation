@@ -77,7 +77,7 @@ export default function AddBookModal({
     try {
       const ingestData = await lorelyApi.ingestSource(
         {
-          tempSourceId: inspectionResult.job_id,
+          tempSourceId: inspectionResult.temp_source_id || inspectionResult.job_id,
           title: customTitle,
           author: customAuthor,
           visibility,
