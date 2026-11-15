@@ -41,6 +41,10 @@ def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("R2_SECRET_ACCESS_KEY", "cf-secret-789")
     monkeypatch.setenv("R2_BUCKET_NAME", "my-test-bucket")
     monkeypatch.setenv("R2_PUBLIC_URL", "https://cdn.example.com")
+    monkeypatch.setenv("QDRANT_URL", "https://qdrant.example.cloud:6333")
+    monkeypatch.setenv("QDRANT_API_KEY", "qdrant-secret-key-123")
+    monkeypatch.setenv("QDRANT_COLLECTION", "custom_book_chunks")
+    monkeypatch.setenv("QDRANT_TIMEOUT", "25")
 
     settings = Settings.from_env()
     assert settings.app_env == "testing"
@@ -53,3 +57,20 @@ def test_settings_from_env(monkeypatch):
     assert settings.r2_secret_access_key == "cf-secret-789"
     assert settings.r2_bucket_name == "my-test-bucket"
     assert settings.r2_public_url == "https://cdn.example.com"
+    assert settings.qdrant_url == "https://qdrant.example.cloud:6333"
+    assert settings.qdrant_api_key == "qdrant-secret-key-123"
+    assert settings.qdrant_collection == "custom_book_chunks"
+    assert settings.qdrant_timeout == 25
+
+
+def test_qdrant_default_settings(monkeypatch):
+    monkeypatch.setenv("QDRANT_URL", "")
+    monkeypatch.setenv("QDRANT_API_KEY", "")
+    monkeypatch.setenv("QDRANT_COLLECTION", "lorely_book_chunks")
+    monkeypatch.setenv("QDRANT_TIMEOUT", "10")
+
+    settings = Settings.from_env()
+    assert settings.qdrant_url is None
+    assert settings.qdrant_api_key is None
+    assert settings.qdrant_collection == "lorely_book_chunks"
+    assert settings.qdrant_timeout == 10

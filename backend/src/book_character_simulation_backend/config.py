@@ -117,6 +117,10 @@ class Settings:
     r2_bucket_name: str = "lorely-books"
     r2_public_url: str | None = None
     storage_local_dir: Path | None = None
+    qdrant_url: str | None = None
+    qdrant_api_key: str | None = None
+    qdrant_collection: str = "lorely_book_chunks"
+    qdrant_timeout: int = 10
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -171,4 +175,8 @@ class Settings:
             r2_bucket_name=os.getenv("R2_BUCKET_NAME", "lorely-books").strip(),
             r2_public_url=_clean_value(os.getenv("R2_PUBLIC_URL")),
             storage_local_dir=storage_local_path,
+            qdrant_url=_clean_value(os.getenv("QDRANT_URL")),
+            qdrant_api_key=_clean_value(os.getenv("QDRANT_API_KEY")),
+            qdrant_collection=os.getenv("QDRANT_COLLECTION", "lorely_book_chunks").strip(),
+            qdrant_timeout=_as_int(os.getenv("QDRANT_TIMEOUT"), 10),
         )

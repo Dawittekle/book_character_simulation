@@ -79,3 +79,17 @@ Each decision entry follows this structure:
 - **Decision**: Support both keys bi-directionally: return both `temp_source_id` and `job_id` from the backend service, and defensively extract `inspectionResult.temp_source_id || inspectionResult.job_id` in the frontend modal.
 - **Rationale**: Ensures backward and forward compatibility between frontend components and API endpoints without brittle key assumptions.
 - **Consequences**: Upload and ingestion pipeline is robust against either property name.
+
+---
+
+### DEC-007: Qdrant Cloud Configuration & Dependency Foundation (Phase 1)
+- **Date**: 2026-11-15
+- **Status**: Accepted
+- **Context**: As part of migrating Lorely from local ChromaDB to Qdrant Cloud, the backend required formal dependency declaration and robust configuration management for Qdrant connection parameters.
+- **Decision**: 
+  1. Add `qdrant-client>=1.12.0,<2.0` to `backend/pyproject.toml` dependencies.
+  2. Add `qdrant_url`, `qdrant_api_key`, `qdrant_collection` (default: `lorely_book_chunks`), and `qdrant_timeout` (default: 10s) to `Settings` in `config.py`.
+  3. Update `backend/.env.example` with empty placeholders.
+  4. Ensure `backend/.env` holds the cloud credentials safely while remaining completely gitignored.
+- **Rationale**: Establishes a clean, typed configuration foundation with sensible defaults, strict environment variable cleaning, and zero secret leakage.
+- **Consequences**: Downstream phases (QdrantRepository, Retriever, IngestionWorker) can safely consume strongly-typed Qdrant settings from `Settings`.
