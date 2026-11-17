@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Volume2,
 } from 'lucide-react';
+import { LorelyLoader } from '../ui';
 import { lorelyApi } from '../../services/lorelyApi';
 import { READER_THEMES } from './ReaderThemes';
 
@@ -340,8 +341,8 @@ export default function AskCharacterDrawer({
           )}
 
           {loading && (
-            <div className="flex items-center gap-2 p-3 text-xs opacity-70 font-serif italic animate-pulse">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+            <div className="flex items-center gap-2.5 p-3 text-xs opacity-75 font-serif italic">
+              <LorelyLoader size={20} transparent />
               <span>{selectedCharacter?.name || 'Character'} is considering the passage...</span>
             </div>
           )}

@@ -5,6 +5,7 @@ import { getCharacterAvatarUrl } from '../lib/formatters';
 import PillButton from '../components/brand/PillButton';
 import BadgePill from '../components/brand/BadgePill';
 import BrandLogo from '../components/brand/BrandLogo';
+import { Skeleton } from '../components/ui';
 import './CharacterGallery.css';
 
 // Storage helpers to instantly render previously loaded casts without jumping
@@ -149,12 +150,12 @@ export default function CharacterGallery() {
           // Elegant animated skeleton loaders while reading from database
           [1, 2, 3, 4].map((n) => (
             <article key={`skeleton-${n}`} className="character-portrait-card skeleton" aria-hidden="true">
-              <div className="skeleton-avatar" />
+              <Skeleton.Circle size={96} style={{ margin: '0 auto 16px auto' }} />
               <div className="card-info-body">
-                <div className="skeleton-line medium" />
-                <div className="skeleton-line short" />
-                <div className="skeleton-line long" style={{ marginTop: '8px' }} />
-                <div className="skeleton-line btn" />
+                <Skeleton.Line length="medium" height={18} style={{ marginBottom: 6 }} />
+                <Skeleton.Line length="short" height={14} style={{ marginBottom: 12 }} />
+                <Skeleton.Line length="long" height={12} style={{ marginBottom: 14 }} />
+                <Skeleton width="100%" height={36} borderRadius={18} />
               </div>
             </article>
           ))

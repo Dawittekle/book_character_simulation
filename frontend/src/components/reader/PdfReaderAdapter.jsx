@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { LorelyLoader } from '../ui';
 import { READER_THEMES } from './ReaderThemes';
 
 // Configure pdfjs worker
@@ -162,8 +163,7 @@ export default function PdfReaderAdapter({
       <div className="flex-1 w-full overflow-auto flex items-center justify-center p-4">
         {loading && (
           <div className="flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-600 mb-2" />
-            <p className="text-sm font-serif opacity-75">Rendering PDF page...</p>
+            <LorelyLoader size={48} text="Rendering PDF page..." transparent />
           </div>
         )}
 

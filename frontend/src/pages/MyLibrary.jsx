@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom
 import BookCard from '../components/BookCard';
 import PillButton from '../components/brand/PillButton';
 import BadgePill from '../components/brand/BadgePill';
+import { Skeleton } from '../components/ui';
 import { lorelyApi } from '../services/lorelyApi';
 import './MyLibrary.css';
 
@@ -169,14 +170,7 @@ export default function MyLibrary() {
       {loading && books.length === 0 ? (
         <div className="library-books-grid">
           {[1, 2, 3, 4].map((n) => (
-            <article key={`book-skeleton-${n}`} className="lorely-book-card skeleton" aria-hidden="true">
-              <div className="lorely-book-cover-container" />
-              <div className="lorely-book-info">
-                <div className="book-skeleton-line title" />
-                <div className="book-skeleton-line author" />
-                <div className="book-skeleton-line pill" />
-              </div>
-            </article>
+            <Skeleton.Card key={`book-skeleton-${n}`} />
           ))}
         </div>
       ) : filteredBooks.length === 0 ? (
