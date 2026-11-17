@@ -77,4 +77,18 @@ describe('LorelyUploadProgress Component (V2 Brand Ingestion Modal)', () => {
     fireEvent.click(cancelBtn);
     expect(handleCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('supports explicit stage prop for multi-stage indicators', () => {
+    render(
+      <LorelyUploadProgress
+        isOpen={true}
+        stage={3}
+        fileName="The_Brothers_Karamazov.txt"
+      />
+    );
+
+    expect(screen.getByTestId('lorely-upload-stage-label')).toHaveTextContent(
+      'Extracting characters & emotional profiles...'
+    );
+  });
 });

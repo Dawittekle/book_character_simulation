@@ -4,6 +4,7 @@ import { getFriendlyErrorMessage } from '../lib/errorUtils';
 import BrandLogo from './brand/BrandLogo';
 import PillButton from './brand/PillButton';
 import BadgePill from './brand/BadgePill';
+import { LorelyLoader, LorelyUploadProgress } from './ui';
 import './AddBookModal.css';
 
 export default function AddBookModal({
@@ -218,13 +219,10 @@ export default function AddBookModal({
 
           {step === 'inspecting' && (
             <div className="modal-loading-step">
-              <div className="modal-spinner-flower">
-                <BrandLogo size="lg" showTagline={false} showText={false} />
-              </div>
-              <h3 className="loading-heading">Analyzing Manuscript</h3>
-              <p className="loading-text">
-                Analyzing narrative content, chapter structures, and detecting characters...
-              </p>
+              <LorelyLoader
+                size={56}
+                text="Analyzing narrative content, chapter structures, and detecting characters..."
+              />
             </div>
           )}
 
@@ -319,17 +317,29 @@ export default function AddBookModal({
 
           {step === 'ingesting' && (
             <div className="modal-loading-step">
-              <div className="modal-spinner-flower is-pulsing">
-                <BrandLogo size="lg" showTagline={false} showText={false} />
-              </div>
-              <h3 className="loading-heading">Building Neural Embeddings</h3>
-              <p className="loading-text">
-                Building semantic chunks, vector embeddings, and extracting character cast...
-              </p>
+              <LorelyLoader
+                size={56}
+                text="Building semantic chunks, vector embeddings, and extracting character cast..."
+              />
             </div>
           )}
         </div>
       </div>
+
+      {/* Dedicated Full-Screen Lorely Brand Ingestion Overlay */}
+      <LorelyUploadProgress
+        isOpen={step === 'inspecting' || step === 'ingesting'}
+        fileName={file ? file.name : customTitle ? `${customTitle}.txt` : 'Manuscript.txt'}
+        statusText={
+          step === 'inspecting'
+            ? 'Analyzing narrative content, chapter structures, and detecting characters...'
+            : 'Building semantic chunks, vector embeddings, and extracting character cast...'
+        }
+        stage={step === 'inspecting' ? 2 : 3}
+        onCancel={() => {
+          setStep(step === 'inspecting' ? 'select' : 'review');
+        }}
+      />
     </div>
   );
 }

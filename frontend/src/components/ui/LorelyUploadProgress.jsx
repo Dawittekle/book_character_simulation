@@ -22,6 +22,7 @@ const STAGES = [
  * @param {string} [props.fileName='Manuscript'] - Name of uploaded document
  * @param {string} [props.statusText] - Optional backend status message override
  * @param {Function} [props.onCancel] - Optional cancel button callback
+ * @param {number|string} [props.stage] - Optional explicit stage (1-4 or name)
  */
 export default function LorelyUploadProgress({
   isOpen = false,
@@ -29,6 +30,7 @@ export default function LorelyUploadProgress({
   fileName = 'Manuscript',
   statusText = null,
   onCancel = null,
+  stage = null,
 }) {
   const [simulatedProgress, setSimulatedProgress] = useState(0);
 
@@ -67,15 +69,23 @@ export default function LorelyUploadProgress({
     return Math.min(100, Math.max(0, Math.round(raw)));
   }, [progress, simulatedProgress]);
 
-  if (!isOpen) return null;
-
-  // Active stage determination
+  // Active stage determination (supports explicit stage prop or progress-driven)
   const activeStageIndex = useMemo(() => {
+    if (typeof stage === 'number' && stage >= 1 && stage <= 4) {
+      return stage - 1;
+    }
+    if (stage === 'upload' || stage === 'reading') return 0;
+    if (stage === 'indexing' || stage === 'inspecting') return 1;
+    if (stage === 'extracting' || stage === 'ingesting') return 2;
+    if (stage === 'ready' || stage === 'complete') return 3;
+
     if (currentProgress >= 100) return 3;
     if (currentProgress >= 66) return 2;
     if (currentProgress >= 31) return 1;
     return 0;
-  }, [currentProgress]);
+  }, [stage, currentProgress]);
+
+  if (!isOpen) return null;
 
   const activeStageLabel = statusText || STAGES[activeStageIndex].label;
 
