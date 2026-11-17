@@ -1,59 +1,123 @@
 import React from 'react';
 import './BrandPrimitives.css';
 
+/**
+ * BrandLogo Component (Lorely V2)
+ *
+ * Renders the official Spine & Dialogue mark in dark, light, transparent,
+ * or custom variants with optional typography lockup.
+ *
+ * @param {Object} props
+ * @param {number|string} [props.size=32] - Width/height of the mark in pixels
+ * @param {string} [props.variant='orange'] - 'orange'|'default'|'white'|'light'|'dark'|'transparent'
+ * @param {boolean} [props.withBadge=true] - Render inside rounded container
+ * @param {boolean} [props.withText=false] - Render wordmark beside mark
+ * @param {string} [props.text='Lorely'] - Wordmark text
+ * @param {string} [props.tagline] - Optional sub-tagline text
+ * @param {string} [props.className=''] - Container class name
+ * @param {string} [props.textClassName=''] - Text group class name
+ */
 export default function BrandLogo({
   size = 32,
   variant = 'orange',
+  withBadge = true,
   withText = false,
   text = 'Lorely',
   tagline = null,
   className = '',
   textClassName = '',
+  showTagline, // legacy prop backward compatibility
+  showText,    // legacy prop backward compatibility
 }) {
-  const colorMap = {
-    orange: 'var(--brand-orange, #ef4d23)',
-    white: '#ffffff',
-    dark: 'var(--brand-obsidian, #0b0f1a)',
-    muted: 'var(--brand-text-muted, #6b7280)',
-  };
+  const effectiveWithText = withText || showText;
+  const effectiveTagline = tagline || (showTagline ? tagline : null);
 
-  const fillColor = colorMap[variant] || variant;
+  // Normalize size if string preset or numeric
+  let pixelSize = 32;
+  if (typeof size === 'number') {
+    pixelSize = size;
+  } else if (size === 'sm') {
+    pixelSize = 24;
+  } else if (size === 'md') {
+    pixelSize = 32;
+  } else if (size === 'lg') {
+    pixelSize = 48;
+  } else if (size === 'xl') {
+    pixelSize = 64;
+  } else {
+    pixelSize = parseInt(size, 10) || 32;
+  }
+
+  // Variant color mapping
+  const isLight = variant === 'light';
+  const isTransparent = variant === 'transparent';
+  const isWhite = variant === 'white';
+  const isDark = variant === 'dark';
+
+  let badgeFill = '#18181B';
+  let leftSpineFill = '#FAFAFA';
+  let rightSpineFill = '#EA580C';
+
+  if (isLight) {
+    badgeFill = '#F4F4F5';
+    leftSpineFill = '#18181B';
+    rightSpineFill = '#EA580C';
+  } else if (isWhite) {
+    badgeFill = '#FFFFFF';
+    leftSpineFill = '#FFFFFF';
+    rightSpineFill = '#EA580C';
+  } else if (isDark) {
+    badgeFill = '#18181B';
+    leftSpineFill = '#FAFAFA';
+    rightSpineFill = '#EA580C';
+  }
+
+  const shouldRenderBadge = withBadge && !isTransparent;
 
   return (
     <div className={`brand-logo-container ${className}`.trim()}>
       <svg
-        width={size}
-        height={size}
-        viewBox="0 0 32 32"
-        fill={fillColor}
+        width={pixelSize}
+        height={pixelSize}
+        viewBox="0 0 64 64"
+        fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="brand-logo-mark"
-        aria-label="Lorely Literary Rosette Mark"
+        aria-label="Lorely Spine & Dialogue Mark"
+        data-testid="brand-logo-mark"
       >
-        {/* 8 Geometric Petals at Radius 10 around (16, 16) */}
-        <circle cx="26" cy="16" r="3" />
-        <circle cx="23.071" cy="23.071" r="3" />
-        <circle cx="16" cy="26" r="3" />
-        <circle cx="8.929" cy="23.071" r="3" />
-        <circle cx="6" cy="16" r="3" />
-        <circle cx="8.929" cy="8.929" r="3" />
-        <circle cx="16" cy="6" r="3" />
-        <circle cx="23.071" cy="8.929" r="3" />
+        {shouldRenderBadge && (
+          <rect
+            width="64"
+            height="64"
+            rx="16"
+            fill={badgeFill}
+            data-testid="brand-logo-badge"
+          />
+        )}
 
-        {/* Center Core: Stylized Open Book Folio Pages */}
-        <path
-          d="M15.6 13.1 C14.25 12.7 12.75 12.8 11.75 13.4 C11.5 13.55 11.4 13.8 11.4 14.1 L11.4 17.9 C11.4 18.3 11.8 18.6 12.15 18.4 C13.1 17.9 14.4 17.8 15.6 18.25 Z"
+        {/* Left Book Spine (Classical literature) */}
+        <rect
+          x="15"
+          y="12"
+          width="11"
+          height="40"
+          rx="5.5"
+          fill={leftSpineFill}
+          data-testid="brand-logo-left-spine"
         />
+
+        {/* Right Dialogue Spine (Voice & cognitive dialogue) */}
         <path
-          d="M16.4 13.1 C17.75 12.7 19.25 12.8 20.25 13.4 C20.5 13.55 20.6 13.8 20.6 14.1 L20.6 17.9 C20.6 18.3 20.2 18.6 19.85 18.4 C18.9 17.9 17.6 17.8 16.4 18.25 Z"
+          d="M32 17.5C32 14.4624 34.4624 12 37.5 12C40.5376 12 43 14.4624 43 17.5V40.5C43 46.8513 37.8513 52 31.5 52H31V41.5C31 38.4624 32 35.5 32 32V17.5Z"
+          fill={rightSpineFill}
+          data-testid="brand-logo-right-spine"
         />
-        {/* Central Spark / Nexus Node */}
-        <circle cx="16" cy="15.6" r="0.75" />
       </svg>
-      {withText && (
+      {effectiveWithText && (
         <div className={`brand-logo-text-group ${textClassName}`.trim()}>
           <span className="brand-logo-title">{text}</span>
-          {tagline && <span className="brand-logo-tagline">{tagline}</span>}
+          {effectiveTagline && <span className="brand-logo-tagline">{effectiveTagline}</span>}
         </div>
       )}
     </div>

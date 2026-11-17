@@ -16,11 +16,11 @@
 .brand-logo-mark {
   flex-shrink: 0;
   display: block;
-  transition: transform 200ms ease;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), filter 220ms ease;
 }
 
 .brand-logo-container:hover .brand-logo-mark {
-  transform: rotate(22.5deg);
+  transform: translateY(-1px) scale(1.03);
 }
 
 .brand-logo-text-group {
