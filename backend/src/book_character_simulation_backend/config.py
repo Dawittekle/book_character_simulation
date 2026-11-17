@@ -57,7 +57,7 @@ def _clean_value(value: str | None) -> str | None:
     return cleaned
 
 
-def _normalize_database_url(value: str | None) -> str | None:
+def _normalize_database_url(value: str | None, base_dir: Path | None = None) -> str | None:
     cleaned = _clean_value(value)
     if cleaned is None:
         return None
@@ -69,6 +69,34 @@ def _normalize_database_url(value: str | None) -> str | None:
         raw = "postgresql+psycopg://" + raw[len("postgres://") :]
     elif raw.startswith("postgresql://"):
         raw = "postgresql+psycopg://" + raw[len("postgresql://") :]
+
+    if raw.startswith("sqlite:///"):
+        sqlite_path = raw[len("sqlite:///") :]
+        if sqlite_path and sqlite_path != ":memory:":
+            path_obj = Path(sqlite_path)
+            if not path_obj.is_absolute():
+                if base_dir is not None:
+                    # Check if relative to base_dir
+                    if (base_dir / sqlite_path).exists():
+                        return f"sqlite:///{ (base_dir / sqlite_path).resolve() }"
+                    # If specified with 'backend/' prefix and base_dir is already 'backend'
+                    if sqlite_path.startswith("backend/"):
+                        stripped = sqlite_path[len("backend/") :]
+                        if (base_dir / stripped).exists():
+                            return f"sqlite:///{ (base_dir / stripped).resolve() }"
+                    # Check if relative to parent of base_dir
+                    if (base_dir.parent / sqlite_path).exists():
+                        return f"sqlite:///{ (base_dir.parent / sqlite_path).resolve() }"
+                    # Target resolution anchored to base_dir
+                    target = base_dir / (
+                        sqlite_path[len("backend/") :]
+                        if sqlite_path.startswith("backend/") and base_dir.name == "backend"
+                        else sqlite_path
+                    )
+                    return f"sqlite:///{ target.resolve() }"
+                elif path_obj.exists():
+                    return f"sqlite:///{ path_obj.resolve() }"
+        return raw
 
     parsed = urlsplit(raw)
     if not parsed.scheme or "@" not in parsed.netloc or ":" not in parsed.netloc:
@@ -142,7 +170,9 @@ class Settings:
                 os.getenv("CORS_ORIGINS"),
                 ["http://localhost:5173", "http://127.0.0.1:5173"],
             ),
-            database_url=_normalize_database_url(os.getenv("DATABASE_URL")),
+            database_url=_normalize_database_url(
+                os.getenv("DATABASE_URL"), base_dir=backend_dir
+            ),
             database_connect_timeout=_as_int(
                 os.getenv("DATABASE_CONNECT_TIMEOUT"), 10
             ),

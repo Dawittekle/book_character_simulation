@@ -1,4 +1,5 @@
 import logging
+import os
 
 from flask import Flask
 from flask_cors import CORS
@@ -45,10 +46,8 @@ def create_app(settings: Settings | None = None) -> Flask:
     if database_manager.is_configured:
         database_manager.create_schema()
         try:
-            # Destructive demo cleanup is only safe outside production. On a
-            # production database it would delete every non-featured book,
-            # including books uploaded by real readers.
-            if resolved_settings.app_env.lower() not in {"production", "prod"}:
+            # Destructive demo cleanup is only performed when explicitly requested via PURGE_DEMO_DATA=true.
+            if os.getenv("PURGE_DEMO_DATA", "false").lower() in {"true", "1", "yes"}:
                 purge_demo_and_test_data(database_manager, resolved_settings)
             seed_dostoevsky_books(database_manager, resolved_settings)
             seed_membership_plans(database_manager)

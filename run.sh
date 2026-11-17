@@ -108,6 +108,10 @@ function run_all() {
 
   # Give backend a moment to boot
   sleep 2
+  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+    log_error "Backend failed to start. Check error output above."
+    exit 1
+  fi
 
   # Start frontend in background
   (cd "${FRONTEND_DIR}" && npm run dev -- --host 127.0.0.1 --port 5173) &

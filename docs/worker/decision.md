@@ -197,4 +197,14 @@ Each decision entry follows this structure:
      - Verified graceful downtime fallback when Qdrant is unconfigured or unreachable.
 - **Consequences**: The Qdrant Cloud vector architecture is resilient to transient cloud network disconnects, fully observable in logs and health checks, and verified end-to-end against the live cluster.
 
+## DEC-014: SQLite Relative Path Auto-Anchoring and Startup Hardening
+- **Context**: When running `./run.sh`, the script changes directory into `backend/` before launching `run.py`. Because `DATABASE_URL` was specified as `sqlite:///backend/lorely_local.db` or relative to root, SQLite searched for `backend/backend/lorely_local.db` and threw `sqlite3.OperationalError: unable to open database file`. Additionally, `google-genai` emitted an `ArbitraryTypeWarning`, and `app.py` previously ran destructive demo purge on every startup in development.
+- **Decision**:
+  1. Updated `_normalize_database_url` in `config.py` to auto-resolve SQLite relative paths against `backend_dir` (`base_dir`), seamlessly handling both root and sub-directory execution.
+  2. Filtered external `ArbitraryTypeWarning` from `google.genai.types.HttpOptions` in `backend/run.py` and package `__init__.py`.
+  3. Guarded `purge_demo_and_test_data` in `app.py` behind an explicit `PURGE_DEMO_DATA=true` environment flag to prevent accidental deletion of user-uploaded books on development restarts.
+  4. Added process health check in `run.sh` to ensure backend startup failures exit cleanly with actionable error messages.
+- **Consequences**: `./run.sh` launches both backend and frontend cleanly with zero warnings or database connection errors.
+
+
 

@@ -30,6 +30,25 @@ def test_normalize_database_url():
     assert normalized_prefixed.startswith("postgresql+psycopg://")
 
 
+def test_normalize_database_url_sqlite(tmp_path):
+    # In-memory remains untouched
+    assert _normalize_database_url("sqlite:///:memory:") == "sqlite:///:memory:"
+
+    # Relative path resolved against base_dir
+    db_file = tmp_path / "test.db"
+    db_file.touch()
+    normalized = _normalize_database_url("sqlite:///test.db", base_dir=tmp_path)
+    assert normalized == f"sqlite:///{db_file.resolve()}"
+
+    # Handles backend/ prefix
+    sub_dir = tmp_path / "backend"
+    sub_dir.mkdir()
+    sub_db = sub_dir / "lorely.db"
+    sub_db.touch()
+    norm_sub = _normalize_database_url("sqlite:///backend/lorely.db", base_dir=sub_dir)
+    assert norm_sub == f"sqlite:///{sub_db.resolve()}"
+
+
 def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("APP_ENV", "testing")
     monkeypatch.setenv("PORT", "5050")
