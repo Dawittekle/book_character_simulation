@@ -146,3 +146,19 @@ Each decision entry follows this structure:
   5. Provide non-silent fallback to relational database chunks only when a book has 0 points in Qdrant (with explicit log warning for pending backfill/testing fixtures), ensuring no silent fallback occurs during normal operation.
 - **Rationale**: Replaces $O(N)$ Python full-table scans with indexed, filtered vector searches executed natively in Qdrant Cloud in single-digit milliseconds, while preserving full backward compatibility for existing test fixtures.
 - **Consequences**: Sets up Phase 5 (data migration & backfill script) to populate all existing books and chunks into Qdrant Cloud.
+
+---
+
+### DEC-011: Data Migration & Qdrant Cloud Vector Backfill (Phase 5)
+- **Date**: 2026-11-17
+- **Status**: Accepted
+- **Context**: Existing books in `backend/lorely_local.db` (4 books, 29 chunks) contained outdated 128-dimensional mock vectors from the deprecated `text-embedding-004` fallback. Qdrant Cloud collection had 0 points and required complete backfill of real 1536-dimensional embeddings.
+- **Decision**:
+  1. Author `backend/scripts/migrate_to_qdrant.py` implementing batched, resumable, and idempotent backfill.
+  2. Safely create a timestamped database backup (`lorely_local.db.backup.<timestamp>`) before modifying relational records.
+  3. Batch-generate real 1536-dimensional embeddings using `models/gemini-embedding-001` via `EmbeddingService.embed_texts`.
+  4. Update relational `BookChunk` records with `embedding_provider="gemini"`, `embedding_model="models/gemini-embedding-001"`, and `embedding_dimensions=1536`.
+  5. Upsert all 29 chunks into Qdrant Cloud collection `lorely_book_chunks` with deterministic point IDs and payload metadata.
+  6. Verify live that point counts in Qdrant Cloud equal database chunk count (29 / 29), and verify live retrieval and spoiler protection on all books.
+- **Rationale**: Completely populates Qdrant Cloud with production-grade vectors and guarantees parity between the relational database and the vector search engine.
+- **Consequences**: Qdrant Cloud is now the live, active vector store for all existing books. We can proceed to Phase 6 (complete ChromaDB removal).

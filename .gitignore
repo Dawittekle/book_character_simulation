@@ -26,6 +26,8 @@ qdrant_storage/
 backend/qdrant_storage/
 *.db
 *.sqlite3
+*.backup*
+*.bak
 
 # Editor and Tooling
 .agents
