@@ -1,22 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AddBookModal from './AddBookModal';
 import NotificationsDropdown from './NotificationsDropdown';
 import PricingModal from './PricingModal';
 import { BrandLogo } from './brand';
 import { lorelyApi, resolveAvatarUrl } from '../services/lorelyApi';
+import { applyAppTheme } from '../lib/themeManager';
 import './AppShell.css';
 
 export default function AppShell({ session, onSignOut, onBookAdded }) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
   const [profile, setProfile] = useState(null);
-  const dropdownRef = useRef(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const moreRef = useRef(null);
+  const notifRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const accessToken = session?.access_token;
   const user = session?.user;
@@ -72,36 +75,52 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
 
   const isAdmin = profile?.role === 'admin';
 
+  // Close "More" popover when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
+      if (moreRef.current && !moreRef.current.contains(event.target)) {
+        setIsMoreOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/library?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
+  // Theme appearance toggle
+  const handleToggleAppearance = () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyAppTheme(nextTheme);
   };
 
+  // Active path matchers
+  const isHomeActive = location.pathname === '/' || location.pathname === '/discover';
+  const isBookshelfActive =
+    location.pathname.startsWith('/bookshelf') ||
+    location.pathname.startsWith('/library') ||
+    location.pathname.startsWith('/books');
+  const isCharactersActive = location.pathname.startsWith('/characters');
+  const isChatsActive =
+    location.pathname.startsWith('/chats') ||
+    location.pathname.startsWith('/conversations') ||
+    location.pathname.startsWith('/chat');
+  const isProfileActive =
+    location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings');
+
   return (
-    <div className="lorely-app-layout" data-testid="app-shell">
-      {/* Modern Light Sidebar with Editorial Brand Identity */}
-      <aside className="lorely-sidebar">
-        {/* Brand Logo & Studio Header */}
+    <div className={`lorely-app-layout ${isCollapsed ? 'is-sidebar-collapsed' : ''}`} data-testid="app-shell">
+      {/* Instagram-style 3-group vertical navigation sidebar */}
+      <aside className={`lorely-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+        {/* GROUP 1: Brand Header */}
         <div
           className="lorely-sidebar-brand"
           onClick={() => navigate('/')}
           role="button"
           tabIndex={0}
+          aria-label="Lorely Home"
         >
           <div className="lorely-logo-badge">
-            <BrandLogo size={28} variant="orange" />
+            <BrandLogo size={28} variant="orange" withText={false} />
           </div>
           <div className="lorely-brand-group">
             <span className="lorely-brand-title">Lorely</span>
@@ -109,15 +128,17 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
           </div>
         </div>
 
-        {/* Sidebar Navigation */}
+        {/* GROUP 2: Main Navigation Items */}
         <nav className="lorely-sidebar-nav">
+          {/* 1. Home */}
           <NavLink
             to="/"
             end
-            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+            className={`sidebar-nav-item ${isHomeActive ? 'active' : ''}`}
+            aria-label="Home"
           >
             <span className="sidebar-item-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill={isHomeActive ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
@@ -125,26 +146,30 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             <span className="sidebar-item-label">Home</span>
           </NavLink>
 
+          {/* 2. Bookshelf (replaces My Library) */}
           <NavLink
-            to="/library"
-            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+            to="/bookshelf"
+            className={`sidebar-nav-item ${isBookshelfActive ? 'active' : ''}`}
+            aria-label="Bookshelf"
           >
             <span className="sidebar-item-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
                 <path d="M6 6h10" />
                 <path d="M6 10h10" />
               </svg>
             </span>
-            <span className="sidebar-item-label">My Library</span>
+            <span className="sidebar-item-label">Bookshelf</span>
           </NavLink>
 
+          {/* 3. Characters */}
           <NavLink
             to="/characters"
-            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+            className={`sidebar-nav-item ${isCharactersActive ? 'active' : ''}`}
+            aria-label="Characters"
           >
             <span className="sidebar-item-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -154,186 +179,231 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             <span className="sidebar-item-label">Characters</span>
           </NavLink>
 
+          {/* 4. Chats (replaces Conversations) */}
           <NavLink
-            to="/conversations"
-            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+            to="/chats"
+            className={`sidebar-nav-item ${isChatsActive ? 'active' : ''}`}
+            aria-label="Chats"
           >
             <span className="sidebar-item-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
               </svg>
             </span>
-            <span className="sidebar-item-label">Conversations</span>
+            <span className="sidebar-item-label">Chats</span>
           </NavLink>
 
-          <NavLink
-            to="/settings"
-            className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
-          >
-            <span className="sidebar-item-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </span>
-            <span className="sidebar-item-label">Settings</span>
-          </NavLink>
-        </nav>
-
-        {/* Sidebar Footer with Active Subscription Pill & User Profile */}
-        <div className="lorely-sidebar-footer">
-          {/* Active Subscription Pill Card (Matches Image 4) */}
+          {/* 5. Notifications */}
           <button
             type="button"
-            className="premium-plan-card"
-            onClick={() => setIsPricingModalOpen(true)}
-            aria-label="View pricing plans"
+            className={`sidebar-nav-item sidebar-nav-btn ${isNotifOpen ? 'active' : ''}`}
+            onClick={() => setIsNotifOpen((prev) => !prev)}
+            aria-label="Notifications"
           >
-            <div className="premium-plan-icon-wrap">
-              <span className="premium-plan-crown">👑</span>
-            </div>
-            <div className="premium-plan-info">
-              <span className="premium-plan-title">Premium Plan</span>
-              <span className="premium-plan-sub">✦ Pro Access</span>
-            </div>
+            <span className="sidebar-item-icon notif-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill={isNotifOpen ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
+              {unreadCount > 0 && <span className="sidebar-notif-dot" />}
+            </span>
+            <span className="sidebar-item-label">Notifications</span>
           </button>
 
-          {/* User Profile Pill Row */}
-          <div className="sidebar-user-row" ref={dropdownRef}>
-            <button
-              type="button"
-              className="sidebar-user-button"
-              onClick={() => setIsDropdownOpen((prev) => !prev)}
-              aria-label="User account menu"
-            >
+          {/* 6. Add book (Upload modal trigger) */}
+          <button
+            type="button"
+            className="sidebar-nav-item sidebar-nav-btn"
+            onClick={() => setIsAddBookOpen(true)}
+            aria-label="Add book"
+          >
+            <span className="sidebar-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="4" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+              </svg>
+            </span>
+            <span className="sidebar-item-label">Add book</span>
+          </button>
+
+          {/* 7. Profile */}
+          <NavLink
+            to="/profile"
+            className={`sidebar-nav-item ${isProfileActive ? 'active' : ''}`}
+            aria-label="Profile"
+          >
+            <span className="sidebar-item-icon profile-icon-wrap">
               <img
                 src={userAvatar}
                 alt={displayName}
-                className="sidebar-user-avatar"
+                className="sidebar-profile-avatar"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '/avatars/user_avatar.svg';
                 }}
               />
-              <span className="sidebar-user-name">{displayName}</span>
-              <span className="sidebar-caret">▾</span>
-            </button>
+            </span>
+            <span className="sidebar-item-label">Profile</span>
+          </NavLink>
+        </nav>
 
-            {isDropdownOpen && (
-              <div className="sidebar-user-dropdown">
-                <div className="dropdown-user-header">
-                  <span className="dropdown-user-name">{displayName}</span>
-                  <span className="dropdown-user-email">{user?.email || 'reader@lorely.app'}</span>
-                </div>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      navigate('/admin');
-                    }}
-                  >
-                    🛡️ Admin Console
-                  </button>
-                )}
+        {/* GROUP 3: Bottom Utility Group — More Button Only */}
+        <div className="lorely-sidebar-footer" ref={moreRef}>
+          <button
+            type="button"
+            className={`sidebar-nav-item sidebar-nav-btn sidebar-more-btn ${isMoreOpen ? 'active' : ''}`}
+            onClick={() => setIsMoreOpen((prev) => !prev)}
+            aria-label="More"
+            aria-expanded={isMoreOpen}
+          >
+            <span className="sidebar-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" x2="20" y1="12" y2="12" />
+                <line x1="4" x2="20" y1="6" y2="6" />
+                <line x1="4" x2="20" y1="18" y2="18" />
+              </svg>
+            </span>
+            <span className="sidebar-item-label">More</span>
+          </button>
+
+          {/* Floating Instagram-Style "More" Popover Menu */}
+          {isMoreOpen && (
+            <div className="instagram-more-popover" role="menu" aria-label="More options">
+              <button
+                type="button"
+                className="more-popover-item"
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  navigate('/settings');
+                }}
+                role="menuitem"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Settings</span>
+              </button>
+
+              <button
+                type="button"
+                className="more-popover-item"
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  navigate('/settings?tab=reading');
+                }}
+                role="menuitem"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                <span>Your activity</span>
+              </button>
+
+              <button
+                type="button"
+                className="more-popover-item"
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  navigate('/bookshelf?filter=favorites');
+                }}
+                role="menuitem"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+                <span>Saved</span>
+              </button>
+
+              <button
+                type="button"
+                className="more-popover-item"
+                onClick={handleToggleAppearance}
+                role="menuitem"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+                <span>Switch appearance</span>
+              </button>
+
+              <button
+                type="button"
+                className="more-popover-item"
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  alert('Thank you for your feedback! You can reach us at support@lorely.dawalink.space.');
+                }}
+                role="menuitem"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>Report a problem</span>
+              </button>
+
+              <div className="more-popover-divider" />
+
+              {isAdmin && (
                 <button
                   type="button"
-                  className="dropdown-item"
+                  className="more-popover-item"
                   onClick={() => {
-                    setIsDropdownOpen(false);
-                    navigate('/settings?tab=appearance');
+                    setIsMoreOpen(false);
+                    navigate('/admin');
                   }}
-                  aria-label="Appearance"
+                  role="menuitem"
                 >
-                  🎨 Appearance
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                  </svg>
+                  <span>Admin Console</span>
                 </button>
-                <div className="dropdown-divider" />
-                <button
-                  type="button"
-                  className="dropdown-item dropdown-item-danger"
-                  onClick={onSignOut}
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+
+              <button
+                type="button"
+                className="more-popover-item"
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  navigate('/login');
+                }}
+                role="menuitem"
+              >
+                <span>Switch accounts</span>
+              </button>
+
+              <div className="more-popover-divider" />
+
+              <button
+                type="button"
+                className="more-popover-item more-popover-danger"
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  onSignOut();
+                }}
+                role="menuitem"
+              >
+                <span>Log out</span>
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
-      {/* Main Reader Application Surface */}
+      {/* Notifications Drawer (Slides out from next to sidebar) */}
+      <NotificationsDropdown
+        isOpen={isNotifOpen}
+        onClose={() => setIsNotifOpen(false)}
+        accessToken={accessToken}
+        onUnreadCountChange={(count) => setUnreadCount(count)}
+      />
+
+      {/* Main Reader Surface (Top nav bar removed completely) */}
       <div className="lorely-main-container">
-        {/* Top Header with Search, Notifications, and Profile */}
-        <header className="lorely-top-header">
-          <form className="lorely-search-form" onSubmit={handleSearchSubmit}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="search-icon-svg"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              className="lorely-search-input"
-              placeholder="Search books, characters, or themes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
-
-          <div className="top-header-right">
-            <button
-              type="button"
-              className="notification-bell-btn"
-              aria-label="Notifications"
-              onClick={() => setIsNotifOpen((prev) => !prev)}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-              </svg>
-              {unreadCount > 0 && <span className="notification-unread-badge">{unreadCount}</span>}
-            </button>
-
-            <NotificationsDropdown
-              isOpen={isNotifOpen}
-              onClose={() => setIsNotifOpen(false)}
-              accessToken={accessToken}
-              onUnreadCountChange={(count) => setUnreadCount(count)}
-            />
-
-            <img
-              src={userAvatar}
-              alt={displayName}
-              className="header-avatar"
-              onClick={() => navigate('/settings')}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = '/avatars/user_avatar.svg';
-              }}
-            />
-          </div>
-        </header>
-
-        {/* Child Page Outlet */}
         <main className="lorely-page-outlet">
           <Outlet
             context={{

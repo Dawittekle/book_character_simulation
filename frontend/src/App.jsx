@@ -88,13 +88,16 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
         >
           <Route index element={<Discover />} />
           <Route path="discover" element={<Discover />} />
+          <Route path="bookshelf" element={<MyLibrary />} />
           <Route path="library" element={<MyLibrary />} />
           <Route path="books/:bookId" element={<BookOverview />} />
           <Route path="books/:bookId/characters" element={<CharacterGallery />} />
           <Route path="characters" element={<CharacterGallery />} />
           <Route path="chat/:characterId" element={<ChatScreen />} />
           <Route path="chat/:characterId/:sessionId" element={<ChatScreen />} />
+          <Route path="chats" element={<Conversations />} />
           <Route path="conversations" element={<Conversations />} />
+          <Route path="profile" element={<Settings />} />
           <Route path="settings" element={<Settings />} />
 
           {/* Backward compatibility redirects */}

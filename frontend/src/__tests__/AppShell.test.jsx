@@ -17,7 +17,7 @@ vi.mock('../services/lorelyApi', () => ({
   },
 }));
 
-describe('Phase 4: Reader App Shell & Navigation', () => {
+describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
   const mockSignOut = vi.fn();
   const mockSession = {
     access_token: 'test-session-token',
@@ -37,7 +37,7 @@ describe('Phase 4: Reader App Shell & Navigation', () => {
     });
   });
 
-  it('renders sidebar navigation links, flower logo, and brand title', () => {
+  it('renders Instagram-style 3-group navigation links, brand mark, and utility items', () => {
     render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
@@ -48,75 +48,66 @@ describe('Phase 4: Reader App Shell & Navigation', () => {
     expect(screen.getByText('Lorely')).toBeInTheDocument();
     expect(screen.getByText('Reader Studio')).toBeInTheDocument();
 
-    // Verify all 5 navigation links
+    // Verify main navigation links
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /my library/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /bookshelf/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /characters/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /conversations/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /chats/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /profile/i })).toBeInTheDocument();
+
+    // Verify action and utility buttons
+    expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add book/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /more/i })).toBeInTheDocument();
   });
 
-  it('renders active subscription card with crown icon and opens pricing modal on click', () => {
+  it('opens Add Book modal when Add book navigation button is clicked', () => {
     render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
       </BrowserRouter>,
     );
 
-    const planCard = screen.getByLabelText(/view pricing plans/i);
-    expect(planCard).toBeInTheDocument();
-    expect(screen.getByText('Premium Plan')).toBeInTheDocument();
-    expect(screen.getByText(/✦ Pro Access/i)).toBeInTheDocument();
+    const addBookBtn = screen.getByRole('button', { name: /add book/i });
+    expect(addBookBtn).toBeInTheDocument();
 
-    fireEvent.click(planCard);
-    // Pricing modal should open
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(addBookBtn);
+    // Add Book modal dialog should open
+    expect(screen.getByRole('dialog', { name: /add a book/i })).toBeInTheDocument();
   });
 
-  it('toggles user profile dropdown and triggers sign out', () => {
+  it('toggles floating More popover menu with Settings, Switch appearance, and Log out', () => {
     render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
       </BrowserRouter>,
     );
 
-    const userButton = screen.getByLabelText(/user account menu/i);
-    expect(userButton).toBeInTheDocument();
-    expect(screen.getByText('Dawit Teklebrhan')).toBeInTheDocument();
+    const moreBtn = screen.getByRole('button', { name: /more/i });
+    expect(moreBtn).toBeInTheDocument();
 
-    // Open dropdown
-    fireEvent.click(userButton);
-    expect(screen.getByText('dawit@lorely.ai')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /appearance/i })).toBeInTheDocument();
+    // Open More popover
+    fireEvent.click(moreBtn);
+    expect(screen.getByRole('menu', { name: /more options/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /switch appearance/i })).toBeInTheDocument();
 
-    const signOutBtn = screen.getByRole('button', { name: /sign out/i });
-    fireEvent.click(signOutBtn);
+    const logoutBtn = screen.getByRole('menuitem', { name: /log out/i });
+    fireEvent.click(logoutBtn);
     expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 
-  it('updates search query on input and handles form submit', () => {
+  it('toggles notifications dropdown when Notifications button is clicked', () => {
     render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText(/search books, characters/i);
-    fireEvent.change(searchInput, { target: { value: 'Dostoevsky' } });
-    expect(searchInput).toHaveValue('Dostoevsky');
-  });
-
-  it('toggles notifications popover when bell button is clicked', () => {
-    render(
-      <BrowserRouter>
-        <AppShell session={mockSession} onSignOut={mockSignOut} />
-      </BrowserRouter>,
-    );
-
-    const bellBtn = screen.getByLabelText(/notifications/i);
-    fireEvent.click(bellBtn);
+    const notifBtn = screen.getByRole('button', { name: /notifications/i });
+    fireEvent.click(notifBtn);
 
     expect(screen.getByTestId('notifications-dropdown')).toBeInTheDocument();
-    expect(screen.getByText('Notifications')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /notifications/i, level: 3 })).toBeInTheDocument();
   });
 });
