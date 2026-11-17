@@ -260,8 +260,23 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
 
       {/* Main Reader Surface with Top-Right Floating Controls */}
       <div className="lorely-main-container">
-        {/* Canvas Top-Right Utility Header */}
+        {/* Canvas Top Header (Desktop Floating Utility / Mobile Sticky App Bar) */}
         <header className="lorely-canvas-header" data-testid="app-shell-topbar">
+          <div
+            className="canvas-header-mobile-brand"
+            onClick={() => navigate('/discover')}
+            role="button"
+            tabIndex={0}
+            aria-label="Lorely Discover"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                navigate('/discover');
+              }
+            }}
+          >
+            <BrandLogo variant="minimal" size={26} />
+          </div>
+
           <div className="canvas-header-right">
             {/* Notification Bell Button */}
             <button

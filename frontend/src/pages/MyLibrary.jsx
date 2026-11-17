@@ -73,6 +73,17 @@ export default function MyLibrary() {
           >
             ← Back
           </button>
+        </div>
+
+        <div className="library-title-row">
+          <div className="library-title-group">
+            <h1 className="library-title">
+              My Literary <span className="serif-italic">Shelf</span>
+            </h1>
+            <p className="library-subtitle">
+              Explore your imported manuscripts, literary novels, and books exported from the Book Store.
+            </p>
+          </div>
 
           <div className="library-header-actions">
             <button
@@ -90,15 +101,6 @@ export default function MyLibrary() {
               + Add a Book
             </button>
           </div>
-        </div>
-
-        <div className="library-title-group">
-          <h1 className="library-title">
-            My Literary <span className="serif-italic">Shelf</span>
-          </h1>
-          <p className="library-subtitle">
-            Explore your imported manuscripts, literary novels, and books exported from the Book Store.
-          </p>
         </div>
       </header>
 

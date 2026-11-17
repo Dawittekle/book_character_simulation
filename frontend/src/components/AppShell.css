@@ -302,7 +302,12 @@
   z-index: 35;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   pointer-events: none;
+}
+
+.canvas-header-mobile-brand {
+  display: none;
 }
 
 .canvas-header-right {
@@ -638,17 +643,76 @@
     height: 24px;
   }
 
+  /* Sticky Mobile Top App Bar */
   .lorely-canvas-header {
-    top: 12px;
-    right: 14px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 52px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--brand-surface, #ffffff);
+    border-bottom: 1px solid var(--brand-border, rgba(0, 0, 0, 0.08));
+    z-index: 45;
+    pointer-events: auto;
+    box-sizing: border-box;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   }
 
-  .canvas-profile-name {
-    display: none;
+  [data-theme='dark'] .lorely-canvas-header,
+  .dark .lorely-canvas-header {
+    background-color: var(--brand-surface, #18181b);
+    border-bottom-color: var(--brand-border, #27272a);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  }
+
+  .canvas-header-mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .mobile-brand-title {
+    font-family: var(--brand-font-serif, 'Instrument Serif', Georgia, serif);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--brand-obsidian, #0b0f1a);
+    letter-spacing: -0.01em;
+  }
+
+  [data-theme='dark'] .mobile-brand-title,
+  .dark .mobile-brand-title {
+    color: #ffffff;
+  }
+
+  .canvas-header-right {
+    gap: 8px;
+  }
+
+  .canvas-header-btn {
+    width: 36px;
+    height: 36px;
   }
 
   .canvas-profile-pill {
-    padding: 3px;
+    padding: 2px 8px 2px 2px;
+    gap: 6px;
+  }
+
+  .canvas-profile-name,
+  .canvas-profile-chevron {
+    display: none;
+  }
+
+  .canvas-profile-avatar {
+    width: 28px;
+    height: 28px;
   }
 
   .lorely-main-container {

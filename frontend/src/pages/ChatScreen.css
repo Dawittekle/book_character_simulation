@@ -35,6 +35,12 @@
   z-index: 10;
 }
 
+@media (min-width: 768px) {
+  .chat-screen-header {
+    padding-right: 230px;
+  }
+}
+
 .chat-header-left {
   display: flex;
   align-items: center;

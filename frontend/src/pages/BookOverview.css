@@ -24,6 +24,12 @@
   margin-bottom: 2rem;
 }
 
+@media (min-width: 768px) {
+  .book-overview-topbar {
+    padding-right: 230px;
+  }
+}
+
 .book-overview-back-btn {
   display: inline-flex;
   align-items: center;

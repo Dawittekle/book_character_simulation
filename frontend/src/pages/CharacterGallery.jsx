@@ -119,6 +119,23 @@ export default function CharacterGallery() {
           >
             ← Back
           </button>
+        </div>
+
+        <div className="gallery-title-row">
+          <div className="gallery-title-group">
+            <div className="gallery-title-lockup">
+              <h1 className="gallery-title">Meet the Characters</h1>
+              <BadgePill variant="orange" dotColor="#ef4d23" className="gallery-count-badge">
+                {characters.length} Active {characters.length === 1 ? 'Persona' : 'Personas'}
+              </BadgePill>
+            </div>
+            <p className="gallery-subtitle">
+              {bookId
+                ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})`
+                : 'Legendary personalities across the Lorely library.'}
+            </p>
+          </div>
+
           {bookId && (
             <button
               type="button"
@@ -128,20 +145,6 @@ export default function CharacterGallery() {
               📚 View All Characters
             </button>
           )}
-        </div>
-
-        <div className="gallery-title-group">
-          <div className="gallery-title-lockup">
-            <h1 className="gallery-title">Meet the Characters</h1>
-            <BadgePill variant="orange" dotColor="#ef4d23" className="gallery-count-badge">
-              {characters.length} Active {characters.length === 1 ? 'Persona' : 'Personas'}
-            </BadgePill>
-          </div>
-          <p className="gallery-subtitle">
-            {bookId
-              ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})`
-              : 'Legendary personalities across the Lorely library.'}
-          </p>
         </div>
       </header>
 
