@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Discover from './pages/Discover';
+import BookStore from './pages/BookStore';
 import MyLibrary from './pages/MyLibrary';
 import BookOverview from './pages/BookOverview';
 import CharacterGallery from './pages/CharacterGallery';
@@ -88,7 +89,7 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
         >
           <Route index element={<Discover />} />
           <Route path="discover" element={<Discover />} />
-          <Route path="store" element={<Discover isStoreView />} />
+          <Route path="store" element={<BookStore />} />
           <Route path="bookstore" element={<Navigate replace to="/store" />} />
           <Route path="bookshelf" element={<MyLibrary />} />
           <Route path="library" element={<MyLibrary />} />
