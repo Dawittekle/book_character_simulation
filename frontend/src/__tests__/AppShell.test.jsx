@@ -117,4 +117,18 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
     fireEvent.click(notifBtn);
     expect(sidebar).not.toHaveClass('collapsed');
   });
+
+  it('confirms the top navigation bar is completely removed and canvas is full height', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <AppShell session={mockSession} onSignOut={mockSignOut} />
+      </BrowserRouter>,
+    );
+
+    // .lorely-top-header must not exist anywhere in the shell
+    expect(container.querySelector('.lorely-top-header')).toBeNull();
+    // The main container and page outlet take the full layout
+    expect(container.querySelector('.lorely-main-container')).toBeInTheDocument();
+    expect(container.querySelector('.lorely-page-outlet')).toBeInTheDocument();
+  });
 });
