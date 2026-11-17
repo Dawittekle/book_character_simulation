@@ -555,12 +555,22 @@ class LorelyService:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
             stmt = select(Book)
+
+            user_lib_subquery = select(UserLibraryBook.book_id).where(UserLibraryBook.user_id == user.id)
+            user_lib_ids = set(session.scalars(user_lib_subquery).all())
+
             if scope == "mine":
-                stmt = stmt.where(Book.owner_user_id == user.id)
-            elif scope == "featured":
+                stmt = stmt.where(or_(Book.owner_user_id == user.id, Book.id.in_(user_lib_subquery)))
+            elif scope in ("featured", "store", "catalog"):
                 stmt = stmt.where(Book.visibility == "featured")
             else:
-                stmt = stmt.where(or_(Book.owner_user_id == user.id, Book.visibility == "featured"))
+                stmt = stmt.where(
+                    or_(
+                        Book.owner_user_id == user.id,
+                        Book.id.in_(user_lib_subquery),
+                        Book.visibility == "featured",
+                    )
+                )
 
             stmt = stmt.order_by(
                 case((Book.visibility == "featured", 0), else_=1),
@@ -596,6 +606,7 @@ class LorelyService:
                         "completed": prog.completed,
                         "last_read_at": prog.last_read_at.isoformat() if prog.last_read_at else None,
                     }
+                is_in_lib = (b.owner_user_id == user.id) or (b.id in user_lib_ids)
                 results.append({
                     "id": b.id,
                     "title": b.title,
@@ -608,6 +619,7 @@ class LorelyService:
                     "detected_language": getattr(b, "detected_language", None),
                     "processing_status": b.processing_status.value,
                     "is_owner": b.owner_user_id == user.id,
+                    "is_in_library": is_in_lib,
                     "character_count": char_count,
                     "conversation_count": conv_count,
                     "reading_progress": prog_dict,
@@ -1055,6 +1067,16 @@ class LorelyService:
         else:
             reading_status = "not_started"
 
+        in_library = (book.owner_user_id == user.id) or (
+            session.scalar(
+                select(UserLibraryBook.id).where(
+                    UserLibraryBook.user_id == user.id,
+                    UserLibraryBook.book_id == book.id,
+                )
+            )
+            is not None
+        )
+
         return {
             "id": book.id,
             "title": book.title,
@@ -1068,6 +1090,7 @@ class LorelyService:
             "detected_language": getattr(book, "detected_language", None),
             "processing_status": book.processing_status.value,
             "is_owner": book.owner_user_id == user.id,
+            "is_in_library": in_library,
             "characters": char_list,
             "character_count": len(char_list),
             "conversation_count": conv_count,
@@ -2089,17 +2112,27 @@ class LorelyService:
     # --- Characters ---
 
     def list_characters(
-        self, auth_user: AuthenticatedUser | None, book_id: str | None = None
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str | None = None,
+        scope: str | None = None,
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
+            user_lib_subquery = select(UserLibraryBook.book_id).where(UserLibraryBook.user_id == user.id)
 
             if book_id:
                 book = session.get(Book, book_id)
                 if book is None:
                     raise NotFoundError("Book not found.")
 
-                if book.owner_user_id != user.id and book.visibility != "featured":
+                user_lib_entry = session.scalar(
+                    select(UserLibraryBook).where(
+                        UserLibraryBook.user_id == user.id,
+                        UserLibraryBook.book_id == book.id,
+                    )
+                )
+                if book.owner_user_id != user.id and book.visibility != "featured" and user_lib_entry is None:
                     raise ForbiddenError("You do not have permission to view characters in this book.")
 
                 records = session.scalars(
@@ -2108,12 +2141,38 @@ class LorelyService:
                     .order_by(CharacterProfileRecord.name.asc())
                 ).all()
             else:
-                stmt = (
-                    select(CharacterProfileRecord)
-                    .join(Book, CharacterProfileRecord.book_id == Book.id)
-                    .where(or_(Book.visibility == "featured", Book.owner_user_id == user.id))
-                    .order_by(CharacterProfileRecord.name.asc())
-                )
+                if scope in ("featured", "store", "catalog"):
+                    stmt = (
+                        select(CharacterProfileRecord)
+                        .join(Book, CharacterProfileRecord.book_id == Book.id)
+                        .where(Book.visibility == "featured")
+                        .order_by(CharacterProfileRecord.name.asc())
+                    )
+                elif scope == "all":
+                    stmt = (
+                        select(CharacterProfileRecord)
+                        .join(Book, CharacterProfileRecord.book_id == Book.id)
+                        .where(
+                            or_(
+                                Book.owner_user_id == user.id,
+                                Book.id.in_(user_lib_subquery),
+                                Book.visibility == "featured",
+                            )
+                        )
+                        .order_by(CharacterProfileRecord.name.asc())
+                    )
+                else:
+                    stmt = (
+                        select(CharacterProfileRecord)
+                        .join(Book, CharacterProfileRecord.book_id == Book.id)
+                        .where(
+                            or_(
+                                Book.owner_user_id == user.id,
+                                Book.id.in_(user_lib_subquery),
+                            )
+                        )
+                        .order_by(CharacterProfileRecord.name.asc())
+                    )
                 records = session.scalars(stmt).all()
 
             results = []
@@ -2156,7 +2215,14 @@ class LorelyService:
 
             book = session.get(Book, char.book_id)
             if book and book.owner_user_id != user.id and book.visibility != "featured":
-                raise ForbiddenError("You do not have access to this character.")
+                user_lib_entry = session.scalar(
+                    select(UserLibraryBook).where(
+                        UserLibraryBook.user_id == user.id,
+                        UserLibraryBook.book_id == book.id,
+                    )
+                )
+                if user_lib_entry is None:
+                    raise ForbiddenError("You do not have access to this character.")
 
             # Load or initialize per-user state
             user_state = session.scalar(
@@ -3511,12 +3577,30 @@ class LorelyService:
         genre: str | None = None,
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True) if auth_user else None
+            user_lib_book_ids: set[str] = set()
+            if user:
+                user_lib_book_ids = set(
+                    session.scalars(
+                        select(UserLibraryBook.book_id).where(UserLibraryBook.user_id == user.id)
+                    ).all()
+                )
+
             query = select(Book).where(Book.visibility == "featured")
             if language:
                 query = query.where(
                     or_(
                         Book.original_language == language.strip().lower(),
                         Book.detected_language == language.strip().lower(),
+                    )
+                )
+            if genre:
+                g = f"%{genre.strip().lower()}%"
+                query = query.where(
+                    or_(
+                        Book.summary.ilike(g),
+                        Book.title.ilike(g),
+                        Book.edition_notes.ilike(g),
                     )
                 )
 
@@ -3529,6 +3613,8 @@ class LorelyService:
                 characters = session.scalars(
                     select(CharacterProfileRecord).where(CharacterProfileRecord.book_id == b.id)
                 ).all()
+
+                is_in_lib = bool(user and (b.id in user_lib_book_ids or b.owner_user_id == user.id))
 
                 results.append({
                     "id": b.id,
@@ -3543,6 +3629,7 @@ class LorelyService:
                     "file_provenance": getattr(b, "file_provenance", None),
                     "cover_art_licence": getattr(b, "cover_art_licence", "Public Domain / CC0"),
                     "chapter_count": chapter_count,
+                    "is_in_library": is_in_lib,
                     "characters": [
                         {
                             "id": c.id,
@@ -3616,6 +3703,39 @@ class LorelyService:
                 "reading_progress_chapter": entry.reading_progress_chapter,
                 "added_at": entry.added_at.isoformat() if entry.added_at else None,
                 "message": f"Added '{book.title}' to your personal library.",
+            }
+
+    def remove_catalog_book_from_library(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            entry = session.scalar(
+                select(UserLibraryBook).where(
+                    UserLibraryBook.user_id == user.id,
+                    UserLibraryBook.book_id == book.id,
+                )
+            )
+            if entry is not None:
+                session.delete(entry)
+                session.flush()
+                return {
+                    "book_id": book.id,
+                    "title": book.title,
+                    "removed": True,
+                    "message": f"Removed '{book.title}' from your personal bookshelf.",
+                }
+            return {
+                "book_id": book.id,
+                "title": book.title,
+                "removed": False,
+                "message": f"'{book.title}' was not in your bookshelf.",
             }
 
     def admin_publish_catalog_book(

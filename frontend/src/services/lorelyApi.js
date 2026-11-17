@@ -136,7 +136,7 @@ export const lorelyApi = {
   listBooks: async (accessTokenOrScope, maybeAccessToken) => {
     let scope;
     let accessToken = maybeAccessToken;
-    if (typeof accessTokenOrScope === 'string' && ['all', 'mine', 'featured'].includes(accessTokenOrScope)) {
+    if (typeof accessTokenOrScope === 'string' && ['all', 'mine', 'featured', 'store', 'catalog'].includes(accessTokenOrScope)) {
       scope = accessTokenOrScope;
     } else {
       accessToken = accessTokenOrScope;
@@ -427,18 +427,25 @@ export const lorelyApi = {
   },
 
   // Public Featured Catalogue (Phase 7)
-  listFeaturedCatalog: async ({ language, genre } = {}) => {
+  listFeaturedCatalog: async ({ language, genre } = {}, accessToken) => {
     const params = new URLSearchParams();
     if (language) params.append('language', language);
     if (genre) params.append('genre', genre);
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    return request(`/catalog/featured${queryString}`);
+    return request(`/catalog/featured${queryString}`, { accessToken });
   },
 
   addCatalogBookToLibrary: async (bookId, { readingProgressChapter = 1 } = {}, accessToken) => {
     return request(`/catalog/books/${bookId}/add-to-library`, {
       method: 'POST',
       body: { reading_progress_chapter: readingProgressChapter },
+      accessToken,
+    });
+  },
+
+  removeCatalogBookFromLibrary: async (bookId, accessToken) => {
+    return request(`/catalog/books/${bookId}/add-to-library`, {
+      method: 'DELETE',
       accessToken,
     });
   },

@@ -53,6 +53,45 @@ describe('lorelyApi client', () => {
       expect(books).toEqual([{ id: 'b1', title: 'Dracula' }]);
     });
 
+    it('calls GET /books with scope=mine for personal bookshelf', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ books: [{ id: 'b1', title: 'Dracula', is_in_library: true }] }),
+      });
+
+      const books = await lorelyApi.listBooks('mine', 'token');
+      const [url] = globalThis.fetch.mock.calls[0];
+      expect(url).toContain('/api/v1/books?scope=mine');
+      expect(books).toHaveLength(1);
+      expect(books[0].is_in_library).toBe(true);
+    });
+
+    it('calls POST /catalog/books/:id/add-to-library and DELETE to remove', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ book_id: 'b-store', reading_progress_chapter: 1 }),
+      });
+
+      const addRes = await lorelyApi.addCatalogBookToLibrary('b-store', { readingProgressChapter: 1 }, 'token');
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/catalog/books/b-store/add-to-library'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(addRes.book_id).toBe('b-store');
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ book_id: 'b-store', removed: true }),
+      });
+
+      const delRes = await lorelyApi.removeCatalogBookFromLibrary('b-store', 'token');
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/catalog/books/b-store/add-to-library'),
+        expect.objectContaining({ method: 'DELETE' }),
+      );
+      expect(delRes.removed).toBe(true);
+    });
+
     it('calls POST /books with title and metadata', async () => {
       const newBook = { id: 'b2', title: 'Emma' };
       globalThis.fetch = vi.fn().mockResolvedValue({
