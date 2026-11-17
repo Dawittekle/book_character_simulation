@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Discover Page Styles (Reference Mockup & #1CD3FF / #2883FF Theme)
+   Discover Page Styles (Dribbble-Inspired Spacious Layout & BookFusion 3-Dots)
    ========================================================================== */
 
 .lorely-discover-page {
@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 36px;
-  max-width: 1260px;
+  max-width: 1280px;
   margin: 0 auto;
   font-family: var(--brand-font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   color: var(--brand-text-strong, #0b0f1a);
@@ -24,14 +24,16 @@
   z-index: 100;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 18px;
   background: #0b0f1a;
   color: #ffffff;
-  padding: 12px 20px;
+  padding: 12px 22px;
   border-radius: 9999px;
   border: 1px solid rgba(28, 211, 255, 0.4);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 18px rgba(40, 131, 255, 0.3);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 20px rgba(40, 131, 255, 0.3);
   animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  max-width: 580px;
 }
 
 @keyframes toastSlideUp {
@@ -45,6 +47,12 @@
   }
 }
 
+.toast-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .toast-icon {
   color: #1cd3ff;
   flex-shrink: 0;
@@ -53,6 +61,29 @@
 .toast-text {
   font-size: 13.5px;
   font-weight: 500;
+}
+
+.toast-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.toast-bookshelf-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1cd3ff;
+  text-decoration: none;
+  background: rgba(28, 211, 255, 0.12);
+  padding: 5px 12px;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+
+.toast-bookshelf-link:hover {
+  background: rgba(28, 211, 255, 0.22);
+  color: #ffffff;
 }
 
 .toast-close-btn {
@@ -73,54 +104,58 @@
 }
 
 /* ==========================================================================
-   Curved Hero Banner with #1CD3FF & #2883FF Gradients
+   Continuous Curved Shaded Backdrop (Dribbble Layout: Enclosing Header + Shelf)
    ========================================================================== */
-.discover-curved-hero {
+.discover-shaded-canvas {
   position: relative;
-  background: linear-gradient(135deg, rgba(28, 211, 255, 0.14) 0%, rgba(40, 131, 255, 0.09) 60%, rgba(28, 211, 255, 0.04) 100%);
-  border-radius: 0 0 36px 36px;
-  padding: 32px 40px 48px;
-  margin: 0 -32px 10px -32px;
-  border-bottom: 1px solid rgba(28, 211, 255, 0.2);
-  box-shadow: 0 12px 32px -10px rgba(40, 131, 255, 0.08);
-  overflow: hidden;
+  background: linear-gradient(135deg, rgba(28, 211, 255, 0.09) 0%, rgba(40, 131, 255, 0.05) 50%, rgba(28, 211, 255, 0.02) 100%);
+  border-radius: 0 0 44px 44px;
+  padding: 36px 40px 48px;
+  margin: 0 -32px 0 -32px;
+  border-bottom: 1px solid rgba(28, 211, 255, 0.18);
+  box-shadow: 0 14px 36px -10px rgba(40, 131, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  overflow: visible;
 }
 
-[data-theme='dark'] .discover-curved-hero,
-.dark .discover-curved-hero {
-  background: linear-gradient(135deg, rgba(28, 211, 255, 0.12) 0%, rgba(40, 131, 255, 0.08) 50%, rgba(11, 15, 26, 0.8) 100%);
-  border-bottom-color: rgba(28, 211, 255, 0.15);
-  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.4);
+[data-theme='dark'] .discover-shaded-canvas,
+.dark .discover-shaded-canvas {
+  background: linear-gradient(135deg, rgba(28, 211, 255, 0.08) 0%, rgba(40, 131, 255, 0.04) 50%, rgba(13, 19, 31, 0.8) 100%);
+  border-bottom-color: rgba(28, 211, 255, 0.14);
+  box-shadow: 0 16px 44px -10px rgba(0, 0, 0, 0.45);
 }
 
-/* Organic swooping background glows */
-.discover-curved-hero::after {
+/* Ambient organic swoops in background */
+.discover-shaded-canvas::after {
   content: '';
   position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 380px;
-  height: 380px;
+  top: -80px;
+  right: -50px;
+  width: 440px;
+  height: 440px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(28, 211, 255, 0.22) 0%, rgba(40, 131, 255, 0.08) 60%, transparent 70%);
+  background: radial-gradient(circle, rgba(28, 211, 255, 0.16) 0%, rgba(40, 131, 255, 0.05) 60%, transparent 70%);
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.discover-shaded-canvas::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  width: 380px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(40, 131, 255, 0.12) 0%, transparent 70%);
   filter: blur(40px);
   pointer-events: none;
 }
 
-.discover-curved-hero::before {
-  content: '';
-  position: absolute;
-  bottom: -40px;
-  left: 20%;
-  width: 320px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(40, 131, 255, 0.16) 0%, transparent 70%);
-  filter: blur(35px);
-  pointer-events: none;
-}
-
-.discover-hero-content {
+/* Header & Search Block */
+.discover-header-block {
   position: relative;
   z-index: 2;
   display: flex;
@@ -149,10 +184,10 @@
   display: flex;
   align-items: center;
   background: var(--brand-surface, #ffffff);
-  border: 1px solid rgba(40, 131, 255, 0.22);
+  border: 1px solid rgba(40, 131, 255, 0.2);
   border-radius: 9999px;
   padding: 5px 6px 5px 18px;
-  box-shadow: 0 8px 24px rgba(40, 131, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 24px rgba(40, 131, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
   max-width: 620px;
   width: 100%;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -162,8 +197,8 @@
 [data-theme='dark'] .discover-search-capsule,
 .dark .discover-search-capsule {
   background: #141b27;
-  border-color: rgba(28, 211, 255, 0.3);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border-color: rgba(28, 211, 255, 0.28);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 .discover-search-capsule:focus-within {
@@ -205,14 +240,14 @@
 .search-capsule-divider {
   width: 1px;
   height: 24px;
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.1);
   margin: 0 14px;
   flex-shrink: 0;
 }
 
 [data-theme='dark'] .search-capsule-divider,
 .dark .search-capsule-divider {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .search-input-field-wrap {
@@ -265,12 +300,14 @@
 }
 
 /* ==========================================================================
-   Section Headers
+   Recommendations Section & Header
    ========================================================================== */
-.discover-section {
+.discover-recommendations-block {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
+  position: relative;
+  z-index: 2;
 }
 
 .discover-section-header {
@@ -327,39 +364,13 @@
   font-weight: 700;
 }
 
-.discover-category-layout-btn {
-  background: var(--brand-surface, #ffffff);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--brand-text-muted, #64748b);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-[data-theme='dark'] .discover-category-layout-btn,
-.dark .discover-category-layout-btn {
-  background: #181f2c;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #a1a1aa;
-}
-
-.discover-category-layout-btn:hover {
-  color: #2883ff;
-  border-color: #2883ff;
-}
-
 /* ==========================================================================
-   3D Elevated Book Shelf Grid
+   3D Book Recommendation Shelf
    ========================================================================== */
 .discover-shelf-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 28px;
 }
 
 .discover-3d-book-card {
@@ -370,7 +381,7 @@
   cursor: pointer;
   outline: none;
   transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
-  padding: 12px 10px;
+  padding: 6px;
   border-radius: 18px;
 }
 
@@ -385,7 +396,7 @@
   max-width: 220px;
   aspect-ratio: 1 / 1.48;
   border-radius: 4px 14px 14px 4px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow:
     -5px 3px 10px rgba(0, 0, 0, 0.16),
     0 18px 36px -4px rgba(0, 0, 0, 0.22),
@@ -399,6 +410,14 @@
     -7px 5px 14px rgba(0, 0, 0, 0.24),
     0 24px 48px -6px rgba(40, 131, 255, 0.3),
     0 0 0 1px rgba(28, 211, 255, 0.4);
+}
+
+.discover-3d-book-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 4px 14px 14px 4px;
 }
 
 /* Realistic 3D Spine Ridge Highlight on the left edge */
@@ -416,6 +435,7 @@
   );
   z-index: 3;
   pointer-events: none;
+  border-radius: 4px 0 0 4px;
 }
 
 /* Page edge highlight on the right edge */
@@ -428,16 +448,153 @@
   background: linear-gradient(to left, rgba(0, 0, 0, 0.25) 0%, rgba(255, 255, 255, 0.35) 100%);
   z-index: 3;
   pointer-events: none;
+  border-radius: 0 14px 14px 0;
 }
 
-.discover-3d-book-cover-img {
+/* ==========================================================================
+   Three-Dot Hover Trigger Button (BookFusion Style)
+   ========================================================================== */
+.discover-book-menu-trigger {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(40, 131, 255, 0.3);
+  color: #2883ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.15s ease;
+  outline: none;
+}
+
+[data-theme='dark'] .discover-book-menu-trigger,
+.dark .discover-book-menu-trigger {
+  background: rgba(20, 27, 39, 0.95);
+  border-color: rgba(28, 211, 255, 0.4);
+  color: #1cd3ff;
+}
+
+/* Visible when hover over the book card, or when open */
+.discover-3d-book-card:hover .discover-book-menu-trigger,
+.discover-book-menu-trigger.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.discover-book-menu-trigger:hover {
+  background: #2883ff;
+  color: #ffffff;
+  border-color: #2883ff;
+  transform: scale(1.08);
+}
+
+.three-dots-dots {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   BookFusion-Style Popover Menu
+   ========================================================================== */
+.discover-book-fusion-popover {
+  position: absolute;
+  top: 44px;
+  right: 6px;
+  z-index: 25;
+  background: var(--brand-surface, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 195px;
+  animation: fusionMenuIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-theme='dark'] .discover-book-fusion-popover,
+.dark .discover-book-fusion-popover {
+  background: #141b27;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes fusionMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fusion-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--brand-text-strong, #0b0f1a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  outline: none;
 }
 
-/* Book Metadata */
+[data-theme='dark'] .fusion-menu-item,
+.dark .fusion-menu-item {
+  color: #e2e8f0;
+}
+
+.fusion-menu-item:hover {
+  background: rgba(40, 131, 255, 0.08);
+  color: #2883ff;
+}
+
+[data-theme='dark'] .fusion-menu-item:hover,
+.dark .fusion-menu-item:hover {
+  background: rgba(40, 131, 255, 0.18);
+  color: #1cd3ff;
+}
+
+.fusion-menu-item.export-action {
+  color: #2883ff;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .fusion-menu-item.export-action,
+.dark .fusion-menu-item.export-action {
+  color: #1cd3ff;
+}
+
+.fusion-menu-icon {
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Book Metadata below 3D Book
+   ========================================================================== */
 .discover-3d-book-info {
   display: flex;
   flex-direction: column;
@@ -475,158 +632,73 @@
   width: 100%;
 }
 
-.discover-3d-book-action {
-  margin-top: 10px;
-  width: 100%;
-}
-
-/* Action Buttons */
-.discover-export-btn {
-  display: inline-flex;
+/* Empty recommendations state */
+.discover-all-exported-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 7px 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid #2883ff;
-  background: linear-gradient(135deg, #1cd3ff 0%, #2883ff 100%);
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  box-shadow: 0 4px 14px rgba(40, 131, 255, 0.25);
-  outline: none;
+  text-align: center;
+  padding: 44px 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed rgba(40, 131, 255, 0.3);
+  border-radius: 20px;
 }
 
-.discover-export-btn:hover:not(:disabled) {
+[data-theme='dark'] .discover-all-exported-empty,
+.dark .discover-all-exported-empty {
+  background: rgba(20, 27, 39, 0.5);
+  border-color: rgba(28, 211, 255, 0.25);
+}
+
+.empty-bubble {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--brand-text-strong, #0b0f1a);
+  margin: 0 0 6px;
+}
+
+[data-theme='dark'] .empty-title,
+.dark .empty-title {
+  color: #fafafa;
+}
+
+.empty-sub {
+  font-size: 13px;
+  color: var(--brand-text-muted, #64748b);
+  margin: 0 0 16px;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.discover-browse-store-btn {
+  background: linear-gradient(135deg, #1cd3ff 0%, #2883ff 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 14px rgba(40, 131, 255, 0.28);
+}
+
+.discover-browse-store-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(40, 131, 255, 0.4);
 }
 
-.discover-export-btn:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-.export-plus-icon {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.discover-in-shelf-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 7px 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid rgba(40, 131, 255, 0.3);
-  background: rgba(40, 131, 255, 0.08);
-  color: #2883ff;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-[data-theme='dark'] .discover-in-shelf-btn,
-.dark .discover-in-shelf-btn {
-  background: rgba(40, 131, 255, 0.18);
-  color: #1cd3ff;
-  border-color: rgba(28, 211, 255, 0.35);
-}
-
-.discover-in-shelf-btn:hover {
-  background: rgba(40, 131, 255, 0.14);
-  transform: translateY(-1px);
-}
-
 /* ==========================================================================
-   "Book Category" Visual Grid
+   Lower Section: Custom Manuscript Upload CTA
    ========================================================================== */
-.discover-category-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 18px;
-}
-
-.discover-category-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--brand-surface, #ffffff);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 20px;
-  padding: 16px 12px 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-  position: relative;
-  overflow: hidden;
-  text-align: center;
-}
-
-[data-theme='dark'] .discover-category-card,
-.dark .discover-category-card {
-  background: #151b28;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
-
-.discover-category-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(40, 131, 255, 0.4);
-  box-shadow: 0 12px 28px rgba(40, 131, 255, 0.14);
-}
-
-.discover-category-preview-wrap {
-  width: 82px;
-  height: 110px;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-  margin-bottom: 12px;
-  background: #0b0f1a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease;
-}
-
-.discover-category-card:hover .discover-category-preview-wrap {
-  transform: scale(1.05);
-}
-
-.discover-category-preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.discover-category-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--brand-text-strong, #0b0f1a);
-  margin: 0;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-[data-theme='dark'] .discover-category-name,
-.dark .discover-category-name {
-  color: #f1f5f9;
-}
-
-/* ==========================================================================
-   Utility Row: Custom Manuscript Upload CTA
-   ========================================================================== */
-.discover-utility-row {
+.discover-lower-section {
   margin-top: 8px;
 }
 
@@ -635,7 +707,7 @@
   align-items: center;
   gap: 18px;
   background: var(--brand-surface, #ffffff);
-  border: 1px dashed rgba(40, 131, 255, 0.35);
+  border: 1px dashed rgba(40, 131, 255, 0.3);
   border-radius: 20px;
   padding: 16px 24px;
   cursor: pointer;
@@ -646,7 +718,7 @@
 [data-theme='dark'] .discover-add-book-cta,
 .dark .discover-add-book-cta {
   background: #141b27;
-  border-color: rgba(28, 211, 255, 0.3);
+  border-color: rgba(28, 211, 255, 0.25);
 }
 
 .discover-add-book-cta:hover {
@@ -668,7 +740,7 @@
   font-size: 22px;
   font-weight: 600;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(40, 131, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(40, 131, 255, 0.28);
 }
 
 .add-book-info {
@@ -712,13 +784,7 @@
 /* ==========================================================================
    Responsive Adaptations
    ========================================================================== */
-@media (max-width: 1100px) {
-  .discover-category-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .discover-shelf-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -730,10 +796,11 @@
     gap: 24px;
   }
 
-  .discover-curved-hero {
-    margin: 0 -16px 10px -16px;
+  .discover-shaded-canvas {
+    margin: 0 -16px 0 -16px;
     padding: 24px 20px 36px;
-    border-radius: 0 0 24px 24px;
+    border-radius: 0 0 28px 28px;
+    gap: 28px;
   }
 
   .discover-search-capsule {
@@ -755,10 +822,6 @@
 
   .discover-shelf-grid {
     grid-template-columns: 1fr;
-  }
-
-  .discover-category-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .discover-add-book-cta {

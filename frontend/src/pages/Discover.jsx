@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, Link } from 'react-router-dom';
 import { getBookCoverUrl } from '../lib/formatters';
 import { Skeleton } from '../components/ui';
 import { lorelyApi } from '../services/lorelyApi';
 import './Discover.css';
 
-// Featured recommendation books matching the mockup & literary classics
+// Featured recommendation books matching Dribbble reference & classics
 export const DEFAULT_FEATURED_BOOKS = [
   {
     id: 'book-psychology-of-money',
@@ -86,52 +86,6 @@ export const DEFAULT_FEATURED_BOOKS = [
   },
 ];
 
-// Book Category visual cards matching mockup & platform
-export const DISCOVER_CATEGORIES = [
-  {
-    id: 'cat-money',
-    title: 'Money/Investing',
-    genreKey: 'Money/Investing',
-    coverImg: '/covers/the_midnight_letters.svg',
-    bookTitle: 'The Psychology of Money',
-  },
-  {
-    id: 'cat-design',
-    title: 'Design',
-    genreKey: 'Design',
-    coverImg: '/covers/echoes_of_tomorrow.svg',
-    bookTitle: 'How Innovation Works',
-  },
-  {
-    id: 'cat-business',
-    title: 'Business',
-    genreKey: 'Business',
-    coverImg: '/covers/the_last_voyage.svg',
-    bookTitle: 'Company of One',
-  },
-  {
-    id: 'cat-self-improvement',
-    title: 'Self Improvement',
-    genreKey: 'Self Improvement',
-    coverImg: '/covers/the_hidden_garden.svg',
-    bookTitle: 'Habits & Growth',
-  },
-  {
-    id: 'cat-classics',
-    title: 'Classic Literature',
-    genreKey: 'Classic Literature',
-    coverImg: '/covers/white_nights.svg',
-    bookTitle: 'Dostoevsky & Wilde',
-  },
-  {
-    id: 'cat-philosophy',
-    title: 'Philosophy',
-    genreKey: 'Philosophy',
-    coverImg: '/covers/the_dream_of_a_ridiculous_man.svg',
-    bookTitle: 'Existential Insights',
-  },
-];
-
 let cachedDiscoverBooks = null;
 
 export default function Discover() {
@@ -141,6 +95,7 @@ export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [exportingBookId, setExportingBookId] = useState(null);
+  const [activeMenuBookId, setActiveMenuBookId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const navigate = useNavigate();
 
@@ -151,7 +106,6 @@ export default function Discover() {
         const catalogRes = await lorelyApi.listFeaturedCatalog({}, accessToken);
         const catalogBooks = catalogRes?.books || catalogRes || [];
         if (mounted && catalogBooks && catalogBooks.length > 0) {
-          // Prepend backend catalog books to defaults
           const merged = [...catalogBooks];
           DEFAULT_FEATURED_BOOKS.forEach((def) => {
             if (!merged.some((b) => b.id === def.id || b.title?.toLowerCase() === def.title?.toLowerCase())) {
@@ -173,6 +127,18 @@ export default function Discover() {
     };
   }, [accessToken]);
 
+  // Outside click dismisses 3-dot BookFusion popover
+  useEffect(() => {
+    if (!activeMenuBookId) return;
+    function handleOutsideClick(e) {
+      if (!e.target.closest('.discover-book-fusion-popover') && !e.target.closest('.discover-book-menu-trigger')) {
+        setActiveMenuBookId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [activeMenuBookId]);
+
   // Auto-dismiss toast
   useEffect(() => {
     if (!toastMessage) return;
@@ -192,14 +158,15 @@ export default function Discover() {
   };
 
   const handleExportToBookshelf = async (book, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     try {
       setExportingBookId(book.id);
       await lorelyApi.addCatalogBookToLibrary(book.id, {}, accessToken);
+      // Mark as exported — will immediately filter out of recommendations
       setBooks((prev) =>
         prev.map((b) => (b.id === book.id ? { ...b, is_in_library: true } : b))
       );
-      setToastMessage(`Exported "${book.title}" to your Bookshelf & Characters gallery!`);
+      setToastMessage(`Exported "${book.title}" to your Bookshelf!`);
     } catch (err) {
       // Optimistic update for offline/demo modes
       setBooks((prev) =>
@@ -208,37 +175,48 @@ export default function Discover() {
       setToastMessage(`Added "${book.title}" to your Bookshelf!`);
     } finally {
       setExportingBookId(null);
+      setActiveMenuBookId(null);
     }
   };
 
-  const displayedBooks = books.slice(0, 4);
+  // Recommendations ONLY include unexported books! Exported books are automatically removed
+  const unexportedBooks = books.filter((b) => !b.is_in_library);
+  const displayedBooks = unexportedBooks.slice(0, 4);
 
   return (
     <div className="lorely-discover-page" data-testid="discover-page">
-      {/* Toast Notification for Export Actions */}
+      {/* Toast Notification */}
       {toastMessage && (
-        <div className="discover-export-toast" role="status" aria-live="polite">
-          <svg className="toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <span className="toast-text">{toastMessage}</span>
-          <button
-            type="button"
-            className="toast-close-btn"
-            onClick={() => setToastMessage(null)}
-            aria-label="Dismiss toast"
-          >
-            ×
-          </button>
-        </div>
+        <aside className="discover-export-toast" role="status" aria-live="polite">
+          <div className="toast-left">
+            <svg className="toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span className="toast-text">{toastMessage}</span>
+          </div>
+          <div className="toast-right">
+            <Link to="/bookshelf" className="toast-bookshelf-link">
+              Go to Bookshelf →
+            </Link>
+            <button
+              type="button"
+              className="toast-close-btn"
+              onClick={() => setToastMessage(null)}
+              aria-label="Dismiss toast"
+            >
+              ×
+            </button>
+          </div>
+        </aside>
       )}
 
-      {/* TOP SECTION: Fluid Curved Hero Banner with #1CD3FF & #2883FF gradients */}
-      <section className="discover-curved-hero">
-        <div className="discover-hero-content">
+      {/* CONTINUOUS CURVED SHADED BACKDROP (Dribbble Layout: wraps Title, Search, and Recommendations) */}
+      <section className="discover-shaded-canvas">
+        {/* Top Header & Search Area */}
+        <div className="discover-header-block">
           <h1 className="discover-page-title">Discover</h1>
 
-          {/* Integrated Search Capsule matching mockup */}
+          {/* Integrated Search Capsule matching Dribbble reference */}
           <form className="discover-search-capsule" onSubmit={handleSearchSubmit} role="search">
             <div className="search-category-select-wrap">
               <select
@@ -285,160 +263,165 @@ export default function Discover() {
             </button>
           </form>
         </div>
-      </section>
 
-      {/* MIDDLE SECTION: "Book Recommendation" Shelf with 3D Elevated Books */}
-      <section className="discover-section discover-recommendations-section">
-        <div className="discover-section-header">
-          <h2 className="discover-section-title">Book Recommendation</h2>
-          <button
-            type="button"
-            className="discover-view-all-btn"
-            onClick={() => navigate('/store')}
-            aria-label="View all books in book store"
-          >
-            <span>View all</span>
-            <span className="view-all-arrow" aria-hidden="true">&gt;</span>
-          </button>
-        </div>
+        {/* Book Recommendation Shelf (Inside the shaded backdrop, clean physical 3D books) */}
+        <div className="discover-recommendations-block">
+          <div className="discover-section-header">
+            <h2 className="discover-section-title">Book Recommendation</h2>
+            <button
+              type="button"
+              className="discover-view-all-btn"
+              onClick={() => navigate('/store')}
+              aria-label="View all books in book store"
+            >
+              <span>View all</span>
+              <span className="view-all-arrow" aria-hidden="true">&gt;</span>
+            </button>
+          </div>
 
-        {/* 3D Elevated Book Shelf */}
-        <div className="discover-shelf-grid">
-          {loading && (!books || books.length === 0) ? (
-            Array.from({ length: 4 }).map((_, idx) => (
-              <Skeleton.Card key={`shelf-skeleton-${idx}`} />
-            ))
-          ) : (
-            displayedBooks.map((book) => {
-              const coverUrl = getBookCoverUrl(book.title, book.cover_url);
-              const isInLibrary = Boolean(book.is_in_library);
-              const isExporting = exportingBookId === book.id;
-
-              return (
-                <article
-                  key={book.id}
-                  className="discover-3d-book-card"
-                  onClick={() => navigate(isInLibrary ? `/books/${book.id}` : `/books/${book.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') navigate(`/books/${book.id}`);
-                  }}
-                  aria-label={`${book.title} by ${book.author}`}
+          {/* 3D Elevated Books Shelf */}
+          <div className="discover-shelf-grid">
+            {loading && (!books || books.length === 0) ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <Skeleton.Card key={`shelf-skeleton-${idx}`} />
+              ))
+            ) : displayedBooks.length === 0 ? (
+              <div className="discover-all-exported-empty">
+                <div className="empty-bubble">✨</div>
+                <h3 className="empty-title">All recommendations exported!</h3>
+                <p className="empty-sub">
+                  You have added all currently recommended works to your Bookshelf. Browse the full Book Store for more literature.
+                </p>
+                <button
+                  type="button"
+                  className="discover-browse-store-btn"
+                  onClick={() => navigate('/store')}
                 >
-                  {/* 3D Book Cover with Spine and Elevation */}
-                  <div className="discover-3d-book-spine-wrapper">
-                    <img
-                      src={coverUrl}
-                      alt={`Cover of ${book.title}`}
-                      className="discover-3d-book-cover-img"
-                      loading="lazy"
-                    />
-                    <div className="discover-3d-book-spine-highlight" aria-hidden="true" />
-                    <div className="discover-3d-book-edge-highlight" aria-hidden="true" />
-                  </div>
+                  Browse Full Book Store →
+                </button>
+              </div>
+            ) : (
+              displayedBooks.map((book) => {
+                const coverUrl = getBookCoverUrl(book.title, book.cover_url);
+                const isMenuOpen = activeMenuBookId === book.id;
 
-                  {/* Book Metadata */}
-                  <div className="discover-3d-book-info">
-                    <h3 className="discover-3d-book-title" title={book.title}>
-                      {book.title}
-                    </h3>
-                    <p className="discover-3d-book-author" title={book.author}>
-                      {book.author}
-                    </p>
+                return (
+                  <article
+                    key={book.id}
+                    className="discover-3d-book-card"
+                    onClick={() => navigate(`/books/${book.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') navigate(`/books/${book.id}`);
+                    }}
+                    aria-label={`${book.title} by ${book.author}`}
+                  >
+                    {/* 3D Book Cover with Spine and Elevation */}
+                    <div className="discover-3d-book-spine-wrapper">
+                      <img
+                        src={coverUrl}
+                        alt={`Cover of ${book.title}`}
+                        className="discover-3d-book-cover-img"
+                        loading="lazy"
+                      />
+                      <div className="discover-3d-book-spine-highlight" aria-hidden="true" />
+                      <div className="discover-3d-book-edge-highlight" aria-hidden="true" />
 
-                    {/* Action: Export to Bookshelf vs In Bookshelf */}
-                    <div className="discover-3d-book-action">
-                      {isInLibrary ? (
-                        <button
-                          type="button"
-                          className="discover-in-shelf-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/books/${book.id}`);
-                          }}
-                          aria-label={`In Bookshelf: Read ${book.title}`}
+                      {/* Three-Dot Button — Visible on Hover Only (BookFusion Style) */}
+                      <button
+                        type="button"
+                        className={`discover-book-menu-trigger ${isMenuOpen ? 'open' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuBookId((prev) => (prev === book.id ? null : book.id));
+                        }}
+                        aria-label={`Options for ${book.title}`}
+                        aria-haspopup="true"
+                        aria-expanded={isMenuOpen}
+                      >
+                        <span className="three-dots-dots">•••</span>
+                      </button>
+
+                      {/* BookFusion-Style Popover Menu */}
+                      {isMenuOpen && (
+                        <div
+                          className="discover-book-fusion-popover"
+                          onClick={(e) => e.stopPropagation()}
+                          role="menu"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          <span>In Bookshelf</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="discover-export-btn"
-                          onClick={(e) => handleExportToBookshelf(book, e)}
-                          disabled={isExporting}
-                          aria-label={`Export ${book.title} to Bookshelf`}
-                        >
-                          {isExporting ? (
-                            <span>Exporting...</span>
-                          ) : (
-                            <>
-                              <span className="export-plus-icon">+</span>
-                              <span>Export to Bookshelf</span>
-                            </>
-                          )}
-                        </button>
+                          <button
+                            type="button"
+                            className="fusion-menu-item export-action"
+                            onClick={(e) => handleExportToBookshelf(book, e)}
+                            role="menuitem"
+                            disabled={exportingBookId === book.id}
+                          >
+                            <svg className="fusion-menu-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                              <path d="M12 6v6" />
+                              <path d="M9 9h6" />
+                            </svg>
+                            <span>Export to Bookshelf</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="fusion-menu-item"
+                            onClick={() => {
+                              setActiveMenuBookId(null);
+                              navigate(`/books/${book.id}`);
+                            }}
+                            role="menuitem"
+                          >
+                            <svg className="fusion-menu-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="12" y1="16" x2="12" y2="12" />
+                              <line x1="12" y1="8" x2="12.01" y2="8" />
+                            </svg>
+                            <span>Inspect Book Details</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="fusion-menu-item"
+                            onClick={() => {
+                              setActiveMenuBookId(null);
+                              navigate(`/books/${book.id}/characters`);
+                            }}
+                            role="menuitem"
+                          >
+                            <svg className="fusion-menu-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                              <circle cx="9" cy="7" r="4" />
+                              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                            <span>Character Cast ({book.character_count || 2})</span>
+                          </button>
+                        </div>
                       )}
                     </div>
-                  </div>
-                </article>
-              );
-            })
-          )}
+
+                    {/* Book Metadata below the 3D book */}
+                    <div className="discover-3d-book-info">
+                      <h3 className="discover-3d-book-title" title={book.title}>
+                        {book.title}
+                      </h3>
+                      <p className="discover-3d-book-author" title={book.author}>
+                        {book.author}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
 
-      {/* LOWER SECTION: "Book Category" Visual Grid */}
-      <section className="discover-section discover-categories-section">
-        <div className="discover-section-header">
-          <h2 className="discover-section-title">Book Category</h2>
-          <button
-            type="button"
-            className="discover-category-layout-btn"
-            onClick={() => navigate('/store')}
-            aria-label="Browse categories in Book Store"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="14" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="discover-category-grid">
-          {DISCOVER_CATEGORIES.map((cat) => (
-            <div
-              key={cat.id}
-              className="discover-category-card"
-              onClick={() => navigate(`/store?category=${encodeURIComponent(cat.genreKey)}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') navigate(`/store?category=${encodeURIComponent(cat.genreKey)}`);
-              }}
-              aria-label={`Explore ${cat.title} books`}
-            >
-              <div className="discover-category-preview-wrap">
-                <img
-                  src={cat.coverImg}
-                  alt={`${cat.title} sample cover`}
-                  className="discover-category-preview-img"
-                  loading="lazy"
-                />
-              </div>
-              <h3 className="discover-category-name">{cat.title}</h3>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* UTILITY ROW: Quick Ingestion / Custom Upload CTA */}
-      <section className="discover-utility-row">
+      {/* LOWER UTILITY SECTION: Ingestion CTA */}
+      <section className="discover-lower-section">
         <div
           className="discover-add-book-cta"
           onClick={openAddBookModal}

@@ -80,14 +80,15 @@ describe('BookStore Page (Phase 4 Dedicated Store)', () => {
     lorelyApi.addCatalogBookToLibrary.mockResolvedValue({ success: true });
   });
 
-  it('renders the Book Store hero banner, breadcrumbs, and stats badge', async () => {
+  it('renders the catalog hero banner, breadcrumbs, and stats badge without "Book Store" text', async () => {
     render(
       <MemoryRouter initialEntries={['/store']}>
         <BookStore />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Book Store' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Book Store' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Book Store')).not.toBeInTheDocument();
     expect(screen.getByText('Official Catalog')).toBeInTheDocument();
     expect(screen.getByText('← Discover')).toBeInTheDocument();
   });

@@ -48,17 +48,17 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
     expect(screen.getByText('Lorely')).toBeInTheDocument();
     expect(screen.queryByText('Reader Studio')).not.toBeInTheDocument();
 
-    // Verify main sidebar navigation links (Discover, Bookshelf, Book Store, Characters, Chats)
+    // Verify main sidebar navigation links (Discover, Bookshelf, Characters, Chats)
     expect(screen.getByRole('link', { name: /discover/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /bookshelf/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /book store/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /characters/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /chats/i })).toBeInTheDocument();
 
-    // Profile and Notifications are removed from sidebar links
+    // Profile, Notifications, and Book Store are removed from sidebar links
     const sidebar = screen.getByTestId('app-shell').querySelector('.lorely-sidebar');
     expect(sidebar.querySelector('a[aria-label="Notifications"]')).toBeNull();
     expect(sidebar.querySelector('a[aria-label="Profile"]')).toBeNull();
+    expect(sidebar.querySelector('a[aria-label="Book Store"]')).toBeNull();
 
     // Verify action and utility buttons in sidebar
     expect(screen.getByRole('button', { name: /add book/i })).toBeInTheDocument();

@@ -293,7 +293,7 @@ export default function BookStore() {
             ← Discover
           </Link>
           <span className="breadcrumb-divider">/</span>
-          <span className="breadcrumb-current">Book Store</span>
+          <span className="breadcrumb-current">Catalog</span>
         </div>
 
         <div className="bookstore-hero-headline-wrap">
@@ -301,7 +301,6 @@ export default function BookStore() {
             <span className="bookstore-pill-badge">Official Catalog</span>
             <span className="bookstore-count-badge">{filteredBooks.length} masterworks available</span>
           </div>
-          <h1 className="bookstore-hero-title">Book Store</h1>
           <p className="bookstore-hero-desc">
             Explore curated literary works published by Lorely. All books are pre-processed with full chapter indices,
             semantic chunks, and extracted character profiles ready for instant simulation. Export any book to add it to your

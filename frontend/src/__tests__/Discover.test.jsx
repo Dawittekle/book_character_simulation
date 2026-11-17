@@ -27,7 +27,7 @@ vi.mock('../services/lorelyApi', () => ({
   },
 }));
 
-describe('Discover Page (Phase 3 Redesign)', () => {
+describe('Discover Page (Refined Dribbble Layout & BookFusion 3-Dots)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     lorelyApi.listFeaturedCatalog.mockResolvedValue({
@@ -51,7 +51,7 @@ describe('Discover Page (Phase 3 Redesign)', () => {
           cover_url: '/covers/the_last_voyage.svg',
           summary: 'Why staying small is the next big thing.',
           visibility: 'featured',
-          is_in_library: true,
+          is_in_library: true, // Already in bookshelf! Should be filtered out from recommendations
           genre: 'Business',
         },
         {
@@ -76,12 +76,23 @@ describe('Discover Page (Phase 3 Redesign)', () => {
           is_in_library: false,
           genre: 'Classic Literature',
         },
+        {
+          id: 'book-white-nights',
+          title: 'White Nights',
+          author: 'Fyodor Dostoevsky',
+          character_count: 2,
+          cover_url: '/covers/white_nights.svg',
+          summary: 'A sentimental novel from St. Petersburg.',
+          visibility: 'featured',
+          is_in_library: false,
+          genre: 'Classic Literature',
+        },
       ],
     });
     lorelyApi.addCatalogBookToLibrary.mockResolvedValue({ success: true });
   });
 
-  it('renders the Discover heading and curved hero section with #1CD3FF & #2883FF styling', () => {
+  it('renders the Discover heading, search capsule, and does NOT render "Book Category"', () => {
     render(
       <BrowserRouter>
         <Discover />
@@ -92,9 +103,12 @@ describe('Discover Page (Phase 3 Redesign)', () => {
     expect(screen.getByRole('search')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('find the book you like...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
+
+    // "Book Category" section must be removed
+    expect(screen.queryByText('Book Category')).not.toBeInTheDocument();
   });
 
-  it('renders "Book Recommendation" shelf with 3D books from Book Store', async () => {
+  it('renders "Book Recommendation" shelf with unexported 3D books only', async () => {
     render(
       <BrowserRouter>
         <Discover />
@@ -105,11 +119,14 @@ describe('Discover Page (Phase 3 Redesign)', () => {
     expect(screen.getByRole('button', { name: 'View all books in book store' })).toBeInTheDocument();
 
     await waitFor(() => {
+      // Unexported books are visible
       expect(screen.getByText('The Psychology of Money')).toBeInTheDocument();
       expect(screen.getByText('Morgan Housel')).toBeInTheDocument();
-      expect(screen.getByText('Company of One')).toBeInTheDocument();
       expect(screen.getByText('How Innovation Works')).toBeInTheDocument();
       expect(screen.getByText('The Picture of Dorian Gray')).toBeInTheDocument();
+
+      // Already exported book ('Company of One') is excluded from recommendations
+      expect(screen.queryByText('Company of One')).not.toBeInTheDocument();
     });
   });
 
@@ -144,7 +161,7 @@ describe('Discover Page (Phase 3 Redesign)', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/store?q=psychology&category=Money%2FInvesting');
   });
 
-  it('exports a book to bookshelf when "+ Export to Bookshelf" button is clicked', async () => {
+  it('opens BookFusion-style three-dot menu and exports book to bookshelf, removing it from recommendations', async () => {
     render(
       <BrowserRouter>
         <Discover />
@@ -155,10 +172,19 @@ describe('Discover Page (Phase 3 Redesign)', () => {
       expect(screen.getByText('The Psychology of Money')).toBeInTheDocument();
     });
 
-    const exportBtn = screen.getByRole('button', { name: 'Export The Psychology of Money to Bookshelf' });
-    expect(exportBtn).toBeInTheDocument();
+    const menuTrigger = screen.getByRole('button', { name: 'Options for The Psychology of Money' });
+    expect(menuTrigger).toBeInTheDocument();
 
-    fireEvent.click(exportBtn);
+    // Click 3 dots to open BookFusion menu
+    fireEvent.click(menuTrigger);
+
+    const exportMenuItem = screen.getByRole('menuitem', { name: /Export to Bookshelf/i });
+    expect(exportMenuItem).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Inspect Book Details/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Character Cast/i })).toBeInTheDocument();
+
+    // Click "Export to Bookshelf"
+    fireEvent.click(exportMenuItem);
 
     await waitFor(() => {
       expect(lorelyApi.addCatalogBookToLibrary).toHaveBeenCalledWith(
@@ -166,40 +192,12 @@ describe('Discover Page (Phase 3 Redesign)', () => {
         {},
         'test-token',
       );
-      expect(screen.getByRole('button', { name: 'In Bookshelf: Read The Psychology of Money' })).toBeInTheDocument();
+      // Once exported, it is removed from the recommendations section
+      expect(screen.queryByText('The Psychology of Money')).not.toBeInTheDocument();
+      // Toast notification is shown
       expect(screen.getByText(/Exported "The Psychology of Money" to your Bookshelf/i)).toBeInTheDocument();
+      expect(screen.getByText('Go to Bookshelf →')).toBeInTheDocument();
     });
-  });
-
-  it('displays "In Bookshelf" badge for books already imported', async () => {
-    render(
-      <BrowserRouter>
-        <Discover />
-      </BrowserRouter>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'In Bookshelf: Read Company of One' })).toBeInTheDocument();
-    });
-  });
-
-  it('renders "Book Category" visual preview grid with categories linking to /store', () => {
-    render(
-      <BrowserRouter>
-        <Discover />
-      </BrowserRouter>,
-    );
-
-    expect(screen.getByText('Book Category')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Money/Investing' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Design' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Business' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Self Improvement' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'Classic Literature' })).toBeInTheDocument();
-
-    const moneyCat = screen.getByRole('button', { name: 'Explore Money/Investing books' });
-    fireEvent.click(moneyCat);
-    expect(mockNavigate).toHaveBeenCalledWith('/store?category=Money%2FInvesting');
   });
 
   it('triggers Add Book manuscript upload modal when utility CTA is clicked', () => {
