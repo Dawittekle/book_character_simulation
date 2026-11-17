@@ -127,7 +127,6 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
           </div>
           <div className="lorely-brand-group">
             <span className="lorely-brand-title">Lorely</span>
-            <span className="lorely-brand-badge-tag">Reader Studio</span>
           </div>
         </div>
 

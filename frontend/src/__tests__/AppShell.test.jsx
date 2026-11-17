@@ -46,7 +46,7 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
 
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
     expect(screen.getByText('Lorely')).toBeInTheDocument();
-    expect(screen.getByText('Reader Studio')).toBeInTheDocument();
+    expect(screen.queryByText('Reader Studio')).not.toBeInTheDocument();
 
     // Verify main navigation links
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
