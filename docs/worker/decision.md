@@ -206,5 +206,32 @@ Each decision entry follows this structure:
   4. Added process health check in `run.sh` to ensure backend startup failures exit cleanly with actionable error messages.
 - **Consequences**: `./run.sh` launches both backend and frontend cleanly with zero warnings or database connection errors.
 
+---
+
+## DEC-015: Complete Migration from Local SQLite to Docker PostgreSQL with pgvector (Phase 8)
+- **Date**: 2026-11-17
+- **Status**: Accepted
+- **Context**: The user requested eliminating local SQLite entirely and using Docker PostgreSQL with `pgvector` for all environments, updating all orchestration scripts (`run.sh`, `docker-compose.yml`, `.env`, `.env.example`), and deleting SQLite files while preserving 100% of existing books, chunks, users, and embeddings.
+- **Decision**:
+  1. **Docker Compose & Vector Extension**:
+     - Updated `docker-compose.yml` to use `pgvector/pgvector:pg16` image on host port `5434:5432` (`lorely_postgres`), avoiding port collisions with existing local Docker containers on 5432 and 5433.
+     - Added automatic `CREATE EXTENSION IF NOT EXISTS vector;` in `DatabaseManager.create_schema()` in `backend/src/book_character_simulation_backend/db/session.py`.
+  2. **Zero-Loss Data Migration**:
+     - Authored `backend/scripts/migrate_sqlite_to_postgres.py` with sanitized text cleaning (removing PDF NUL 0x00 bytes) and strict JSON list formatting for psycopg v3.
+     - Migrated 144 total records across 20 tables with verified 100% row-count and vector dimension match.
+  3. **SQLite Elimination & Code Clean-Up**:
+     - Deleted `backend/lorely_local.db` and old backup files.
+     - Removed SQLite timeout logic from `backend/src/book_character_simulation_backend/db/session.py`.
+     - Updated `backend/.env` and `backend/.env.example` to point to `postgresql://postgres:postgres@127.0.0.1:5434/lorely`.
+  4. **Automated Docker Health in `run.sh`**:
+     - Added `ensure_postgres()` in `run.sh` that checks container status, starts it if stopped, and verifies readiness via `pg_isready -h 127.0.0.1 -p 5434`.
+     - Added `postgres` and `migrate` CLI subcommands to `run.sh`.
+     - Integrated `ensure_postgres` into `backend`, `all`, and `test` workflows.
+- **Consequences**:
+  - No SQLite dependencies or databases remain in the application.
+  - Development and production now share identical PostgreSQL + pgvector schemas.
+  - All 139 backend tests and all 35 frontend test suites pass with zero regressions.
+
+
 
 

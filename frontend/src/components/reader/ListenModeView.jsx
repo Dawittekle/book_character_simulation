@@ -261,6 +261,7 @@ export default function ListenModeView({
         <button
           onClick={() => onSwitchMode('follow_along')}
           className="hover:underline flex items-center gap-1 text-amber-600 font-sans font-medium"
+          aria-label="Switch to Follow Along"
         >
           <BookOpen className="w-3.5 h-3.5" />
           <span>Follow Along</span>
@@ -352,7 +353,7 @@ export default function ListenModeView({
             value={currentTime}
             onChange={handleSeek}
             className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-amber-500"
-            aria-label="Audiobook timeline"
+            aria-label="Audiobook timeline scrubber"
           />
           <div className="flex justify-between">
             <span>{formatTime(currentTime)}</span>
@@ -387,7 +388,7 @@ export default function ListenModeView({
             disabled={loadingAudio}
             className="w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl transition-transform active:scale-95 disabled:opacity-50"
             style={{ backgroundColor: '#ef4d23' }}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? 'Pause narration' : 'Play narration'}
           >
             {loadingAudio ? (
               <Loader2 className="w-6 h-6 animate-spin" />

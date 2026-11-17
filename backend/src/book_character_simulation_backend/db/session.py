@@ -24,8 +24,6 @@ class DatabaseManager:
             connect_args = {}
             if "postgresql" in self._database_url:
                 connect_args["connect_timeout"] = self._database_connect_timeout
-            elif "sqlite" in self._database_url:
-                connect_args["timeout"] = 30
 
             self._engine = create_engine(
                 self._database_url,
@@ -52,6 +50,12 @@ class DatabaseManager:
         return self._engine
 
     def create_schema(self) -> None:
+        if self._database_url and "postgresql" in self._database_url:
+            with self.engine.begin() as conn:
+                try:
+                    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                except Exception:
+                    pass
         Base.metadata.create_all(bind=self.engine)
 
     def check_connection(self) -> bool:

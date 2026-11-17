@@ -162,6 +162,25 @@ export default function ReaderShell({ session }) {
       .then(async ([accessData, chaptersData, charactersData, bookmarksData, annotationsData]) => {
         if (!isMounted) return;
 
+        // If text format, fetch plain text content before completing loading
+        let loadedText = '';
+        if (accessData.format === 'txt') {
+          try {
+            const rawUrl = lorelyApi.getReaderRawSourceUrl(bookId);
+            const res = await fetch(rawUrl, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (res.ok) {
+              loadedText = await res.text();
+            }
+          } catch (textErr) {
+            console.warn('Failed to load raw text:', textErr);
+          }
+        }
+
+        if (!isMounted) return;
+
+        if (loadedText) setRawText(loadedText);
         setBookData(accessData);
         setChapters(chaptersData.chapters || []);
         setCharacters(charactersData || []);
@@ -173,22 +192,6 @@ export default function ReaderShell({ session }) {
           setProgressPercent(accessData.current_progress.progress_percent || 0);
           if (accessData.current_progress.last_read_mode) {
             setMode(accessData.current_progress.last_read_mode);
-          }
-        }
-
-        // If text format, fetch plain text content
-        if (accessData.format === 'txt') {
-          try {
-            const rawUrl = lorelyApi.getReaderRawSourceUrl(bookId);
-            const res = await fetch(rawUrl, {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-            if (res.ok) {
-              const text = await res.text();
-              if (isMounted) setRawText(text);
-            }
-          } catch (textErr) {
-            console.warn('Failed to load raw text:', textErr);
           }
         }
 
@@ -206,16 +209,15 @@ export default function ReaderShell({ session }) {
     };
   }, [bookId, session]);
 
+  const chaptersRef = useRef(chapters);
+  chaptersRef.current = chapters;
+
   const handleNextChapter = () => {
-    if (currentChapterIndex < chapters.length - 1) {
-      setCurrentChapterIndex((prev) => prev + 1);
-    }
+    setCurrentChapterIndex((prev) => (prev < (chaptersRef.current?.length || 1) - 1 ? prev + 1 : prev));
   };
 
   const handlePrevChapter = () => {
-    if (currentChapterIndex > 0) {
-      setCurrentChapterIndex((prev) => prev - 1);
-    }
+    setCurrentChapterIndex((prev) => (prev > 0 ? prev - 1 : prev));
   };
 
   // Comprehensive Keyboard Navigation & Shortcuts (Phase 6)
@@ -437,7 +439,7 @@ export default function ReaderShell({ session }) {
               className="text-sm mt-1"
               style={{ color: '#6b6560', fontFamily: '"Inter", sans-serif' }}
             >
-              Your reading experience is loading…
+              Opening Reader... Your reading experience is loading…
             </p>
           </div>
 

@@ -3,13 +3,15 @@ set -e
 
 # Lorely Literary Simulation - Orchestration Script
 # Usage:
-#   ./run.sh              # Run both backend & frontend locally
-#   ./run.sh all          # Run both backend & frontend locally
-#   ./run.sh backend      # Run backend only (Flask on :5000)
+#   ./run.sh              # Run both backend & frontend locally (with Docker PostgreSQL)
+#   ./run.sh all          # Run both backend & frontend locally (with Docker PostgreSQL)
+#   ./run.sh backend      # Run backend only (Flask on :5000 with Docker PostgreSQL)
 #   ./run.sh frontend     # Run frontend only (Vite on :5173)
 #   ./run.sh test         # Run full test suite (pytest + vitest)
 #   ./run.sh docker       # Build and start via Docker Compose
 #   ./run.sh docker-down  # Stop Docker Compose services
+#   ./run.sh postgres     # Start PostgreSQL Docker container only
+#   ./run.sh migrate      # Migrate relational data to Docker PostgreSQL
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="${SCRIPT_DIR}/backend"
@@ -69,9 +71,52 @@ function ensure_frontend_deps() {
   fi
 }
 
+function ensure_postgres() {
+  local port="${POSTGRES_PORT:-5434}"
+  log_info "Ensuring PostgreSQL container is running on port ${port}..."
+
+  if ! command -v docker >/dev/null 2>&1; then
+    log_error "Docker is not installed or not in PATH."
+    exit 1
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    log_error "Docker daemon is not running. Please start Docker."
+    exit 1
+  fi
+
+  if ! docker ps --format '{{.Names}}' | grep -q "^lorely_postgres$"; then
+    log_info "Starting PostgreSQL container via Docker Compose..."
+    docker compose up -d postgres
+  fi
+
+  # Wait for postgres to be ready (up to 30 seconds)
+  local retries=30
+  while [ $retries -gt 0 ]; do
+    if docker compose exec -T postgres pg_isready -U postgres -d lorely >/dev/null 2>&1; then
+      log_success "PostgreSQL is ready and healthy on port ${port}."
+      return 0
+    fi
+    sleep 1
+    retries=$((retries - 1))
+  done
+
+  log_error "PostgreSQL container did not become ready in time."
+  exit 1
+}
+
+function run_migrate() {
+  check_env_files
+  ensure_backend_venv
+  ensure_postgres
+  log_info "Running SQLite to PostgreSQL migration..."
+  (cd "${BACKEND_DIR}" && "${BACKEND_DIR}/.venv/bin/python" scripts/migrate_sqlite_to_postgres.py)
+}
+
 function run_backend() {
   check_env_files
   ensure_backend_venv
+  ensure_postgres
   log_info "Starting Backend server on http://127.0.0.1:5000 ..."
   (cd "${BACKEND_DIR}" && "${BACKEND_DIR}/.venv/bin/python" run.py)
 }
@@ -87,6 +132,7 @@ function run_all() {
   check_env_files
   ensure_backend_venv
   ensure_frontend_deps
+  ensure_postgres
 
   log_info "Starting both Backend (port 5000) and Frontend (port 5173)..."
 
@@ -174,13 +220,19 @@ case "$ACTION" in
   docker-down)
     run_docker_down
     ;;
+  postgres)
+    ensure_postgres
+    ;;
+  migrate)
+    run_migrate
+    ;;
   help|--help|-h)
     echo "Lorely Simulation Runner"
-    echo "Usage: ./run.sh [all|backend|frontend|test|docker|docker-down|help]"
+    echo "Usage: ./run.sh [all|backend|frontend|test|docker|docker-down|postgres|migrate|help]"
     ;;
   *)
     log_error "Unknown command: $ACTION"
-    echo "Usage: ./run.sh [all|backend|frontend|test|docker|docker-down|help]"
+    echo "Usage: ./run.sh [all|backend|frontend|test|docker|docker-down|postgres|migrate|help]"
     exit 1
     ;;
 esac
