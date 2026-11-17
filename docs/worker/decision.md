@@ -162,3 +162,19 @@ Each decision entry follows this structure:
   6. Verify live that point counts in Qdrant Cloud equal database chunk count (29 / 29), and verify live retrieval and spoiler protection on all books.
 - **Rationale**: Completely populates Qdrant Cloud with production-grade vectors and guarantees parity between the relational database and the vector search engine.
 - **Consequences**: Qdrant Cloud is now the live, active vector store for all existing books. We can proceed to Phase 6 (complete ChromaDB removal).
+
+## DEC-012: Complete ChromaDB Removal and Repository Streamlining (Phase 6)
+- **Context**: In Phase 5, all 29 book chunks across the 4 books were backfilled into Qdrant Cloud with 100% data parity and verified via live cosine search. Relational SQLite/PostgreSQL is the single source of truth for users, books, chapters, characters, chat sessions, and factual memories. ChromaDB prototype stores (which held zero-vector placeholder embeddings) are now completely obsolete.
+- **Decision**:
+  1. Deleted `backend/src/book_character_simulation_backend/repositories/chroma.py`.
+  2. Cleaned `repositories/__init__.py` to export only `QdrantRepository`, `QdrantChunkRecord`, `ScoredChunk`, and `RelationalRepository`.
+  3. Streamlined `CharacterService` and `ChatService` to persist and retrieve solely from `RelationalPersistenceService` without redundant unauthenticated Chroma fallbacks.
+  4. Streamlined `create_app` in `backend/src/book_character_simulation_backend/app.py` to instantiate and inject only `relational_persistence_service` and `lorely_service`.
+  5. Removed `chroma_db_path` and `ANONYMIZED_TELEMETRY` from `Settings` and `from_env()` in `backend/src/book_character_simulation_backend/config.py`.
+  6. Removed `CHROMA_DB_PATH` and `ANONYMIZED_TELEMETRY` from `backend/.env` and `backend/.env.example`.
+  7. Removed unused dependency `overrides>=7.7,<8.0` from `backend/pyproject.toml` and uninstalled `chromadb` and `overrides` from the virtual environment.
+  8. Removed obsolete local directory `backend/chroma_db/` and updated `docker-compose.yml` to mount `./backend/storage` instead of `./backend/chroma_db`.
+  9. Updated `backend/tests/conftest.py` and `backend/tests/unit/test_storage_service.py` to remove `chroma_db_path`.
+  10. Updated `backend/README.md` and frontend telemetry/marketing labels to reflect Qdrant Cloud vector memory namespaces.
+- **Consequences**: Zero ChromaDB dependencies or files remain in the application. All 46 backend unit tests pass in 1.54s with zero regressions. The backend codebase is significantly cleaner and production-ready.
+

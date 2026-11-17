@@ -195,7 +195,7 @@ export default function AdminAnalytics() {
           </div>
           <div className="kpi-value">{telemetry.total_vector_chunks || 0}</div>
           <div className="kpi-label">Indexed Vector Chunks</div>
-          <div className="kpi-detail">Chroma DB Spoiler-Gated Namespace</div>
+          <div className="kpi-detail">Qdrant Cloud Spoiler-Gated Namespace</div>
         </div>
 
         <div className="telemetry-kpi-card">

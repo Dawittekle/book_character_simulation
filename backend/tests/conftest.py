@@ -10,21 +10,13 @@ from book_character_simulation_backend.app import create_app
 
 
 @pytest.fixture
-def temp_chroma_path(tmp_path: Path) -> Path:
-    chroma_dir = tmp_path / "test_chroma_db"
-    chroma_dir.mkdir(parents=True, exist_ok=True)
-    return chroma_dir
-
-
-@pytest.fixture
-def test_settings(temp_chroma_path: Path) -> Settings:
+def test_settings() -> Settings:
     return Settings(
         app_env="testing",
         debug=True,
         host="127.0.0.1",
         port=5000,
         cors_origins=["http://localhost:5173"],
-        chroma_db_path=temp_chroma_path,
         database_url=None,  # isolated from production DB by default
         database_connect_timeout=2,
         sqlalchemy_echo=False,
@@ -62,7 +54,6 @@ def db_app(tmp_path: Path) -> Flask:
         host="127.0.0.1",
         port=5000,
         cors_origins=["http://localhost:5173"],
-        chroma_db_path=tmp_path / "chroma",
         database_url=f"sqlite:///{db_file}",
         database_connect_timeout=2,
         sqlalchemy_echo=False,

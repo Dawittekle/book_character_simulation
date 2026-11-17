@@ -93,7 +93,6 @@ class Settings:
     host: str
     port: int
     cors_origins: list[str]
-    chroma_db_path: Path
     database_url: str | None
     database_connect_timeout: int
     sqlalchemy_echo: bool
@@ -128,12 +127,7 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         backend_dir = Path(__file__).resolve().parents[2]
-        default_chroma_path = backend_dir / "chroma_db"
         load_dotenv(backend_dir / ".env")
-        os.environ.setdefault("ANONYMIZED_TELEMETRY", "FALSE")
-        chroma_db_path = Path(os.getenv("CHROMA_DB_PATH", str(default_chroma_path)))
-        if not chroma_db_path.is_absolute():
-            chroma_db_path = backend_dir / chroma_db_path
 
         storage_local_path = Path(os.getenv("STORAGE_LOCAL_DIR", "storage"))
         if not storage_local_path.is_absolute():
@@ -148,7 +142,6 @@ class Settings:
                 os.getenv("CORS_ORIGINS"),
                 ["http://localhost:5173", "http://127.0.0.1:5173"],
             ),
-            chroma_db_path=chroma_db_path,
             database_url=_normalize_database_url(os.getenv("DATABASE_URL")),
             database_connect_timeout=_as_int(
                 os.getenv("DATABASE_CONNECT_TIMEOUT"), 10

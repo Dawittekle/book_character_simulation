@@ -1,6 +1,6 @@
 # Lorely Simulation Backend
 
-The backend for **Lorely**, an AI-powered literary character simulation and dialogic exploration engine. Built with Flask, SQLAlchemy 2.0, PostgreSQL (Neon/Supabase), ChromaDB, and Google Gemini / OpenAI.
+The backend for **Lorely**, an AI-powered literary character simulation and dialogic exploration engine. Built with Flask, SQLAlchemy 2.0, PostgreSQL (Neon/Supabase), Qdrant Cloud, and Google Gemini / OpenAI.
 
 ---
 

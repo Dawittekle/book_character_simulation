@@ -14,11 +14,6 @@ from .db.seeds import (
     seed_payment_config,
 )
 from .db.session import DatabaseManager
-from .repositories.chroma import (
-    ChromaCharacterRepository,
-    ChromaFactualMemoryRepository,
-    ChromaSessionRepository,
-)
 from .services.character_service import CharacterService
 from .services.chat_service import ChatService
 from .services.lorely_service import LorelyService
@@ -61,25 +56,16 @@ def create_app(settings: Settings | None = None) -> Flask:
         except Exception as exc:
             logging.getLogger(__name__).warning("Dostoevsky catalog sync skipped or deferred: %s", exc)
 
-    character_repository = ChromaCharacterRepository(resolved_settings.chroma_db_path)
-    session_repository = ChromaSessionRepository(resolved_settings.chroma_db_path)
-    factual_memory_repository = ChromaFactualMemoryRepository(
-        resolved_settings.chroma_db_path
-    )
     relational_persistence_service = RelationalPersistenceService(database_manager)
     lorely_service = LorelyService(database_manager, resolved_settings)
 
     app.extensions["services"] = {
         "character_service": CharacterService(
             settings=resolved_settings,
-            character_repository=character_repository,
             relational_persistence_service=relational_persistence_service,
         ),
         "chat_service": ChatService(
             settings=resolved_settings,
-            character_repository=character_repository,
-            session_repository=session_repository,
-            factual_memory_repository=factual_memory_repository,
             relational_persistence_service=relational_persistence_service,
         ),
         "lorely_service": lorely_service,
