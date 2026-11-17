@@ -1,0 +1,124 @@
+/* Lorely V2 Brand Animated Loader Styles */
+
+.lorely-loader-root {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.lorely-loader-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(24, 24, 27, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: lorelyFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lorely-loader-svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.25));
+}
+
+/* Left Book Spine Animation */
+.lorely-spine-left {
+  transform-origin: 20.5px 32px;
+  animation: lorelyLeftSpineMotion 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Right Dialogue Spine Animation (Staggered by 0.2s) */
+.lorely-spine-right {
+  transform-origin: 37px 32px;
+  animation: lorelyRightSpineMotion 1.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s infinite;
+}
+
+@keyframes lorelyLeftSpineMotion {
+  0%, 100% {
+    transform: translateY(0) scale(0.97);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-3px) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes lorelyRightSpineMotion {
+  0%, 100% {
+    transform: translateY(0) scale(0.97);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translateY(3px) scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(234, 88, 12, 0.45));
+  }
+}
+
+/* Status Text underneath loader */
+.lorely-loader-text {
+  margin-top: 16px;
+  color: #FAFAFA;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+  animation: lorelyTextPulse 2s ease-in-out infinite;
+}
+
+@keyframes lorelyTextPulse {
+  0%, 100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes lorelyFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Accessibility: Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .lorely-spine-left,
+  .lorely-spine-right {
+    animation: lorelyReducedMotionPulse 2s ease-in-out infinite !important;
+    transform: none !important;
+  }
+
+  .lorely-spine-right {
+    animation-delay: 0.3s !important;
+  }
+
+  .lorely-loader-fullscreen {
+    animation: none !important;
+  }
+
+  @keyframes lorelyReducedMotionPulse {
+    0%, 100% {
+      opacity: 0.75;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}

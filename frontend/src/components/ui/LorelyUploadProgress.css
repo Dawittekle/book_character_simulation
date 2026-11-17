@@ -1,0 +1,269 @@
+/* Lorely Upload & Ingestion Progress Overlay Styles */
+
+.lorely-upload-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: uploadFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+}
+
+.lorely-upload-card {
+  width: 100%;
+  max-width: 460px;
+  background-color: #18181B;
+  border: 1px solid #27272A;
+  border-radius: 24px;
+  padding: 36px 32px 32px 32px;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #FAFAFA;
+  box-sizing: border-box;
+  animation: uploadCardSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hero Progress Ring */
+.lorely-upload-ring-wrap {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lorely-upload-ring-svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.lorely-upload-ring-track {
+  stroke: #27272A;
+}
+
+.lorely-upload-ring-fill {
+  stroke: #EA580C;
+  transition: stroke-dashoffset 0.35s ease, stroke 0.35s ease;
+  filter: drop-shadow(0 0 8px rgba(234, 88, 12, 0.5));
+}
+
+.lorely-upload-center-mark {
+  position: relative;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scanning Pulse on Left Spine */
+.upload-spine-left {
+  animation: uploadSpineScan 2s ease-in-out infinite;
+}
+
+/* Dynamic Intensity on Right Dialogue Spine */
+.upload-spine-right {
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+@keyframes uploadSpineScan {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 6px rgba(250, 250, 250, 0.6));
+  }
+}
+
+/* File Name & Title Header */
+.lorely-upload-filename {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #FAFAFA;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.lorely-upload-stage-label {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #A1A1AA;
+  margin-bottom: 20px;
+  min-height: 20px;
+}
+
+/* Linear Progress Bar & Readout */
+.lorely-upload-bar-group {
+  width: 100%;
+  margin-bottom: 26px;
+}
+
+.lorely-upload-bar-track {
+  width: 100%;
+  height: 8px;
+  background-color: #27272A;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.lorely-upload-bar-fill {
+  height: 100%;
+  background-color: #EA580C;
+  border-radius: 9999px;
+  transition: width 0.35s ease;
+  box-shadow: 0 0 12px rgba(234, 88, 12, 0.55);
+}
+
+.lorely-upload-readout-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-family: 'Inter', system-ui, monospace;
+  font-size: 12px;
+}
+
+.lorely-upload-percentage {
+  font-weight: 700;
+  color: #FAFAFA;
+  font-variant-numeric: tabular-nums;
+}
+
+.lorely-upload-status-tag {
+  color: #71717A;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* Multi-stage Checklist */
+.lorely-upload-checklist {
+  width: 100%;
+  background-color: rgba(39, 39, 42, 0.35);
+  border: 1px solid rgba(39, 39, 42, 0.6);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.lorely-upload-stage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12.5px;
+  color: #71717A;
+  transition: color 0.25s ease;
+}
+
+.lorely-upload-stage-item.is-active {
+  color: #FAFAFA;
+  font-weight: 500;
+}
+
+.lorely-upload-stage-item.is-completed {
+  color: #A1A1AA;
+}
+
+.lorely-stage-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.lorely-stage-icon.completed {
+  color: #10B981;
+}
+
+.lorely-stage-icon.active {
+  color: #EA580C;
+  animation: stagePulse 1.2s infinite ease-in-out;
+}
+
+.lorely-stage-icon.pending {
+  color: #52525B;
+}
+
+@keyframes stagePulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+/* Cancel Button */
+.lorely-upload-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #A1A1AA;
+  padding: 8px 20px;
+  border-radius: 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lorely-upload-cancel-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #FAFAFA;
+}
+
+@keyframes uploadFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes uploadCardSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
