@@ -1,52 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import BookCard from '../components/BookCard';
 import PillButton from '../components/brand/PillButton';
-import BadgePill from '../components/brand/BadgePill';
 import { Skeleton } from '../components/ui';
 import { lorelyApi } from '../services/lorelyApi';
 import './MyLibrary.css';
 
-// Canonical fallback matching backend database seed order
-const CANONICAL_BOOKS = [
-  {
-    id: 'book-dostoevsky-white-nights',
-    title: 'White Nights',
-    author: 'Fyodor Dostoevsky',
-    character_count: 2,
-    cover_url: '/covers/white_nights.svg',
-    summary: 'A sentimental novel from the recollections of a dreamer across the luminous white nights of St. Petersburg.',
-    visibility: 'featured',
-  },
-  {
-    id: 'book-dostoevsky-ridiculous-man',
-    title: 'The Dream of a Ridiculous Man',
-    author: 'Fyodor Dostoevsky',
-    character_count: 1,
-    cover_url: '/covers/the_dream_of_a_ridiculous_man.svg',
-    summary: 'A visionary philosophical revelation on an uncorrupted duplicate earth.',
-    visibility: 'featured',
-  },
-  {
-    id: 'book-dostoevsky-honest-thief',
-    title: 'An Honest Thief',
-    author: 'Fyodor Dostoevsky',
-    character_count: 2,
-    cover_url: '/covers/an_honest_thief.svg',
-    summary: 'A touching narrative of conscience and forgiveness in St. Petersburg.',
-    visibility: 'featured',
-  },
-];
-
-// Memory cache to prevent order rearranging or flickering on page re-entry
+// Memory cache to prevent layout shift or flickering on page re-entry
 let cachedLibraryBooks = null;
 
 export default function MyLibrary() {
-  const { openAddBookModal, accessToken } = useOutletContext();
+  const { openAddBookModal, accessToken } = useOutletContext() || {};
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const [books, setBooks] = useState(cachedLibraryBooks || CANONICAL_BOOKS);
-  const [loading, setLoading] = useState(!cachedLibraryBooks);
+  const [books, setBooks] = useState(cachedLibraryBooks || []);
+  const [loading, setLoading] = useState(cachedLibraryBooks === null);
   const [filter, setFilter] = useState('all'); // 'all' | 'mine' | 'featured'
   const navigate = useNavigate();
 
@@ -54,13 +22,15 @@ export default function MyLibrary() {
     let mounted = true;
     async function fetchBooks() {
       try {
-        const list = await lorelyApi.listBooks(accessToken);
-        if (mounted && list && list.length > 0) {
-          cachedLibraryBooks = list;
-          setBooks(list);
+        // Strictly fetch user's personal shelf (uploads + exported catalog books)
+        const list = await lorelyApi.listBooks('mine', accessToken);
+        if (mounted) {
+          const validList = Array.isArray(list) ? list : [];
+          cachedLibraryBooks = validList;
+          setBooks(validList);
         }
       } catch (err) {
-        // Retain canonical shelf gracefully
+        // In offline/test environments, retain empty or cached state
       } finally {
         if (mounted) {
           setLoading(false);
@@ -81,7 +51,7 @@ export default function MyLibrary() {
 
     if (!matchesQuery) return false;
     if (filter === 'mine') return b.is_owner;
-    if (filter === 'featured') return b.visibility === 'featured';
+    if (filter === 'featured') return !b.is_owner || b.visibility === 'featured' || b.is_catalog_item;
     return true;
   });
 
@@ -103,14 +73,23 @@ export default function MyLibrary() {
           >
             ← Back
           </button>
-          
-          <button
-            type="button"
-            className="library-add-book-btn"
-            onClick={openAddBookModal}
-          >
-            + Add a Book
-          </button>
+
+          <div className="library-header-actions">
+            <button
+              type="button"
+              className="library-store-link-btn"
+              onClick={() => navigate('/store')}
+            >
+              Explore Book Store →
+            </button>
+            <button
+              type="button"
+              className="library-add-book-btn"
+              onClick={openAddBookModal}
+            >
+              + Add a Book
+            </button>
+          </div>
         </div>
 
         <div className="library-title-group">
@@ -118,7 +97,7 @@ export default function MyLibrary() {
             My Literary <span className="serif-italic">Shelf</span>
           </h1>
           <p className="library-subtitle">
-            Explore your imported manuscripts, literary novels, and public classics.
+            Explore your imported manuscripts, literary novels, and books exported from the Book Store.
           </p>
         </div>
       </header>
@@ -176,13 +155,15 @@ export default function MyLibrary() {
       ) : filteredBooks.length === 0 ? (
         <div className="library-empty-shelf-card">
           <div className="empty-shelf-icon-bubble">📚</div>
-          <h3 className="empty-shelf-title">No manuscripts found</h3>
+          <h3 className="empty-shelf-title">Your Bookshelf is empty</h3>
           <p className="empty-shelf-desc">
             {query
               ? `No literary works matched your search for "${query}".`
               : filter === 'mine'
               ? 'You have not uploaded any personal books yet. Ingest your own manuscript to interact with custom characters.'
-              : 'No literary works found in this section.'}
+              : filter === 'featured'
+              ? 'You have not exported any catalog books yet. Browse the Book Store to import masterworks.'
+              : 'Your Bookshelf holds books you upload or export from the Book Store. No unselected catalog books are mixed in.'}
           </p>
           <div className="empty-shelf-actions">
             {query && (
@@ -190,6 +171,13 @@ export default function MyLibrary() {
                 Clear Filter
               </PillButton>
             )}
+            <button
+              type="button"
+              className="library-store-cta-btn"
+              onClick={() => navigate('/store')}
+            >
+              Browse Book Store →
+            </button>
             <PillButton
               variant="orange"
               size="sm"

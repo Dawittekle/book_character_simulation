@@ -161,22 +161,31 @@ export default function CharacterGallery() {
           ))
         ) : characters.length === 0 ? (
           <div className="gallery-empty-state">
-            <div className="gallery-empty-bubble">📖</div>
+            <div className="gallery-empty-bubble">👥</div>
             <h3 className="gallery-empty-title">No Characters Available</h3>
             <p className="gallery-empty-sub">
               {bookId
                 ? 'No characters have been extracted for this literary work yet.'
-                : 'Explore your library to discover character dialogues.'}
+                : 'Your character gallery reflects books currently on your Bookshelf. Export a book from the Book Store or upload a manuscript to unlock simulated character dialogues.'}
             </p>
-            <PillButton
-              variant="orange"
-              size="md"
-              hasChevron
-              onClick={() => navigate('/library')}
-              className="gallery-browse-btn"
-            >
-              Browse Library →
-            </PillButton>
+            <div className="gallery-empty-actions">
+              <button
+                type="button"
+                className="gallery-store-cta-btn"
+                onClick={() => navigate('/store')}
+              >
+                Browse Book Store →
+              </button>
+              <PillButton
+                variant="orange"
+                size="md"
+                hasChevron
+                onClick={() => navigate('/library')}
+                className="gallery-browse-btn"
+              >
+                Browse Library →
+              </PillButton>
+            </div>
           </div>
         ) : (
           characters.map((char) => {
