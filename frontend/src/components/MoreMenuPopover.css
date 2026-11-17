@@ -1,0 +1,116 @@
+/* MoreMenuPopover Styles (Instagram-Style Floating Card) */
+
+.instagram-more-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: 250px;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
+  animation: popoverFadeSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+}
+
+.more-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fafafa;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 120ms ease;
+}
+
+.more-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.more-popover-item svg {
+  flex-shrink: 0;
+  color: #a1a1aa;
+  transition: color 120ms ease;
+}
+
+.more-popover-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.more-popover-item:hover svg {
+  color: #ffffff;
+}
+
+/* Appearance Toggle Pill */
+.appearance-toggle-track {
+  width: 32px;
+  height: 18px;
+  border-radius: 9999px;
+  background-color: #27272a;
+  position: relative;
+  transition: background-color 160ms ease;
+  flex-shrink: 0;
+}
+
+.appearance-toggle-track.is-dark {
+  background-color: var(--brand-orange, #2589ff);
+}
+
+.appearance-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  transition: transform 160ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.appearance-toggle-track.is-dark .appearance-toggle-thumb {
+  transform: translateX(14px);
+}
+
+.more-popover-divider {
+  height: 1px;
+  background-color: #27272a;
+  margin: 6px 4px;
+}
+
+.more-popover-danger {
+  color: #ef4444;
+}
+
+.more-popover-danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+@keyframes popoverFadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
