@@ -97,17 +97,24 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
     expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 
-  it('toggles notifications dropdown when Notifications button is clicked', () => {
-    render(
+  it('toggles notifications drawer and collapses sidebar to icon rail', () => {
+    const { container } = render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
       </BrowserRouter>,
     );
 
+    const sidebar = container.querySelector('.lorely-sidebar');
+    expect(sidebar).not.toHaveClass('collapsed');
+
     const notifBtn = screen.getByRole('button', { name: /notifications/i });
     fireEvent.click(notifBtn);
 
+    expect(sidebar).toHaveClass('collapsed');
     expect(screen.getByTestId('notifications-dropdown')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /notifications/i, level: 3 })).toBeInTheDocument();
+
+    fireEvent.click(notifBtn);
+    expect(sidebar).not.toHaveClass('collapsed');
   });
 });

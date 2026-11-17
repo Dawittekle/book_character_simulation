@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AddBookModal from './AddBookModal';
-import NotificationsDropdown from './NotificationsDropdown';
+import NotificationsDrawer from './NotificationsDrawer';
 import PricingModal from './PricingModal';
 import MoreMenuPopover from './MoreMenuPopover';
 import ReportProblemModal from './ReportProblemModal';
@@ -88,12 +88,13 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Theme appearance toggle
-  const handleToggleAppearance = () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    applyAppTheme(nextTheme);
-  };
+  // Close popovers and flyout drawer on route change
+  useEffect(() => {
+    setIsNotifOpen(false);
+    setIsMoreOpen(false);
+  }, [location.pathname]);
+
+  const isEffectiveCollapsed = isCollapsed || isNotifOpen;
 
   // Active path matchers
   const isHomeActive = location.pathname === '/' || location.pathname === '/discover';
@@ -110,9 +111,9 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
     location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings');
 
   return (
-    <div className={`lorely-app-layout ${isCollapsed ? 'is-sidebar-collapsed' : ''}`} data-testid="app-shell">
+    <div className={`lorely-app-layout ${isEffectiveCollapsed ? 'is-sidebar-collapsed' : ''} ${isNotifOpen ? 'is-notifications-open' : ''}`} data-testid="app-shell">
       {/* Instagram-style 3-group vertical navigation sidebar */}
-      <aside className={`lorely-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`lorely-sidebar ${isEffectiveCollapsed ? 'collapsed' : ''}`}>
         {/* GROUP 1: Brand Header */}
         <div
           className="lorely-sidebar-brand"
@@ -202,6 +203,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             className={`sidebar-nav-item sidebar-nav-btn ${isNotifOpen ? 'active' : ''}`}
             onClick={() => setIsNotifOpen((prev) => !prev)}
             aria-label="Notifications"
+            aria-expanded={isNotifOpen}
           >
             <span className="sidebar-item-icon notif-icon-wrap">
               <svg width="22" height="22" viewBox="0 0 24 24" fill={isNotifOpen ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -280,8 +282,8 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
         </div>
       </aside>
 
-      {/* Notifications Drawer (Slides out from next to sidebar) */}
-      <NotificationsDropdown
+      {/* Instagram-Style Sliding Notifications Flyout Drawer */}
+      <NotificationsDrawer
         isOpen={isNotifOpen}
         onClose={() => setIsNotifOpen(false)}
         accessToken={accessToken}
