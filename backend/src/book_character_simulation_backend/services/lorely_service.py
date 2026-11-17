@@ -56,6 +56,7 @@ from ..prompts import character_extraction_prompt, chat_prompt, fact_extraction_
 from ..rag.chunker import build_semantic_chunks, split_into_chapters
 from ..rag.embedding_provider import EmbeddingService
 from ..rag.retriever import SpoilerAwareRetriever
+from ..repositories.qdrant import QdrantChunkRecord, QdrantRepository
 from ..schemas.character import CharacterProfile
 from ..simulation import PsiEngine, PerceivedObservation, clamp
 from ..utils.document_extractor import extract_document_from_bytes
@@ -88,7 +89,11 @@ class LorelyService:
         self.settings = settings
         self.classifier = ClassificationService(settings)
         self.embedding_service = EmbeddingService(settings)
-        self.retriever = SpoilerAwareRetriever(self.embedding_service)
+        self.qdrant_repo = QdrantRepository(settings)
+        self.retriever = SpoilerAwareRetriever(
+            self.embedding_service,
+            qdrant_repo=self.qdrant_repo,
+        )
         self.voice_service = VoiceService(settings)
         self.storage_service = storage_service or StorageService(settings)
         self.narration_service = BookNarrationService(self.db, self.storage_service, self.voice_service)
@@ -682,27 +687,51 @@ class LorelyService:
                         )
                     )
 
-                # Build semantic chunks with native pgvector embeddings
+                # Build semantic chunks and index in relational database
                 chunks = build_semantic_chunks(extracted_text)
+                created_chunks: list[BookChunk] = []
                 for c in chunks:
                     vec = self.embedding_service.embed_text(c.content)
                     c_hash = hashlib.sha256(c.content.encode("utf-8")).hexdigest()
-                    session.add(
-                        BookChunk(
-                            book_id=book.id,
-                            chapter_order=c.chapter_order,
-                            chapter_title=c.chapter_title,
-                            chunk_index=c.chunk_index,
-                            content=c.content,
-                            embedding=vec,
-                            embedding_provider=self.embedding_service.provider_name,
-                            embedding_model=self.embedding_service.model_name,
-                            embedding_dimensions=len(vec),
-                            content_hash=c_hash,
-                            language_code=book_lang,
-                        )
+                    bc = BookChunk(
+                        book_id=book.id,
+                        chapter_order=c.chapter_order,
+                        chapter_title=c.chapter_title,
+                        chunk_index=c.chunk_index,
+                        content=c.content,
+                        embedding=vec,
+                        embedding_provider=self.embedding_service.provider_name,
+                        embedding_model=self.embedding_service.model_name,
+                        embedding_dimensions=len(vec),
+                        content_hash=c_hash,
+                        language_code=book_lang,
                     )
+                    session.add(bc)
+                    created_chunks.append(bc)
                 session.flush()
+
+                # Upsert vectors into Qdrant Cloud
+                if self.qdrant_repo and self.qdrant_repo.is_configured and created_chunks:
+                    try:
+                        q_records = [
+                            QdrantChunkRecord(
+                                chunk_id=bc.id,
+                                book_id=book.id,
+                                chapter_order=bc.chapter_order,
+                                chapter_title=bc.chapter_title or f"Chapter {bc.chapter_order}",
+                                chunk_index=bc.chunk_index,
+                                content=bc.content,
+                                embedding=bc.embedding or [],
+                                language=bc.language_code,
+                                visibility=book.visibility or "private",
+                                owner_user_id=book.owner_user_id,
+                                content_hash=bc.content_hash,
+                            )
+                            for bc in created_chunks
+                        ]
+                        self.qdrant_repo.upsert_chunks(q_records)
+                    except Exception as exc:
+                        logger.error("Failed to index chunks into Qdrant for book %s: %s", book.id, exc)
 
             return {
                 "id": book.id,
@@ -2050,6 +2079,13 @@ class LorelyService:
         except Exception as exc:
             logger.warning("Failed to clean up storage objects for deleted book %s: %s", book_id, exc)
 
+        # Delete all Qdrant vectors for this book
+        if self.qdrant_repo and self.qdrant_repo.is_configured:
+            try:
+                self.qdrant_repo.delete_by_book_id(book_id)
+            except Exception as exc:
+                logger.warning("Failed to delete Qdrant vectors for book %s: %s", book_id, exc)
+
     # --- Characters ---
 
     def list_characters(
@@ -2607,8 +2643,9 @@ class LorelyService:
             else:
                 max_chapter = None  # unrestricted
 
-            # 1. RAG passage retrieval with strict spoiler boundary
+            # 1. RAG passage retrieval with strict spoiler boundary and tenant isolation
             retrieval_query = f"{cleaned_content} {passage_quote}" if passage_quote else cleaned_content
+            is_pub = (chat_session.book.visibility in ("public", "featured")) if chat_session.book else True
             retrieved = self.retriever.retrieve(
                 session,
                 book_id=chat_session.book_id,
@@ -2616,6 +2653,8 @@ class LorelyService:
                 spoiler_policy=policy,
                 max_allowed_chapter=max_chapter,
                 top_k=3,
+                owner_user_id=user.id,
+                is_public=is_pub,
             )
 
             citations = [

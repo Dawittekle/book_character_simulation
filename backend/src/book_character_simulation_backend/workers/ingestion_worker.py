@@ -27,6 +27,7 @@ from ..llm.factory import get_llm_provider
 from ..prompts import character_extraction_prompt
 from ..rag.chunker import build_semantic_chunks, split_into_chapters
 from ..rag.embedding_provider import EmbeddingService
+from ..repositories.qdrant import QdrantChunkRecord, QdrantRepository
 from ..schemas.character import CharacterProfile
 from ..services.storage_service import StorageService
 from ..utils.json import parse_json_response
@@ -47,6 +48,7 @@ class IngestionWorker:
         self.settings = settings
         self.storage_service = StorageService(settings)
         self.embedding_service = EmbeddingService(settings)
+        self.qdrant_repo = QdrantRepository(settings)
         self._running = False
 
     def claim_next_job(self) -> str | None:
@@ -259,6 +261,32 @@ class IngestionWorker:
                             )
                         )
                 session.flush()
+
+                # Upsert indexed vectors to Qdrant Cloud
+                if self.qdrant_repo and self.qdrant_repo.is_configured:
+                    try:
+                        all_chunks = session.execute(
+                            select(BookChunk).where(BookChunk.book_id == book.id)
+                        ).scalars().all()
+                        q_records = [
+                            QdrantChunkRecord(
+                                chunk_id=bc.id,
+                                book_id=book.id,
+                                chapter_order=bc.chapter_order,
+                                chapter_title=bc.chapter_title or f"Chapter {bc.chapter_order}",
+                                chunk_index=bc.chunk_index,
+                                content=bc.content,
+                                embedding=bc.embedding or [],
+                                language=bc.language_code,
+                                visibility=book.visibility or "private",
+                                owner_user_id=book.owner_user_id,
+                                content_hash=bc.content_hash,
+                            )
+                            for bc in all_chunks
+                        ]
+                        self.qdrant_repo.upsert_chunks(q_records)
+                    except Exception as exc:
+                        logger.error("Failed to index chunks into Qdrant in IngestionWorker: %s", exc)
 
                 # 6. Publish Readiness
                 book.processing_status = BookProcessingStatus.ready

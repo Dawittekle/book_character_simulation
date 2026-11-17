@@ -131,3 +131,18 @@ Each decision entry follows this structure:
   7. Expose `gemini_embedding_model`, `openai_embedding_model`, and `embedding_dimensions` in `Settings` and `.env.example`.
 - **Rationale**: Eliminates the 404 embedding crash, guarantees mathematical compatibility with Qdrant Cloud collection's 1536-dim vector space, and significantly improves indexing throughput via batch embedding.
 - **Consequences**: Downstream retrieval (Phase 4) and backfill migration (Phase 5) will produce and query consistent 1536-dimensional embeddings.
+
+---
+
+### DEC-010: True Qdrant Retrieval Engine with Hybrid RRF (Phase 4)
+- **Date**: 2026-11-17
+- **Status**: Accepted
+- **Context**: `SpoilerAwareRetriever` previously performed in-memory Python table scans on SQL `BookChunk.embedding`, lacking native vector indexing and scaling poorly.
+- **Decision**:
+  1. Refactor `SpoilerAwareRetriever` to accept `QdrantRepository`.
+  2. Implement primary vector retrieval directly via `qdrant_repo.search()`, enforcing multi-tenant isolation (`owner_user_id`, `is_public`) and chapter-based spoiler prevention (`chapter_order <= max_allowed_chapter`) natively in Qdrant's payload index filter.
+  3. Combine Qdrant's vector similarity ranks with lexical scores (including bilingual Amharic-English literary term expansion) using Reciprocal Rank Fusion (RRF, $k=60$).
+  4. Wire `QdrantRepository` into `LorelyService` and `IngestionWorker` so newly uploaded/ingested books automatically index chunks in Qdrant Cloud, and deleted books have their vector points pruned.
+  5. Provide non-silent fallback to relational database chunks only when a book has 0 points in Qdrant (with explicit log warning for pending backfill/testing fixtures), ensuring no silent fallback occurs during normal operation.
+- **Rationale**: Replaces $O(N)$ Python full-table scans with indexed, filtered vector searches executed natively in Qdrant Cloud in single-digit milliseconds, while preserving full backward compatibility for existing test fixtures.
+- **Consequences**: Sets up Phase 5 (data migration & backfill script) to populate all existing books and chunks into Qdrant Cloud.

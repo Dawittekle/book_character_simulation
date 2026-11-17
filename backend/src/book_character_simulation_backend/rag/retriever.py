@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db.models import BookChunk
+from ..repositories.qdrant import QdrantRepository
 from .embedding_provider import EmbeddingService, cosine_similarity
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -93,8 +98,13 @@ def compute_lexical_score(text: str, query: str) -> float:
 
 
 class SpoilerAwareRetriever:
-    def __init__(self, embedding_service: EmbeddingService):
+    def __init__(
+        self,
+        embedding_service: EmbeddingService,
+        qdrant_repo: QdrantRepository | None = None,
+    ):
         self.embedding_service = embedding_service
+        self.qdrant_repo = qdrant_repo
 
     def retrieve(
         self,
@@ -105,54 +115,123 @@ class SpoilerAwareRetriever:
         spoiler_policy: str = "cautious",
         max_allowed_chapter: int | None = None,
         top_k: int = 3,
+        owner_user_id: str | None = None,
+        is_public: bool = True,
     ) -> list[RetrievedPassage]:
-        stmt = select(BookChunk).where(BookChunk.book_id == book_id)
-
         # Enforce spoiler boundary strictly BEFORE retrieval & ranking
-        if spoiler_policy in ("cautious", "no_spoilers") and max_allowed_chapter is not None:
-            stmt = stmt.where(BookChunk.chapter_order <= max_allowed_chapter)
+        effective_chapter_limit = (
+            max_allowed_chapter
+            if spoiler_policy in ("cautious", "no_spoilers") and max_allowed_chapter is not None
+            else None
+        )
+
+        query_embedding = self.embedding_service.embed_text(query)
+
+        # 1. Primary Vector Search via Qdrant Cloud (if configured)
+        if self.qdrant_repo is not None and self.qdrant_repo.is_configured:
+            scored_chunks = self.qdrant_repo.search(
+                query_vector=query_embedding,
+                book_id=book_id,
+                max_allowed_chapter=effective_chapter_limit,
+                owner_user_id=owner_user_id,
+                is_public=is_public,
+                limit=max(top_k * 4, 15),
+            )
+
+            if scored_chunks:
+                # Vector rankings from Qdrant
+                vector_rank_map = {
+                    chunk.payload.get("chunk_id", chunk.id): idx + 1
+                    for idx, chunk in enumerate(scored_chunks)
+                }
+
+                # Lexical scoring on retrieved candidate pool
+                lexical_scored = [
+                    (chunk, compute_lexical_score(chunk.content, query))
+                    for chunk in scored_chunks
+                ]
+                lexical_scored.sort(key=lambda x: x[1], reverse=True)
+                lexical_rank_map = {
+                    chunk.payload.get("chunk_id", chunk.id): idx + 1
+                    for idx, (chunk, _) in enumerate(lexical_scored)
+                }
+                lexical_score_map = {
+                    chunk.payload.get("chunk_id", chunk.id): score
+                    for chunk, score in lexical_scored
+                }
+
+                # Reciprocal Rank Fusion (RRF) with k=60
+                k_rrf = 60.0
+                candidates: list[RetrievedPassage] = []
+                for chunk in scored_chunks:
+                    cid = chunk.payload.get("chunk_id", chunk.id)
+                    v_rank = vector_rank_map.get(cid, 9999)
+                    l_rank = lexical_rank_map.get(cid, 9999)
+                    rrf = (1.0 / (k_rrf + v_rank)) + (1.0 / (k_rrf + l_rank))
+
+                    candidates.append(
+                        RetrievedPassage(
+                            chunk_id=cid,
+                            chapter_order=chunk.chapter_order,
+                            chapter_title=chunk.chapter_title or f"Chapter {chunk.chapter_order}",
+                            content=chunk.content,
+                            similarity=chunk.score,
+                            lexical_score=lexical_score_map.get(cid, 0.0),
+                            rrf_score=round(rrf, 6),
+                        )
+                    )
+
+                candidates.sort(key=lambda x: (x.rrf_score, x.lexical_score, x.similarity), reverse=True)
+                return candidates[:top_k]
+
+            # If Qdrant is configured and this book has points in Qdrant, but scored_chunks is empty:
+            # this means the query / spoiler filter legitimately excluded all chunks.
+            if self.qdrant_repo.count(book_id=book_id) > 0:
+                return []
+
+            # Otherwise, book has 0 points in Qdrant (pending backfill or testing fixture)
+            logger.warning(
+                "Book '%s' has 0 points in Qdrant; falling back to relational database chunks for retrieval.",
+                book_id,
+            )
+
+        # 2. Relational Database Scan Fallback (for unconfigured Qdrant or testing fixtures)
+        stmt = select(BookChunk).where(BookChunk.book_id == book_id)
+        if effective_chapter_limit is not None:
+            stmt = stmt.where(BookChunk.chapter_order <= effective_chapter_limit)
 
         chunks = session.scalars(stmt).all()
         if not chunks:
             return []
 
-        query_embedding = self.embedding_service.embed_text(query)
-
-        # 1. Vector scoring
-        vector_scored: list[tuple[BookChunk, float]] = []
+        # Vector scoring via in-memory cosine similarity
+        vector_scored_sql: list[tuple[BookChunk, float]] = []
         for chunk in chunks:
-            if not chunk.embedding:
-                sim = 0.0
-            else:
-                sim = float(cosine_similarity(query_embedding, chunk.embedding))
-            vector_scored.append((chunk, sim))
+            sim = float(cosine_similarity(query_embedding, chunk.embedding)) if chunk.embedding else 0.0
+            vector_scored_sql.append((chunk, sim))
 
-        # Sort vector rankings (rank starts at 1)
-        vector_scored.sort(key=lambda x: x[1], reverse=True)
-        vector_rank_map = {chunk.id: idx + 1 for idx, (chunk, _) in enumerate(vector_scored)}
+        vector_scored_sql.sort(key=lambda x: x[1], reverse=True)
+        vector_rank_map = {chunk.id: idx + 1 for idx, (chunk, _) in enumerate(vector_scored_sql)}
 
-        # 2. Lexical scoring
-        lexical_scored: list[tuple[BookChunk, float]] = []
+        # Lexical scoring
+        lexical_scored_sql: list[tuple[BookChunk, float]] = []
         for chunk in chunks:
             lex_score = compute_lexical_score(chunk.content, query)
-            lexical_scored.append((chunk, lex_score))
+            lexical_scored_sql.append((chunk, lex_score))
 
-        # Sort lexical rankings
-        lexical_scored.sort(key=lambda x: x[1], reverse=True)
-        lexical_rank_map = {chunk.id: idx + 1 for idx, (chunk, _) in enumerate(lexical_scored)}
-        lexical_score_map = {chunk.id: score for chunk, score in lexical_scored}
-        vector_score_map = {chunk.id: sim for chunk, sim in vector_scored}
+        lexical_scored_sql.sort(key=lambda x: x[1], reverse=True)
+        lexical_rank_map = {chunk.id: idx + 1 for idx, (chunk, _) in enumerate(lexical_scored_sql)}
+        lexical_score_map = {chunk.id: score for chunk, score in lexical_scored_sql}
+        vector_score_map = {chunk.id: sim for chunk, sim in vector_scored_sql}
 
-        # 3. Reciprocal Rank Fusion (RRF)
-        # RRF(d) = 1 / (k + rank_vector) + 1 / (k + rank_lexical), where k=60
         k_rrf = 60.0
-        candidates: list[RetrievedPassage] = []
+        fallback_candidates: list[RetrievedPassage] = []
         for chunk in chunks:
             v_rank = vector_rank_map.get(chunk.id, 9999)
             l_rank = lexical_rank_map.get(chunk.id, 9999)
             rrf = (1.0 / (k_rrf + v_rank)) + (1.0 / (k_rrf + l_rank))
 
-            candidates.append(
+            fallback_candidates.append(
                 RetrievedPassage(
                     chunk_id=chunk.id,
                     chapter_order=chunk.chapter_order,
@@ -164,6 +243,5 @@ class SpoilerAwareRetriever:
                 )
             )
 
-        # Sort by RRF rank with lexical and vector tie-breakers
-        candidates.sort(key=lambda x: (x.rrf_score, x.lexical_score, x.similarity), reverse=True)
-        return candidates[:top_k]
+        fallback_candidates.sort(key=lambda x: (x.rrf_score, x.lexical_score, x.similarity), reverse=True)
+        return fallback_candidates[:top_k]
