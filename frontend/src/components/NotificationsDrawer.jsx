@@ -63,8 +63,11 @@ export default function NotificationsDrawer({
   useEffect(() => {
     function handleClickOutside(event) {
       if (drawerRef.current && !drawerRef.current.contains(event.target)) {
-        // Only trigger if click was not on the sidebar notif toggle button
-        const isNotifTrigger = event.target.closest?.('.notif-icon-wrap') || event.target.closest?.('[aria-label="Notifications"]');
+        // Only trigger if click was not on the notif toggle button
+        const isNotifTrigger =
+          event.target.closest?.('.canvas-notif-btn') ||
+          event.target.closest?.('.notif-icon-wrap') ||
+          event.target.closest?.('[aria-label="Notifications"]');
         if (!isNotifTrigger) {
           onClose();
         }

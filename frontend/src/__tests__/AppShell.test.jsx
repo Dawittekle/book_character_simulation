@@ -37,7 +37,7 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
     });
   });
 
-  it('renders Instagram-style 3-group navigation links, brand mark, and utility items', () => {
+  it('renders re-aligned navigation links, brand mark, and top-right header controls', () => {
     render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
@@ -48,17 +48,27 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
     expect(screen.getByText('Lorely')).toBeInTheDocument();
     expect(screen.queryByText('Reader Studio')).not.toBeInTheDocument();
 
-    // Verify main navigation links
-    expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
+    // Verify main sidebar navigation links (Discover, Bookshelf, Book Store, Characters, Chats)
+    expect(screen.getByRole('link', { name: /discover/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /bookshelf/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /book store/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /characters/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /chats/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /profile/i })).toBeInTheDocument();
 
-    // Verify action and utility buttons
-    expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
+    // Profile and Notifications are removed from sidebar links
+    const sidebar = screen.getByTestId('app-shell').querySelector('.lorely-sidebar');
+    expect(sidebar.querySelector('a[aria-label="Notifications"]')).toBeNull();
+    expect(sidebar.querySelector('a[aria-label="Profile"]')).toBeNull();
+
+    // Verify action and utility buttons in sidebar
     expect(screen.getByRole('button', { name: /add book/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /more/i })).toBeInTheDocument();
+
+    // Verify top-right canvas header controls (Profile badge with name & Notifications bell)
+    expect(screen.getByTestId('app-shell-topbar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument();
+    expect(screen.getByText('Dawit Teklebrhan')).toBeInTheDocument();
   });
 
   it('opens Add Book modal when Add book navigation button is clicked', () => {
@@ -97,25 +107,40 @@ describe('Instagram-Style Reader App Shell Navigation (Phase 1)', () => {
     expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 
-  it('toggles notifications drawer and collapses sidebar to icon rail', () => {
-    const { container } = render(
+  it('toggles top-right profile dropdown menu with Profile, Settings, and Log out', () => {
+    render(
       <BrowserRouter>
         <AppShell session={mockSession} onSignOut={mockSignOut} />
       </BrowserRouter>,
     );
 
-    const sidebar = container.querySelector('.lorely-sidebar');
-    expect(sidebar).not.toHaveClass('collapsed');
+    const profileBtn = screen.getByRole('button', { name: /profile/i });
+    expect(profileBtn).toBeInTheDocument();
+
+    // Click profile badge to open dropdown
+    fireEvent.click(profileBtn);
+    expect(screen.getByRole('menu', { name: /profile options/i })).toBeInTheDocument();
+
+    const logoutBtn = screen.getByRole('menuitem', { name: /log out/i });
+    fireEvent.click(logoutBtn);
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles notifications drawer from the top-right header button', () => {
+    render(
+      <BrowserRouter>
+        <AppShell session={mockSession} onSignOut={mockSignOut} />
+      </BrowserRouter>,
+    );
 
     const notifBtn = screen.getByRole('button', { name: /notifications/i });
     fireEvent.click(notifBtn);
 
-    expect(sidebar).toHaveClass('collapsed');
     expect(screen.getByTestId('notifications-dropdown')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /notifications/i, level: 3 })).toBeInTheDocument();
 
     fireEvent.click(notifBtn);
-    expect(sidebar).not.toHaveClass('collapsed');
+    expect(screen.queryByTestId('notifications-dropdown')).not.toBeInTheDocument();
   });
 
   it('confirms the top navigation bar is completely removed and canvas is full height', () => {

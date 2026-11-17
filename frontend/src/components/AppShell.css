@@ -293,6 +293,260 @@
 }
 
 /* ==========================================================================
+   Canvas Top-Right Header (Profile Badge & Notification Bell)
+   ========================================================================== */
+.lorely-canvas-header {
+  position: absolute;
+  top: 18px;
+  right: 28px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.canvas-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+/* Notification Bell Button */
+.canvas-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--brand-border, rgba(0, 0, 0, 0.08));
+  background-color: var(--brand-surface, #ffffff);
+  color: var(--brand-text-muted, #64748b);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  position: relative;
+  outline: none;
+}
+
+[data-theme='dark'] .canvas-header-btn,
+.dark .canvas-header-btn {
+  background-color: var(--brand-surface, #18181b);
+  border-color: var(--brand-border, #27272a);
+  color: var(--brand-text-muted, #a1a1aa);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.canvas-header-btn:hover,
+.canvas-header-btn.active {
+  color: #2589ff;
+  border-color: #2589ff;
+  background-color: rgba(37, 137, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.canvas-header-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-notif-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #2589ff;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 17px;
+  height: 17px;
+  line-height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--brand-surface, #ffffff);
+}
+
+[data-theme='dark'] .canvas-notif-badge,
+.dark .canvas-notif-badge {
+  box-shadow: 0 0 0 2px #18181b;
+}
+
+/* Profile Pill */
+.canvas-profile-container {
+  position: relative;
+}
+
+.canvas-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 4px 5px;
+  border-radius: 9999px;
+  border: 1px solid var(--brand-border, rgba(0, 0, 0, 0.08));
+  background-color: var(--brand-surface, #ffffff);
+  color: var(--brand-text-strong, #0b0f1a);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+[data-theme='dark'] .canvas-profile-pill,
+.dark .canvas-profile-pill {
+  background-color: var(--brand-surface, #18181b);
+  border-color: var(--brand-border, #27272a);
+  color: var(--brand-text-strong, #fafafa);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.canvas-profile-pill:hover,
+.canvas-profile-pill.active {
+  border-color: rgba(37, 137, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 137, 255, 0.12);
+}
+
+.canvas-profile-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #e2e8f0;
+}
+
+.canvas-profile-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-profile-chevron {
+  color: var(--brand-text-muted, #94a3b8);
+  transition: transform 0.2s ease;
+}
+
+.canvas-profile-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Profile Dropdown Menu */
+.canvas-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  background-color: var(--brand-surface, #ffffff);
+  border: 1px solid var(--brand-border, rgba(0, 0, 0, 0.1));
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  padding: 6px;
+  z-index: 50;
+  animation: canvasDropdownFade 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+[data-theme='dark'] .canvas-profile-dropdown,
+.dark .canvas-profile-dropdown {
+  background-color: #1c1c20;
+  border-color: #2e2e33;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes canvasDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.canvas-dropdown-header {
+  padding: 8px 10px 10px;
+}
+
+.canvas-dropdown-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-text-strong, #0b0f1a);
+}
+
+[data-theme='dark'] .canvas-dropdown-name,
+.dark .canvas-dropdown-name {
+  color: #ffffff;
+}
+
+.canvas-dropdown-email {
+  display: block;
+  font-size: 11px;
+  color: var(--brand-text-muted, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.canvas-dropdown-divider {
+  height: 1px;
+  background-color: var(--brand-border, rgba(0, 0, 0, 0.08));
+  margin: 4px 0;
+}
+
+[data-theme='dark'] .canvas-dropdown-divider,
+.dark .canvas-dropdown-divider {
+  background-color: #2e2e33;
+}
+
+.canvas-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--brand-text-strong, #0b0f1a);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+}
+
+[data-theme='dark'] .canvas-dropdown-item,
+.dark .canvas-dropdown-item {
+  color: #e4e4e7;
+}
+
+.canvas-dropdown-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .canvas-dropdown-item:hover,
+.dark .canvas-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.canvas-dropdown-item.text-danger {
+  color: #ef4444;
+}
+
+.canvas-dropdown-item.text-danger:hover {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+/* ==========================================================================
    Responsive: Collapsed Tablet & Mobile Bottom Bar
    ========================================================================== */
 @media (max-width: 1263px) and (min-width: 768px) {
@@ -382,6 +636,19 @@
   .sidebar-profile-avatar {
     width: 24px;
     height: 24px;
+  }
+
+  .lorely-canvas-header {
+    top: 12px;
+    right: 14px;
+  }
+
+  .canvas-profile-name {
+    display: none;
+  }
+
+  .canvas-profile-pill {
+    padding: 3px;
   }
 
   .lorely-main-container {

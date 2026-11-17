@@ -11,6 +11,7 @@ import './AppShell.css';
 
 export default function AppShell({ session, onSignOut, onBookAdded }) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
   const [profile, setProfile] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const moreRef = useRef(null);
-  const notifRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -77,11 +78,14 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
 
   const isAdmin = profile?.role === 'admin';
 
-  // Close "More" popover when clicking outside
+  // Close "More" popover and Profile dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (moreRef.current && !moreRef.current.contains(event.target)) {
         setIsMoreOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -92,23 +96,28 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
   useEffect(() => {
     setIsNotifOpen(false);
     setIsMoreOpen(false);
+    setIsProfileMenuOpen(false);
   }, [location.pathname]);
 
-  const isEffectiveCollapsed = isCollapsed || isNotifOpen;
+  const isEffectiveCollapsed = isCollapsed;
 
   // Active path matchers
-  const isHomeActive = location.pathname === '/' || location.pathname === '/discover';
+  const isDiscoverActive =
+    location.pathname === '/' ||
+    location.pathname === '/discover' ||
+    location.pathname.startsWith('/discover');
   const isBookshelfActive =
     location.pathname.startsWith('/bookshelf') ||
     location.pathname.startsWith('/library') ||
     location.pathname.startsWith('/books');
+  const isStoreActive =
+    location.pathname.startsWith('/store') ||
+    location.pathname.startsWith('/bookstore');
   const isCharactersActive = location.pathname.startsWith('/characters');
   const isChatsActive =
     location.pathname.startsWith('/chats') ||
     location.pathname.startsWith('/conversations') ||
     location.pathname.startsWith('/chat');
-  const isProfileActive =
-    location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings');
 
   return (
     <div className={`lorely-app-layout ${isEffectiveCollapsed ? 'is-sidebar-collapsed' : ''} ${isNotifOpen ? 'is-notifications-open' : ''}`} data-testid="app-shell">
@@ -130,22 +139,22 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
           </div>
         </div>
 
-        {/* GROUP 2: Main Navigation Items */}
+        {/* GROUP 2: Main Navigation Items (Discover, Bookshelf, Book Store, Characters, Chats, Add book) */}
         <nav className="lorely-sidebar-nav">
-          {/* 1. Home */}
+          {/* 1. Discover (Renamed from Home) */}
           <NavLink
             to="/"
             end
-            className={`sidebar-nav-item ${isHomeActive ? 'active' : ''}`}
-            aria-label="Home"
+            className={`sidebar-nav-item ${isDiscoverActive ? 'active' : ''}`}
+            aria-label="Discover"
           >
             <span className="sidebar-item-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill={isHomeActive ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill={isDiscoverActive ? 'currentColor' : 'none'} />
               </svg>
             </span>
-            <span className="sidebar-item-label">Home</span>
+            <span className="sidebar-item-label">Discover</span>
           </NavLink>
 
           {/* 2. Bookshelf (replaces My Library) */}
@@ -164,7 +173,24 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             <span className="sidebar-item-label">Bookshelf</span>
           </NavLink>
 
-          {/* 3. Characters */}
+          {/* 3. Book Store */}
+          <NavLink
+            to="/store"
+            className={`sidebar-nav-item ${isStoreActive ? 'active' : ''}`}
+            aria-label="Book Store"
+          >
+            <span className="sidebar-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+                <path d="M2 7h20" />
+              </svg>
+            </span>
+            <span className="sidebar-item-label">Book Store</span>
+          </NavLink>
+
+          {/* 4. Characters */}
           <NavLink
             to="/characters"
             className={`sidebar-nav-item ${isCharactersActive ? 'active' : ''}`}
@@ -181,7 +207,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             <span className="sidebar-item-label">Characters</span>
           </NavLink>
 
-          {/* 4. Chats (replaces Conversations) */}
+          {/* 5. Chats (replaces Conversations) */}
           <NavLink
             to="/chats"
             className={`sidebar-nav-item ${isChatsActive ? 'active' : ''}`}
@@ -195,23 +221,6 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             </span>
             <span className="sidebar-item-label">Chats</span>
           </NavLink>
-
-          {/* 5. Notifications */}
-          <button
-            type="button"
-            className={`sidebar-nav-item sidebar-nav-btn ${isNotifOpen ? 'active' : ''}`}
-            onClick={() => setIsNotifOpen((prev) => !prev)}
-            aria-label="Notifications"
-            aria-expanded={isNotifOpen}
-          >
-            <span className="sidebar-item-icon notif-icon-wrap">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill={isNotifOpen ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-              </svg>
-              {unreadCount > 0 && <span className="sidebar-notif-dot" />}
-            </span>
-            <span className="sidebar-item-label">Notifications</span>
-          </button>
 
           {/* 6. Add book (Upload modal trigger) */}
           <button
@@ -229,26 +238,6 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
             </span>
             <span className="sidebar-item-label">Add book</span>
           </button>
-
-          {/* 7. Profile */}
-          <NavLink
-            to="/profile"
-            className={`sidebar-nav-item ${isProfileActive ? 'active' : ''}`}
-            aria-label="Profile"
-          >
-            <span className="sidebar-item-icon profile-icon-wrap">
-              <img
-                src={userAvatar}
-                alt={displayName}
-                className="sidebar-profile-avatar"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/avatars/user_avatar.svg';
-                }}
-              />
-            </span>
-            <span className="sidebar-item-label">Profile</span>
-          </NavLink>
         </nav>
 
         {/* GROUP 3: Bottom Utility Group — More Button Only */}
@@ -281,7 +270,7 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
         </div>
       </aside>
 
-      {/* Instagram-Style Sliding Notifications Flyout Drawer */}
+      {/* Sliding Notifications Flyout Drawer */}
       <NotificationsDrawer
         isOpen={isNotifOpen}
         onClose={() => setIsNotifOpen(false)}
@@ -289,8 +278,127 @@ export default function AppShell({ session, onSignOut, onBookAdded }) {
         onUnreadCountChange={(count) => setUnreadCount(count)}
       />
 
-      {/* Main Reader Surface (Top nav bar removed completely) */}
+      {/* Main Reader Surface with Top-Right Floating Controls */}
       <div className="lorely-main-container">
+        {/* Canvas Top-Right Utility Header */}
+        <header className="lorely-canvas-header" data-testid="app-shell-topbar">
+          <div className="canvas-header-right">
+            {/* Notification Bell Button */}
+            <button
+              type="button"
+              className={`canvas-header-btn canvas-notif-btn ${isNotifOpen ? 'active' : ''}`}
+              onClick={() => setIsNotifOpen((prev) => !prev)}
+              aria-label="Notifications"
+              aria-expanded={isNotifOpen}
+            >
+              <span className="canvas-header-icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill={isNotifOpen ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="canvas-notif-badge" aria-label={`${unreadCount} unread notifications`}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </span>
+            </button>
+
+            {/* Profile Pill with Dropdown */}
+            <div className="canvas-profile-container" ref={profileMenuRef}>
+              <button
+                type="button"
+                className={`canvas-profile-pill ${isProfileMenuOpen ? 'active' : ''}`}
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                aria-label="Profile"
+                aria-expanded={isProfileMenuOpen}
+              >
+                <img
+                  src={userAvatar}
+                  alt={displayName}
+                  className="canvas-profile-avatar"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/avatars/user_avatar.svg';
+                  }}
+                />
+                <span className="canvas-profile-name">{displayName}</span>
+                <svg
+                  className={`canvas-profile-chevron ${isProfileMenuOpen ? 'rotated' : ''}`}
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {isProfileMenuOpen && (
+                <div className="canvas-profile-dropdown" role="menu" aria-label="Profile options">
+                  <div className="canvas-dropdown-header">
+                    <span className="canvas-dropdown-name">{displayName}</span>
+                    <span className="canvas-dropdown-email">{user?.email}</span>
+                  </div>
+                  <div className="canvas-dropdown-divider" />
+                  <button
+                    type="button"
+                    className="canvas-dropdown-item"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      navigate('/profile');
+                    }}
+                    role="menuitem"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="canvas-dropdown-item"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      navigate('/settings');
+                    }}
+                    role="menuitem"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    <span>Settings</span>
+                  </button>
+                  <div className="canvas-dropdown-divider" />
+                  <button
+                    type="button"
+                    className="canvas-dropdown-item text-danger"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      if (onSignOut) onSignOut();
+                    }}
+                    role="menuitem"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Log out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
         <main className="lorely-page-outlet">
           <Outlet
             context={{

@@ -88,6 +88,8 @@ function MainApp({ session, userRole, loadingRole, handleSignOut, onPromoteToAdm
         >
           <Route index element={<Discover />} />
           <Route path="discover" element={<Discover />} />
+          <Route path="store" element={<Discover isStoreView />} />
+          <Route path="bookstore" element={<Navigate replace to="/store" />} />
           <Route path="bookshelf" element={<MyLibrary />} />
           <Route path="library" element={<MyLibrary />} />
           <Route path="books/:bookId" element={<BookOverview />} />
