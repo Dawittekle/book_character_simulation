@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
 import AddBookModal from '../../components/AddBookModal';
+import { Skeleton } from '../../components/ui';
 import './AdminCatalog.css';
 
 export default function AdminCatalog() {
@@ -69,7 +70,7 @@ export default function AdminCatalog() {
       </header>
 
       {loading ? (
-        <p className="admin-subtext">Loading catalogue entries...</p>
+        <Skeleton.Table rows={5} columns={6} />
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-telemetry-table">

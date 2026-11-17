@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
+import { Skeleton } from '../../components/ui';
 import './AdminUsers.css';
 
 export default function AdminUsers() {
@@ -72,7 +73,7 @@ export default function AdminUsers() {
       </header>
 
       {loading ? (
-        <p className="admin-subtext">Loading user accounts...</p>
+        <Skeleton.Table rows={5} columns={7} />
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-telemetry-table">

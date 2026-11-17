@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
 import { getCharacterAvatarUrl } from '../../lib/formatters';
+import { Skeleton, LorelyLoader } from '../../components/ui';
 import './AdminAnalytics.css';
 
 export default function AdminAnalytics() {
@@ -32,9 +33,32 @@ export default function AdminAnalytics() {
 
   if (loading && !analytics) {
     return (
-      <div className="analytics-loading-box" data-testid="analytics-loading">
-        <div className="analytics-spinner" />
-        <p>Loading analytics...</p>
+      <div className="lorely-analytics-page" data-testid="analytics-loading">
+        <header className="analytics-header">
+          <div className="analytics-title-col">
+            <Skeleton.Line length="short" height={20} style={{ marginBottom: 8 }} />
+            <Skeleton.Line length="long" height={32} style={{ marginBottom: 8 }} />
+            <Skeleton.Line length="medium" height={16} />
+          </div>
+        </header>
+
+        <section className="analytics-kpi-grid" style={{ marginTop: 24 }}>
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={`kpi-sk-${idx}`} className="telemetry-kpi-card">
+              <div className="kpi-icon-row">
+                <Skeleton.Circle size={28} />
+                <Skeleton width={80} height={18} borderRadius={10} />
+              </div>
+              <Skeleton.Line length="short" height={36} style={{ marginTop: 12, marginBottom: 8 }} />
+              <Skeleton.Line length="medium" height={14} style={{ marginBottom: 4 }} />
+              <Skeleton.Line length="long" height={12} />
+            </div>
+          ))}
+        </section>
+
+        <div className="analytics-loading-box" style={{ marginTop: 24 }}>
+          <LorelyLoader size={48} text="Gathering platform telemetry & cognition matrices..." />
+        </div>
       </div>
     );
   }

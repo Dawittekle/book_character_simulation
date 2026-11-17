@@ -4,6 +4,7 @@ import BookCard from '../components/BookCard';
 import BadgePill from '../components/brand/BadgePill';
 import PillButton from '../components/brand/PillButton';
 import BrandLogo from '../components/brand/BrandLogo';
+import { Skeleton } from '../components/ui';
 import { lorelyApi } from '../services/lorelyApi';
 import './Discover.css';
 
@@ -121,9 +122,15 @@ export default function Discover() {
 
         {/* Books Shelf Grid */}
         <div className="books-shelf-grid">
-          {books.slice(0, 4).map((book) => (
-            <BookCard key={book.id} book={book} />
-          ))}
+          {loading && (!books || books.length === 0) ? (
+            Array.from({ length: 4 }).map((_, idx) => (
+              <Skeleton.Card key={`shelf-skeleton-${idx}`} />
+            ))
+          ) : (
+            books.slice(0, 4).map((book) => (
+              <BookCard key={book.id} book={book} />
+            ))
+          )}
         </div>
 
         {/* Lower Row: Add Book Card + Quote Card */}

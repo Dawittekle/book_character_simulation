@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
+import { Skeleton } from '../../components/ui';
 import './AdminJobs.css';
 
 export default function AdminJobs() {
@@ -78,7 +79,7 @@ export default function AdminJobs() {
       </header>
 
       {loading ? (
-        <p className="admin-subtext">Loading extraction jobs...</p>
+        <Skeleton.Table rows={5} columns={7} />
       ) : jobs.length === 0 ? (
         <p className="admin-subtext">No jobs found matching "{filter}".</p>
       ) : (

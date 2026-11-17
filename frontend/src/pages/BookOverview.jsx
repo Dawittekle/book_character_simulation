@@ -10,13 +10,13 @@ import {
   ArrowLeft,
   CheckCircle,
   MessageCircle,
-  Loader2,
   Users,
 } from 'lucide-react';
 import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl } from '../lib/formatters';
 import PillButton from '../components/brand/PillButton';
 import BadgePill from '../components/brand/BadgePill';
+import { Skeleton } from '../components/ui';
 import './BookOverview.css';
 
 export default function BookOverview() {
@@ -60,9 +60,41 @@ export default function BookOverview() {
 
   if (loading) {
     return (
-      <div className="book-overview-loading">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500 mb-3" />
-        <p className="text-sm font-serif opacity-75">Loading literary dossier...</p>
+      <div className="book-overview-container" data-testid="book-overview-skeleton">
+        <div className="book-overview-topbar">
+          <Skeleton width={80} height={28} borderRadius={14} />
+          <div className="flex items-center gap-2">
+            <Skeleton width={50} height={22} borderRadius={11} />
+            <Skeleton width={40} height={22} borderRadius={11} />
+          </div>
+        </div>
+
+        <div className="book-overview-hero">
+          <div className="book-overview-cover-wrap">
+            <Skeleton className="lorely-skeleton-cover" width="100%" height={320} borderRadius={14} />
+          </div>
+
+          <div className="book-overview-meta">
+            <p className="text-sm font-serif opacity-75 mb-2">Loading literary dossier...</p>
+            <Skeleton.Line length="long" height={32} style={{ marginBottom: 12 }} />
+            <Skeleton.Line length="short" height={18} style={{ marginBottom: 20 }} />
+
+            <div className="flex items-center gap-4 mb-6">
+              <Skeleton width={100} height={16} borderRadius={6} />
+              <Skeleton width={120} height={16} borderRadius={6} />
+            </div>
+
+            <div className="book-overview-progress-card">
+              <Skeleton.Line length="medium" height={14} style={{ marginBottom: 8 }} />
+              <Skeleton width="100%" height={8} borderRadius={4} />
+            </div>
+
+            <div className="book-overview-actions">
+              <Skeleton width={150} height={42} borderRadius={21} />
+              <Skeleton width={110} height={42} borderRadius={21} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
