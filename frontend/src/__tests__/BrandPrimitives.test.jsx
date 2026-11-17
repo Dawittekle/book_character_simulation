@@ -26,7 +26,7 @@ describe('Brand Primitives Component Suite', () => {
 
       const rightSpine = screen.getByTestId('brand-logo-right-spine');
       expect(rightSpine).toBeInTheDocument();
-      expect(rightSpine).toHaveAttribute('fill', '#EA580C');
+      expect(rightSpine).toHaveAttribute('fill', '#2589FF');
 
       // Badge
       const badge = screen.getByTestId('brand-logo-badge');

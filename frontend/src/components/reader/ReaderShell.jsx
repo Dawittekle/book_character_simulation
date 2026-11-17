@@ -413,7 +413,7 @@ export default function ReaderShell({ session }) {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, rgba(234,88,12,0.06) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse at center, rgba(37,137,255,0.06) 0%, transparent 70%)',
           }}
         />
 

@@ -55,9 +55,9 @@
 }
 
 .lorely-upload-ring-fill {
-  stroke: #EA580C;
+  stroke: #2589FF;
   transition: stroke-dashoffset 0.35s ease, stroke 0.35s ease;
-  filter: drop-shadow(0 0 8px rgba(234, 88, 12, 0.5));
+  filter: drop-shadow(0 0 8px rgba(37, 137, 255, 0.5));
 }
 
 .lorely-upload-center-mark {
@@ -131,10 +131,10 @@
 
 .lorely-upload-bar-fill {
   height: 100%;
-  background-color: #EA580C;
+  background-color: #2589FF;
   border-radius: 9999px;
   transition: width 0.35s ease;
-  box-shadow: 0 0 12px rgba(234, 88, 12, 0.55);
+  box-shadow: 0 0 12px rgba(37, 137, 255, 0.55);
 }
 
 .lorely-upload-readout-row {
@@ -209,7 +209,7 @@
 }
 
 .lorely-stage-icon.active {
-  color: #EA580C;
+  color: #2589FF;
   animation: stagePulse 1.2s infinite ease-in-out;
 }
 

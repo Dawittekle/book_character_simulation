@@ -62,10 +62,10 @@ export default function LorelyLoader({
           data-testid="lorely-spine-left"
         />
 
-        {/* Right Dialogue Spine (Literary Orange conversational curve) */}
+        {/* Right Dialogue Spine (Electric Blue conversational curve) */}
         <path
           d="M32 17.5C32 14.4624 34.4624 12 37.5 12C40.5376 12 43 14.4624 43 17.5V40.5C43 46.8513 37.8513 52 31.5 52H31V41.5C31 38.4624 32 35.5 32 32V17.5Z"
-          fill="#EA580C"
+          fill="#2589FF"
           className="lorely-spine-right"
           data-testid="lorely-spine-right"
         />

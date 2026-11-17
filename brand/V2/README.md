@@ -10,7 +10,7 @@ The Lorely V2 identity represents the convergence of timeless written literature
 
 - **The Left Spine (White / Dark `#18181B`):**  
   A clean, rounded vertical monolith representing the book spine, the author's written folios, and classical literature.
-- **The Right Spine (Literary Orange `#EA580C`):**  
+- **The Right Spine (Electric Blue `#2589FF`):**  
   An expressive, leaning curve with an integrated speech-bubble tail representing real-time voice and emotional simulation, dynamic character consciousness, and interactive dialogue.
 
 ---
@@ -22,10 +22,10 @@ brand/V2/
 ├── README.md                              # This specification guide
 ├── tokens.json                            # Machine-readable colors, tokens, geometry specs
 ├── marks/                                 # Standalone icon marks (64x64)
-│   ├── lorely-mark-dark.svg               # Dark badge (#18181B) + White/Orange spines (Canonical)
-│   ├── lorely-mark-light.svg              # Light badge (#F4F4F5) + Dark/Orange spines
-│   ├── lorely-mark-transparent-dark.svg   # No badge, White/Orange spines (for dark headers)
-│   ├── lorely-mark-transparent-light.svg  # No badge, Dark/Orange spines (for light pages)
+│   ├── lorely-mark-dark.svg               # Dark badge (#18181B) + White/Blue spines (Canonical)
+│   ├── lorely-mark-light.svg              # Light badge (#F4F4F5) + Dark/Blue spines
+│   ├── lorely-mark-transparent-dark.svg   # No badge, White/Blue spines (for dark headers)
+│   ├── lorely-mark-transparent-light.svg  # No badge, Dark/Blue spines (for light pages)
 │   ├── lorely-mark-monochrome-white.svg   # Single-color white
 │   └── lorely-mark-monochrome-dark.svg    # Single-color dark
 ├── lockups/                               # Horizontal & stacked wordmark combinations
@@ -47,7 +47,7 @@ brand/V2/
 
 | Swatch | Name | Hex | CSS Variable | Usage |
 | :--- | :--- | :--- | :--- | :--- |
-| ![#EA580C](https://placehold.co/15x15/EA580C/EA580C.png) | Literary Orange | `#EA580C` | `--brand-orange` | Dialogue spine, active accents, CTA rings |
+| ![#2589FF](https://placehold.co/15x15/2589FF/2589FF.png) | Electric Blue | `#2589FF` | `--brand-orange` / `--brand-primary` | Dialogue spine, active accents, CTA rings |
 | ![#18181B](https://placehold.co/15x15/18181B/18181B.png) | Dark Obsidian | `#18181B` | `--brand-obsidian` | Dark badge, modal card surfaces, dark text |
 | ![#27272A](https://placehold.co/15x15/27272A/27272A.png) | Zinc Border | `#27272A` | `--brand-card-border` | Modal borders, inactive progress rings |
 | ![#F4F4F5](https://placehold.co/15x15/F4F4F5/F4F4F5.png) | Surface Light | `#F4F4F5` | `--brand-surface-light` | Light badge background, subtle pill tags |

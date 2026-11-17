@@ -56,20 +56,20 @@ export default function BrandLogo({
 
   let badgeFill = '#18181B';
   let leftSpineFill = '#FAFAFA';
-  let rightSpineFill = '#EA580C';
+  let rightSpineFill = '#2589FF';
 
   if (isLight) {
     badgeFill = '#F4F4F5';
     leftSpineFill = '#18181B';
-    rightSpineFill = '#EA580C';
+    rightSpineFill = '#2589FF';
   } else if (isWhite) {
     badgeFill = '#FFFFFF';
     leftSpineFill = '#FFFFFF';
-    rightSpineFill = '#EA580C';
+    rightSpineFill = '#2589FF';
   } else if (isDark) {
     badgeFill = '#18181B';
     leftSpineFill = '#FAFAFA';
-    rightSpineFill = '#EA580C';
+    rightSpineFill = '#2589FF';
   }
 
   const shouldRenderBadge = withBadge && !isTransparent;

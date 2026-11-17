@@ -4,7 +4,7 @@
   <!-- Left Book Spine -->
   <rect x="23" y="20" width="11" height="40" rx="5.5" fill="#FAFAFA" />
   <!-- Right Leaning Book / Dialogue Curve -->
-  <path d="M40 25.5C40 22.4624 42.4624 20 45.5 20C48.5376 20 51 22.4624 51 25.5V48.5C51 54.8513 45.8513 60 39.5 60H39V49.5C39 46.4624 40 43.5 40 40V25.5Z" fill="#EA580C" />
+  <path d="M40 25.5C40 22.4624 42.4624 20 45.5 20C48.5376 20 51 22.4624 51 25.5V48.5C51 54.8513 45.8513 60 39.5 60H39V49.5C39 46.4624 40 43.5 40 40V25.5Z" fill="#2589FF" />
   
   <!-- White Wordmark -->
   <text x="88" y="51" fill="#FAFAFA" font-family="system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.03em">lorely</text>

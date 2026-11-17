@@ -34,7 +34,7 @@ describe('LorelyLoader Component (V2 Brand Animated Loader)', () => {
     // Right dialogue spine
     const rightSpine = screen.getByTestId('lorely-spine-right');
     expect(rightSpine).toBeInTheDocument();
-    expect(rightSpine).toHaveAttribute('fill', '#EA580C');
+    expect(rightSpine).toHaveAttribute('fill', '#2589FF');
   });
 
   it('omits background badge when transparent prop is true', () => {

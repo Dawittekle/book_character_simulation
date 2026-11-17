@@ -59,7 +59,7 @@
   50% {
     transform: translateY(3px) scale(1);
     opacity: 1;
-    filter: drop-shadow(0 0 8px rgba(234, 88, 12, 0.45));
+    filter: drop-shadow(0 0 8px rgba(37, 137, 255, 0.45));
   }
 }
 
