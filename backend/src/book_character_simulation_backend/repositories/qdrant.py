@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 import warnings
 from dataclasses import dataclass
@@ -198,16 +199,42 @@ class QdrantRepository:
             )
 
         total_upserted = 0
+        start_time = time.perf_counter()
         for i in range(0, len(points), batch_size):
             batch = points[i : i + batch_size]
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=batch,
-                wait=True,
-            )
+            last_err = None
+            for attempt in range(1, 4):
+                try:
+                    self.client.upsert(
+                        collection_name=self.collection_name,
+                        points=batch,
+                        wait=True,
+                    )
+                    last_err = None
+                    break
+                except Exception as exc:
+                    last_err = exc
+                    logger.warning(
+                        "Attempt %d/3 failed upserting batch of %d points to Qdrant: %s",
+                        attempt,
+                        len(batch),
+                        exc,
+                    )
+                    if attempt < 3:
+                        time.sleep(0.5 * attempt)
+
+            if last_err is not None:
+                logger.error("Failed to upsert batch to Qdrant after 3 attempts: %s", last_err)
+                raise last_err
             total_upserted += len(batch)
 
-        logger.info("Successfully upserted %d points into Qdrant '%s'.", total_upserted, self.collection_name)
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        logger.info(
+            "Successfully upserted %d points into Qdrant '%s' in %.2fms.",
+            total_upserted,
+            self.collection_name,
+            elapsed_ms,
+        )
         return total_upserted
 
     def search(
@@ -256,35 +283,50 @@ class QdrantRepository:
 
         query_filter = models.Filter(must=must_conditions)
 
-        try:
-            response = self.client.query_points(
-                collection_name=self.collection_name,
-                query=query_vector,
-                query_filter=query_filter,
-                limit=limit,
-                with_payload=True,
-            )
-
-            scored_chunks: list[ScoredChunk] = []
-            for point in response.points:
-                payload = point.payload or {}
-                scored_chunks.append(
-                    ScoredChunk(
-                        id=str(point.id),
-                        score=float(point.score or 0.0),
-                        book_id=str(payload.get("book_id", book_id)),
-                        chapter_order=int(payload.get("chapter_order", 0)),
-                        chapter_title=str(payload.get("chapter_title", "")),
-                        chunk_index=int(payload.get("chunk_index", 0)),
-                        content=str(payload.get("content", "")),
-                        language=str(payload.get("language", "en")),
-                        payload=payload,
-                    )
+        start_time = time.perf_counter()
+        last_err = None
+        for attempt in range(1, 3):
+            try:
+                response = self.client.query_points(
+                    collection_name=self.collection_name,
+                    query=query_vector,
+                    query_filter=query_filter,
+                    limit=limit,
+                    with_payload=True,
                 )
-            return scored_chunks
-        except Exception as exc:
-            logger.error("Error executing Qdrant query_points: %s", exc)
-            return []
+
+                scored_chunks: list[ScoredChunk] = []
+                for point in response.points:
+                    payload = point.payload or {}
+                    scored_chunks.append(
+                        ScoredChunk(
+                            id=str(point.id),
+                            score=float(point.score or 0.0),
+                            book_id=str(payload.get("book_id", book_id)),
+                            chapter_order=int(payload.get("chapter_order", 0)),
+                            chapter_title=str(payload.get("chapter_title", "")),
+                            chunk_index=int(payload.get("chunk_index", 0)),
+                            content=str(payload.get("content", "")),
+                            language=str(payload.get("language", "en")),
+                            payload=payload,
+                        )
+                    )
+                elapsed_ms = (time.perf_counter() - start_time) * 1000
+                logger.info(
+                    "Qdrant query_points for book_id=%s matched %d points in %.2fms.",
+                    book_id,
+                    len(scored_chunks),
+                    elapsed_ms,
+                )
+                return scored_chunks
+            except Exception as exc:
+                last_err = exc
+                logger.warning("Attempt %d/2 failed querying Qdrant: %s", attempt, exc)
+                if attempt < 2:
+                    time.sleep(0.3)
+
+        logger.error("Error executing Qdrant query_points after retries: %s", last_err)
+        return []
 
     def count(self, book_id: str | None = None) -> int:
         """Returns point count in the collection, optionally filtered by book_id."""

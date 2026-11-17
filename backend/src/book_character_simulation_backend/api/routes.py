@@ -33,6 +33,9 @@ def _authenticated_user():
 def health_check():
     settings = current_app.config["SETTINGS"]
     database_manager = _database_manager()
+    lorely_service = _services().get("lorely_service")
+    qdrant_repo = getattr(lorely_service, "qdrant_repo", None)
+
     enabled_providers = [
         provider
         for provider, key in {
@@ -41,6 +44,10 @@ def health_check():
         }.items()
         if key
     ]
+
+    vector_store_configured = bool(qdrant_repo and qdrant_repo.is_configured)
+    vector_store_connected = bool(vector_store_configured and qdrant_repo.check_health())
+
     return jsonify(
         {
             "status": "ok",
@@ -55,6 +62,9 @@ def health_check():
             "supabase_configured": bool(
                 settings.supabase_url and settings.supabase_anon_key
             ),
+            "vector_store_configured": vector_store_configured,
+            "vector_store_connected": vector_store_connected,
+            "vector_collection": qdrant_repo.collection_name if qdrant_repo else None,
         }
     )
 

@@ -178,3 +178,23 @@ Each decision entry follows this structure:
   10. Updated `backend/README.md` and frontend telemetry/marketing labels to reflect Qdrant Cloud vector memory namespaces.
 - **Consequences**: Zero ChromaDB dependencies or files remain in the application. All 46 backend unit tests pass in 1.54s with zero regressions. The backend codebase is significantly cleaner and production-ready.
 
+## DEC-013: Production Hardening, Observability, Health Checks, and E2E Live Verification (Phase 7)
+- **Context**: With ChromaDB completely removed and Qdrant Cloud backfilled with 29 book chunks, Phase 7 establishes production resilience, latency observability, cluster health reporting, and live integration testing.
+- **Decision**:
+  1. Enhanced `QdrantRepository`:
+     - Added 3x automatic retries with exponential backoff on transient network errors in `upsert_chunks`.
+     - Added 2x automatic retries on network hiccups in `search`.
+     - Measured and logged millisecond latency for upserts and searches.
+  2. Updated `api/routes.py`:
+     - Added `vector_store_configured`, `vector_store_connected`, and `vector_collection` to `GET /api/health`.
+  3. Enhanced `SpoilerAwareRetriever`:
+     - Added timing measurements and structured logs for hybrid RRF retrieval passes.
+  4. Added `backend/tests/integration/test_qdrant_cloud_e2e.py`:
+     - Verified live health check reporting.
+     - Verified live Qdrant Cloud point count (>= 29 points).
+     - Verified live chapter spoiler gating (`max_allowed_chapter=1` strictly excludes late chapters).
+     - Verified live multi-tenant user isolation.
+     - Verified graceful downtime fallback when Qdrant is unconfigured or unreachable.
+- **Consequences**: The Qdrant Cloud vector architecture is resilient to transient cloud network disconnects, fully observable in logs and health checks, and verified end-to-end against the live cluster.
+
+

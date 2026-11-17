@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -118,6 +119,7 @@ class SpoilerAwareRetriever:
         owner_user_id: str | None = None,
         is_public: bool = True,
     ) -> list[RetrievedPassage]:
+        start_time = time.perf_counter()
         # Enforce spoiler boundary strictly BEFORE retrieval & ranking
         effective_chapter_limit = (
             max_allowed_chapter
@@ -182,7 +184,15 @@ class SpoilerAwareRetriever:
                     )
 
                 candidates.sort(key=lambda x: (x.rrf_score, x.lexical_score, x.similarity), reverse=True)
-                return candidates[:top_k]
+                top_results = candidates[:top_k]
+                elapsed_ms = (time.perf_counter() - start_time) * 1000
+                logger.info(
+                    "SpoilerAwareRetriever [Qdrant]: book_id=%s, top_k=%d, elapsed=%.2fms",
+                    book_id,
+                    len(top_results),
+                    elapsed_ms,
+                )
+                return top_results
 
             # If Qdrant is configured and this book has points in Qdrant, but scored_chunks is empty:
             # this means the query / spoiler filter legitimately excluded all chunks.
@@ -244,4 +254,12 @@ class SpoilerAwareRetriever:
             )
 
         fallback_candidates.sort(key=lambda x: (x.rrf_score, x.lexical_score, x.similarity), reverse=True)
-        return fallback_candidates[:top_k]
+        top_fallback = fallback_candidates[:top_k]
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        logger.info(
+            "SpoilerAwareRetriever [Relational Fallback]: book_id=%s, top_k=%d, elapsed=%.2fms",
+            book_id,
+            len(top_fallback),
+            elapsed_ms,
+        )
+        return top_fallback
