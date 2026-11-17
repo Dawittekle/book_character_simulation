@@ -22,7 +22,7 @@ def test_embedding_service_and_cosine_similarity():
     v2 = svc.embed_text("Elena receives a midnight letter.")
     v3 = svc.embed_text("Spaceships travel at the speed of light.")
 
-    assert len(v1) == 128
+    assert len(v1) == 1536
     assert cosine_similarity(v1, v2) > 0.99
     # Cosine similarity between different sentences should be lower
     assert cosine_similarity(v1, v3) < 0.99

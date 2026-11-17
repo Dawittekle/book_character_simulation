@@ -121,6 +121,9 @@ class Settings:
     qdrant_api_key: str | None = None
     qdrant_collection: str = "lorely_book_chunks"
     qdrant_timeout: int = 10
+    gemini_embedding_model: str = "models/gemini-embedding-001"
+    openai_embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -179,4 +182,7 @@ class Settings:
             qdrant_api_key=_clean_value(os.getenv("QDRANT_API_KEY")),
             qdrant_collection=os.getenv("QDRANT_COLLECTION", "lorely_book_chunks").strip(),
             qdrant_timeout=_as_int(os.getenv("QDRANT_TIMEOUT"), 10),
+            gemini_embedding_model=os.getenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001").strip(),
+            openai_embedding_model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small").strip(),
+            embedding_dimensions=_as_int(os.getenv("EMBEDDING_DIMENSIONS"), 1536),
         )

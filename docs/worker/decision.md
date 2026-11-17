@@ -112,3 +112,22 @@ Each decision entry follows this structure:
   6. Provide `upsert_chunks`, `search` (via modern `client.query_points`), `delete_by_book_id`, `count_by_book`, and `health_check`.
 - **Rationale**: Isolates vector storage cleanly behind a repository interface, ensuring relational data remains in Postgres/SQLite while vector indexing and retrieval leverage Qdrant Cloud's native filtering and indexing capabilities.
 - **Consequences**: Unit-tested hermetically via `:memory:` client in `test_qdrant_repository.py`; ready for integration with embedding services (Phase 3) and retrieval engines (Phase 4).
+
+---
+
+### DEC-009: Real 1536-Dim Vector Embedding Provider (Phase 3)
+- **Date**: 2026-11-17
+- **Status**: Accepted
+- **Context**: The embedding layer had two key issues:
+  1. Gemini provider was hardcoded to call `text-embedding-004`, which returned `404 NOT_FOUND` on current Google GenAI SDK endpoints, silently failing to a 128-dimensional mock vector.
+  2. The vector dimensionalities across providers were mismatched (128-dim mock, 768-dim legacy defaults, vs 1536-dim Qdrant Cloud collection).
+- **Decision**:
+  1. Standardize all vector embeddings in Lorely on **1536 dimensions** to match Qdrant Cloud collection configuration (`lorely_book_chunks`).
+  2. Update the Gemini embedding provider to use `models/gemini-embedding-001` with `output_dimensionality=1536` via `google.genai.types.EmbedContentConfig`.
+  3. Update OpenAI embedding provider to `text-embedding-3-small` (1536 dimensions).
+  4. Standardize the deterministic offline fallback (`generate_deterministic_embedding`) to generate 1536-dimensional L2-normalized vectors for hermetic unit testing when `APP_ENV=testing` or when offline.
+  5. Implement `embed_texts` with batching (slice size 64) and empty/whitespace text sanitization, preventing API validation errors.
+  6. Add structured logging on API failures instead of silent exceptions.
+  7. Expose `gemini_embedding_model`, `openai_embedding_model`, and `embedding_dimensions` in `Settings` and `.env.example`.
+- **Rationale**: Eliminates the 404 embedding crash, guarantees mathematical compatibility with Qdrant Cloud collection's 1536-dim vector space, and significantly improves indexing throughput via batch embedding.
+- **Consequences**: Downstream retrieval (Phase 4) and backfill migration (Phase 5) will produce and query consistent 1536-dimensional embeddings.

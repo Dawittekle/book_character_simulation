@@ -286,8 +286,8 @@ class BookChunk(IdentifierMixin, Base):
     language_code: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector())
     embedding_provider: Mapped[str] = mapped_column(String(50), default="gemini", nullable=False)
-    embedding_model: Mapped[str] = mapped_column(String(100), default="text-embedding-004", nullable=False)
-    embedding_dimensions: Mapped[int] = mapped_column(Integer, default=768, nullable=False)
+    embedding_model: Mapped[str] = mapped_column(String(100), default="models/gemini-embedding-001", nullable=False)
+    embedding_dimensions: Mapped[int] = mapped_column(Integer, default=1536, nullable=False)
     content_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False

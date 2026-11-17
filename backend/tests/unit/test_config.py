@@ -45,6 +45,9 @@ def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("QDRANT_API_KEY", "qdrant-secret-key-123")
     monkeypatch.setenv("QDRANT_COLLECTION", "custom_book_chunks")
     monkeypatch.setenv("QDRANT_TIMEOUT", "25")
+    monkeypatch.setenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+    monkeypatch.setenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+    monkeypatch.setenv("EMBEDDING_DIMENSIONS", "1536")
 
     settings = Settings.from_env()
     assert settings.app_env == "testing"
@@ -52,6 +55,9 @@ def test_settings_from_env(monkeypatch):
     assert settings.llm_provider == "gemini"
     assert settings.gemini_model == "gemini-3.5-flash"
     assert settings.gemini_api_key == "test-key-12345"
+    assert settings.gemini_embedding_model == "models/gemini-embedding-001"
+    assert settings.openai_embedding_model == "text-embedding-3-small"
+    assert settings.embedding_dimensions == 1536
     assert settings.r2_account_id == "cf-acc-123"
     assert settings.r2_access_key_id == "cf-key-456"
     assert settings.r2_secret_access_key == "cf-secret-789"
@@ -74,3 +80,6 @@ def test_qdrant_default_settings(monkeypatch):
     assert settings.qdrant_api_key is None
     assert settings.qdrant_collection == "lorely_book_chunks"
     assert settings.qdrant_timeout == 10
+    assert settings.gemini_embedding_model == "models/gemini-embedding-001"
+    assert settings.openai_embedding_model == "text-embedding-3-small"
+    assert settings.embedding_dimensions == 1536
