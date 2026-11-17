@@ -1,0 +1,10 @@
+<svg width="240" height="80" viewBox="0 0 240 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon Badge -->
+  <rect x="8" y="8" width="64" height="64" rx="16" fill="#27272A" />
+  <!-- Left Book Spine -->
+  <rect x="23" y="20" width="11" height="40" rx="5.5" fill="#FAFAFA" />
+  <!-- Right Dialogue Spine -->
+  <path d="M40 25.5C40 22.4624 42.4624 20 45.5 20C48.5376 20 51 22.4624 51 25.5V48.5C51 54.8513 45.8513 60 39.5 60H39V49.5C39 46.4624 40 43.5 40 40V25.5Z" fill="#EA580C" />
+  <!-- White Wordmark -->
+  <text x="88" y="51" fill="#FAFAFA" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.03em">lorely</text>
+</svg>

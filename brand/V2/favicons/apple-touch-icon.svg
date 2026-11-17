@@ -1,0 +1,7 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" rx="42" fill="#18181B" />
+  <!-- Left Book Spine -->
+  <rect x="42" y="34" width="31" height="112" rx="15.5" fill="#FAFAFA" />
+  <!-- Right Dialogue Spine -->
+  <path d="M90 49.5C90 41 96.9 34 105.4 34C113.9 34 120.8 41 120.8 49.5V113.5C120.8 131.3 106.4 146 88.6 146H87.2V116.6C87.2 108.1 90 99.8 90 90V49.5Z" fill="#EA580C" />
+</svg>
