@@ -55,7 +55,7 @@ Ensure your `backend/.env` has:
 - `GEMINI_API_KEY` (or `OPENAI_API_KEY`)
 - `DATABASE_URL` (PostgreSQL / Neon connection string)
 - `ADMIN_EMAIL=admin@lorely.app`
-- `ADMIN_PASSWORD=LorelyAdmin2026!Secure`
+- `ADMIN_PASSWORD=your_secure_admin_password_here`
 
 ---
 

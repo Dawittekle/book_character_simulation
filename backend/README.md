@@ -71,7 +71,7 @@ GEMINI_MODEL=gemini-2.5-flash
 
 # Dedicated Administrator Credentials
 ADMIN_EMAIL=admin@lorely.app
-ADMIN_PASSWORD=LorelyAdmin2026!Secure
+ADMIN_PASSWORD=your_secure_admin_password_here
 ```
 
 ---
