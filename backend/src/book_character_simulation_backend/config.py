@@ -57,7 +57,7 @@ def _clean_value(value: str | None) -> str | None:
     return cleaned
 
 
-def _normalize_database_url(value: str | None) -> str | None:
+def _normalize_database_url(value: str | None, base_dir: Path | None = None) -> str | None:
     cleaned = _clean_value(value)
     if cleaned is None:
         return None
@@ -69,6 +69,34 @@ def _normalize_database_url(value: str | None) -> str | None:
         raw = "postgresql+psycopg://" + raw[len("postgres://") :]
     elif raw.startswith("postgresql://"):
         raw = "postgresql+psycopg://" + raw[len("postgresql://") :]
+
+    if raw.startswith("sqlite:///"):
+        sqlite_path = raw[len("sqlite:///") :]
+        if sqlite_path and sqlite_path != ":memory:":
+            path_obj = Path(sqlite_path)
+            if not path_obj.is_absolute():
+                if base_dir is not None:
+                    # Check if relative to base_dir
+                    if (base_dir / sqlite_path).exists():
+                        return f"sqlite:///{ (base_dir / sqlite_path).resolve() }"
+                    # If specified with 'backend/' prefix and base_dir is already 'backend'
+                    if sqlite_path.startswith("backend/"):
+                        stripped = sqlite_path[len("backend/") :]
+                        if (base_dir / stripped).exists():
+                            return f"sqlite:///{ (base_dir / stripped).resolve() }"
+                    # Check if relative to parent of base_dir
+                    if (base_dir.parent / sqlite_path).exists():
+                        return f"sqlite:///{ (base_dir.parent / sqlite_path).resolve() }"
+                    # Target resolution anchored to base_dir
+                    target = base_dir / (
+                        sqlite_path[len("backend/") :]
+                        if sqlite_path.startswith("backend/") and base_dir.name == "backend"
+                        else sqlite_path
+                    )
+                    return f"sqlite:///{ target.resolve() }"
+                elif path_obj.exists():
+                    return f"sqlite:///{ path_obj.resolve() }"
+        return raw
 
     parsed = urlsplit(raw)
     if not parsed.scheme or "@" not in parsed.netloc or ":" not in parsed.netloc:
@@ -93,7 +121,6 @@ class Settings:
     host: str
     port: int
     cors_origins: list[str]
-    chroma_db_path: Path
     database_url: str | None
     database_connect_timeout: int
     sqlalchemy_echo: bool
@@ -117,16 +144,18 @@ class Settings:
     r2_bucket_name: str = "lorely-books"
     r2_public_url: str | None = None
     storage_local_dir: Path | None = None
+    qdrant_url: str | None = None
+    qdrant_api_key: str | None = None
+    qdrant_collection: str = "lorely_book_chunks"
+    qdrant_timeout: int = 10
+    gemini_embedding_model: str = "models/gemini-embedding-001"
+    openai_embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
 
     @classmethod
     def from_env(cls) -> "Settings":
         backend_dir = Path(__file__).resolve().parents[2]
-        default_chroma_path = backend_dir / "chroma_db"
         load_dotenv(backend_dir / ".env")
-        os.environ.setdefault("ANONYMIZED_TELEMETRY", "FALSE")
-        chroma_db_path = Path(os.getenv("CHROMA_DB_PATH", str(default_chroma_path)))
-        if not chroma_db_path.is_absolute():
-            chroma_db_path = backend_dir / chroma_db_path
 
         storage_local_path = Path(os.getenv("STORAGE_LOCAL_DIR", "storage"))
         if not storage_local_path.is_absolute():
@@ -141,8 +170,9 @@ class Settings:
                 os.getenv("CORS_ORIGINS"),
                 ["http://localhost:5173", "http://127.0.0.1:5173"],
             ),
-            chroma_db_path=chroma_db_path,
-            database_url=_normalize_database_url(os.getenv("DATABASE_URL")),
+            database_url=_normalize_database_url(
+                os.getenv("DATABASE_URL"), base_dir=backend_dir
+            ),
             database_connect_timeout=_as_int(
                 os.getenv("DATABASE_CONNECT_TIMEOUT"), 10
             ),
@@ -171,4 +201,11 @@ class Settings:
             r2_bucket_name=os.getenv("R2_BUCKET_NAME", "lorely-books").strip(),
             r2_public_url=_clean_value(os.getenv("R2_PUBLIC_URL")),
             storage_local_dir=storage_local_path,
+            qdrant_url=_clean_value(os.getenv("QDRANT_URL")),
+            qdrant_api_key=_clean_value(os.getenv("QDRANT_API_KEY")),
+            qdrant_collection=os.getenv("QDRANT_COLLECTION", "lorely_book_chunks").strip(),
+            qdrant_timeout=_as_int(os.getenv("QDRANT_TIMEOUT"), 10),
+            gemini_embedding_model=os.getenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001").strip(),
+            openai_embedding_model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small").strip(),
+            embedding_dimensions=_as_int(os.getenv("EMBEDDING_DIMENSIONS"), 1536),
         )

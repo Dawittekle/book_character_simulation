@@ -1,4 +1,5 @@
 import logging
+import os
 
 from flask import Flask
 from flask_cors import CORS
@@ -14,11 +15,6 @@ from .db.seeds import (
     seed_payment_config,
 )
 from .db.session import DatabaseManager
-from .repositories.chroma import (
-    ChromaCharacterRepository,
-    ChromaFactualMemoryRepository,
-    ChromaSessionRepository,
-)
 from .services.character_service import CharacterService
 from .services.chat_service import ChatService
 from .services.lorely_service import LorelyService
@@ -50,10 +46,8 @@ def create_app(settings: Settings | None = None) -> Flask:
     if database_manager.is_configured:
         database_manager.create_schema()
         try:
-            # Destructive demo cleanup is only safe outside production. On a
-            # production database it would delete every non-featured book,
-            # including books uploaded by real readers.
-            if resolved_settings.app_env.lower() not in {"production", "prod"}:
+            # Destructive demo cleanup is only performed when explicitly requested via PURGE_DEMO_DATA=true.
+            if os.getenv("PURGE_DEMO_DATA", "false").lower() in {"true", "1", "yes"}:
                 purge_demo_and_test_data(database_manager, resolved_settings)
             seed_dostoevsky_books(database_manager, resolved_settings)
             seed_membership_plans(database_manager)
@@ -61,25 +55,16 @@ def create_app(settings: Settings | None = None) -> Flask:
         except Exception as exc:
             logging.getLogger(__name__).warning("Dostoevsky catalog sync skipped or deferred: %s", exc)
 
-    character_repository = ChromaCharacterRepository(resolved_settings.chroma_db_path)
-    session_repository = ChromaSessionRepository(resolved_settings.chroma_db_path)
-    factual_memory_repository = ChromaFactualMemoryRepository(
-        resolved_settings.chroma_db_path
-    )
     relational_persistence_service = RelationalPersistenceService(database_manager)
     lorely_service = LorelyService(database_manager, resolved_settings)
 
     app.extensions["services"] = {
         "character_service": CharacterService(
             settings=resolved_settings,
-            character_repository=character_repository,
             relational_persistence_service=relational_persistence_service,
         ),
         "chat_service": ChatService(
             settings=resolved_settings,
-            character_repository=character_repository,
-            session_repository=session_repository,
-            factual_memory_repository=factual_memory_repository,
             relational_persistence_service=relational_persistence_service,
         ),
         "lorely_service": lorely_service,

@@ -5,6 +5,7 @@
 !.env.example
 backend/.env
 frontend/.env
+docs/test/quadrant.py
 
 # Python
 __pycache__/
@@ -23,6 +24,10 @@ chroma_db/
 backend/chroma_db/
 qdrant_storage/
 backend/qdrant_storage/
+*.db
+*.sqlite3
+*.backup*
+*.bak
 
 # Editor and Tooling
 .agents

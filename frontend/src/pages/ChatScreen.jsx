@@ -6,6 +6,7 @@ import BadgePill from '../components/brand/BadgePill';
 import { lorelyApi } from '../services/lorelyApi';
 import speechSynthesisService from '../services/speechSynthesisService';
 import { getCharacterAvatarUrl } from '../lib/formatters';
+import { LorelyLoader } from '../components/ui';
 import './ChatScreen.css';
 
 // Fallback template before live dossier loads
@@ -421,15 +422,12 @@ export default function ChatScreen() {
         <div className="chat-message-stream" data-testid="chat-message-stream">
           {loadingChat ? (
             <div className="chat-loading-cast-state" aria-label="Summoning cognitive cast">
-              <div className="chat-cast-loader-visual">
-                <div className="chat-cast-pulse-ring" />
-                <div className="chat-cast-core-node">✦</div>
-              </div>
-              <h3 className="chat-cast-loader-title">Summoning Cognitive Cast</h3>
-              <p className="chat-cast-loader-sub">
-                Restoring character persona, memories, and conversational tone...
-              </p>
-              <div className="chat-cast-shimmer-stack">
+              <LorelyLoader
+                size={52}
+                transparent
+                text="Restoring character persona, memories, and conversational tone..."
+              />
+              <div className="chat-cast-shimmer-stack" style={{ marginTop: 24 }}>
                 <div className="chat-bubble-skeleton bubble-skeleton-left" />
                 <div className="chat-bubble-skeleton bubble-skeleton-right" />
                 <div className="chat-bubble-skeleton bubble-skeleton-left-short" />

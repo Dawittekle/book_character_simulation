@@ -8,9 +8,9 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Sparkles,
 } from 'lucide-react';
+import { LorelyLoader } from '../ui';
 import { lorelyApi } from '../../services/lorelyApi';
 import {
   READER_THEMES,
@@ -162,6 +162,25 @@ export default function ReaderShell({ session }) {
       .then(async ([accessData, chaptersData, charactersData, bookmarksData, annotationsData]) => {
         if (!isMounted) return;
 
+        // If text format, fetch plain text content before completing loading
+        let loadedText = '';
+        if (accessData.format === 'txt') {
+          try {
+            const rawUrl = lorelyApi.getReaderRawSourceUrl(bookId);
+            const res = await fetch(rawUrl, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (res.ok) {
+              loadedText = await res.text();
+            }
+          } catch (textErr) {
+            console.warn('Failed to load raw text:', textErr);
+          }
+        }
+
+        if (!isMounted) return;
+
+        if (loadedText) setRawText(loadedText);
         setBookData(accessData);
         setChapters(chaptersData.chapters || []);
         setCharacters(charactersData || []);
@@ -173,22 +192,6 @@ export default function ReaderShell({ session }) {
           setProgressPercent(accessData.current_progress.progress_percent || 0);
           if (accessData.current_progress.last_read_mode) {
             setMode(accessData.current_progress.last_read_mode);
-          }
-        }
-
-        // If text format, fetch plain text content
-        if (accessData.format === 'txt') {
-          try {
-            const rawUrl = lorelyApi.getReaderRawSourceUrl(bookId);
-            const res = await fetch(rawUrl, {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-            if (res.ok) {
-              const text = await res.text();
-              if (isMounted) setRawText(text);
-            }
-          } catch (textErr) {
-            console.warn('Failed to load raw text:', textErr);
           }
         }
 
@@ -206,16 +209,15 @@ export default function ReaderShell({ session }) {
     };
   }, [bookId, session]);
 
+  const chaptersRef = useRef(chapters);
+  chaptersRef.current = chapters;
+
   const handleNextChapter = () => {
-    if (currentChapterIndex < chapters.length - 1) {
-      setCurrentChapterIndex((prev) => prev + 1);
-    }
+    setCurrentChapterIndex((prev) => (prev < (chaptersRef.current?.length || 1) - 1 ? prev + 1 : prev));
   };
 
   const handlePrevChapter = () => {
-    if (currentChapterIndex > 0) {
-      setCurrentChapterIndex((prev) => prev - 1);
-    }
+    setCurrentChapterIndex((prev) => (prev > 0 ? prev - 1 : prev));
   };
 
   // Comprehensive Keyboard Navigation & Shortcuts (Phase 6)
@@ -405,56 +407,22 @@ export default function ReaderShell({ session }) {
     return (
       <div
         className="w-screen h-screen flex flex-col items-center justify-center relative overflow-hidden"
-        style={{ backgroundColor: '#faf8f5' }}
+        style={{ backgroundColor: '#18181B' }}
       >
         {/* Subtle radial vignette */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.04) 100%)',
+            background: 'radial-gradient(ellipse at center, rgba(37,137,255,0.06) 0%, transparent 70%)',
           }}
         />
 
-        {/* Lorely wordmark / logo */}
-        <div className="flex flex-col items-center gap-6 relative z-10">
-          {/* Book icon emblem */}
-          <div
-            className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
-            style={{ backgroundColor: '#ef4d23' }}
-          >
-            <BookOpen className="w-10 h-10 text-white" strokeWidth={1.5} />
-          </div>
-
-          {/* Brand name */}
-          <div className="text-center">
-            <h1
-              className="text-3xl font-bold tracking-tight"
-              style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#0b0f1a' }}
-            >
-              Lorely
-            </h1>
-            <p
-              className="text-sm mt-1"
-              style={{ color: '#6b6560', fontFamily: '"Inter", sans-serif' }}
-            >
-              Your reading experience is loading…
-            </p>
-          </div>
-
-          {/* Spinner */}
-          <Loader2
-            className="w-6 h-6 animate-spin mt-2"
-            style={{ color: '#ef4d23', opacity: 0.75 }}
+        <div className="flex flex-col items-center gap-4 relative z-10">
+          <LorelyLoader
+            size={64}
+            text="Opening Reader... Your reading experience is loading…"
           />
         </div>
-
-        {/* Bottom gradient fade */}
-        <div
-          className="absolute bottom-0 inset-x-0 h-32 pointer-events-none"
-          style={{
-            background: 'linear-gradient(to top, rgba(250,248,245,0.8), transparent)',
-          }}
-        />
       </div>
     );
   }

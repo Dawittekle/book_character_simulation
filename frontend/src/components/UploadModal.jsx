@@ -4,6 +4,7 @@ import './UploadModal.css';
 import apiService from '../services/api';
 import { deriveWorkspaceTitle, truncateText } from '../lib/formatters';
 import { upsertWorkspaceBook } from '../lib/workspaceStore';
+import { LorelyUploadProgress } from './ui';
 
 export default function UploadModal({ isOpen, onClose, ownerKey, session, onWorkspaceChanged }) {
   const [entryMode, setEntryMode] = useState('text');
@@ -143,6 +144,14 @@ export default function UploadModal({ isOpen, onClose, ownerKey, session, onWork
           </div>
         </form>
       </div>
+
+      {/* Lorely Brand Ingestion & Extraction Progress Overlay */}
+      <LorelyUploadProgress
+        isOpen={isSubmitting}
+        fileName={entryMode === 'pdf' ? (file?.name || 'Document.pdf') : (title || 'Pasted Story')}
+        statusText="Extracting characters & emotional profiles..."
+        stage={3}
+      />
     </div>
   );
 }

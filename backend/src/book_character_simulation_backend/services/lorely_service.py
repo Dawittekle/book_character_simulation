@@ -56,6 +56,7 @@ from ..prompts import character_extraction_prompt, chat_prompt, fact_extraction_
 from ..rag.chunker import build_semantic_chunks, split_into_chapters
 from ..rag.embedding_provider import EmbeddingService
 from ..rag.retriever import SpoilerAwareRetriever
+from ..repositories.qdrant import QdrantChunkRecord, QdrantRepository
 from ..schemas.character import CharacterProfile
 from ..simulation import PsiEngine, PerceivedObservation, clamp
 from ..utils.document_extractor import extract_document_from_bytes
@@ -88,7 +89,11 @@ class LorelyService:
         self.settings = settings
         self.classifier = ClassificationService(settings)
         self.embedding_service = EmbeddingService(settings)
-        self.retriever = SpoilerAwareRetriever(self.embedding_service)
+        self.qdrant_repo = QdrantRepository(settings)
+        self.retriever = SpoilerAwareRetriever(
+            self.embedding_service,
+            qdrant_repo=self.qdrant_repo,
+        )
         self.voice_service = VoiceService(settings)
         self.storage_service = storage_service or StorageService(settings)
         self.narration_service = BookNarrationService(self.db, self.storage_service, self.voice_service)
@@ -550,12 +555,22 @@ class LorelyService:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
             stmt = select(Book)
+
+            user_lib_subquery = select(UserLibraryBook.book_id).where(UserLibraryBook.user_id == user.id)
+            user_lib_ids = set(session.scalars(user_lib_subquery).all())
+
             if scope == "mine":
-                stmt = stmt.where(Book.owner_user_id == user.id)
-            elif scope == "featured":
+                stmt = stmt.where(or_(Book.owner_user_id == user.id, Book.id.in_(user_lib_subquery)))
+            elif scope in ("featured", "store", "catalog"):
                 stmt = stmt.where(Book.visibility == "featured")
             else:
-                stmt = stmt.where(or_(Book.owner_user_id == user.id, Book.visibility == "featured"))
+                stmt = stmt.where(
+                    or_(
+                        Book.owner_user_id == user.id,
+                        Book.id.in_(user_lib_subquery),
+                        Book.visibility == "featured",
+                    )
+                )
 
             stmt = stmt.order_by(
                 case((Book.visibility == "featured", 0), else_=1),
@@ -591,6 +606,7 @@ class LorelyService:
                         "completed": prog.completed,
                         "last_read_at": prog.last_read_at.isoformat() if prog.last_read_at else None,
                     }
+                is_in_lib = (b.owner_user_id == user.id) or (b.id in user_lib_ids)
                 results.append({
                     "id": b.id,
                     "title": b.title,
@@ -603,6 +619,7 @@ class LorelyService:
                     "detected_language": getattr(b, "detected_language", None),
                     "processing_status": b.processing_status.value,
                     "is_owner": b.owner_user_id == user.id,
+                    "is_in_library": is_in_lib,
                     "character_count": char_count,
                     "conversation_count": conv_count,
                     "reading_progress": prog_dict,
@@ -682,27 +699,51 @@ class LorelyService:
                         )
                     )
 
-                # Build semantic chunks with native pgvector embeddings
+                # Build semantic chunks and index in relational database
                 chunks = build_semantic_chunks(extracted_text)
+                created_chunks: list[BookChunk] = []
                 for c in chunks:
                     vec = self.embedding_service.embed_text(c.content)
                     c_hash = hashlib.sha256(c.content.encode("utf-8")).hexdigest()
-                    session.add(
-                        BookChunk(
-                            book_id=book.id,
-                            chapter_order=c.chapter_order,
-                            chapter_title=c.chapter_title,
-                            chunk_index=c.chunk_index,
-                            content=c.content,
-                            embedding=vec,
-                            embedding_provider=self.embedding_service.provider_name,
-                            embedding_model=self.embedding_service.model_name,
-                            embedding_dimensions=len(vec),
-                            content_hash=c_hash,
-                            language_code=book_lang,
-                        )
+                    bc = BookChunk(
+                        book_id=book.id,
+                        chapter_order=c.chapter_order,
+                        chapter_title=c.chapter_title,
+                        chunk_index=c.chunk_index,
+                        content=c.content,
+                        embedding=vec,
+                        embedding_provider=self.embedding_service.provider_name,
+                        embedding_model=self.embedding_service.model_name,
+                        embedding_dimensions=len(vec),
+                        content_hash=c_hash,
+                        language_code=book_lang,
                     )
+                    session.add(bc)
+                    created_chunks.append(bc)
                 session.flush()
+
+                # Upsert vectors into Qdrant Cloud
+                if self.qdrant_repo and self.qdrant_repo.is_configured and created_chunks:
+                    try:
+                        q_records = [
+                            QdrantChunkRecord(
+                                chunk_id=bc.id,
+                                book_id=book.id,
+                                chapter_order=bc.chapter_order,
+                                chapter_title=bc.chapter_title or f"Chapter {bc.chapter_order}",
+                                chunk_index=bc.chunk_index,
+                                content=bc.content,
+                                embedding=bc.embedding or [],
+                                language=bc.language_code,
+                                visibility=book.visibility or "private",
+                                owner_user_id=book.owner_user_id,
+                                content_hash=bc.content_hash,
+                            )
+                            for bc in created_chunks
+                        ]
+                        self.qdrant_repo.upsert_chunks(q_records)
+                    except Exception as exc:
+                        logger.error("Failed to index chunks into Qdrant for book %s: %s", book.id, exc)
 
             return {
                 "id": book.id,
@@ -801,6 +842,7 @@ class LorelyService:
 
             return {
                 "temp_source_id": job.id,
+                "job_id": job.id,
                 "document_type": classification.document_type,
                 "genre": classification.genre,
                 "language": classification.language,
@@ -1025,6 +1067,16 @@ class LorelyService:
         else:
             reading_status = "not_started"
 
+        in_library = (book.owner_user_id == user.id) or (
+            session.scalar(
+                select(UserLibraryBook.id).where(
+                    UserLibraryBook.user_id == user.id,
+                    UserLibraryBook.book_id == book.id,
+                )
+            )
+            is not None
+        )
+
         return {
             "id": book.id,
             "title": book.title,
@@ -1038,6 +1090,7 @@ class LorelyService:
             "detected_language": getattr(book, "detected_language", None),
             "processing_status": book.processing_status.value,
             "is_owner": book.owner_user_id == user.id,
+            "is_in_library": in_library,
             "characters": char_list,
             "character_count": len(char_list),
             "conversation_count": conv_count,
@@ -2049,20 +2102,37 @@ class LorelyService:
         except Exception as exc:
             logger.warning("Failed to clean up storage objects for deleted book %s: %s", book_id, exc)
 
+        # Delete all Qdrant vectors for this book
+        if self.qdrant_repo and self.qdrant_repo.is_configured:
+            try:
+                self.qdrant_repo.delete_by_book_id(book_id)
+            except Exception as exc:
+                logger.warning("Failed to delete Qdrant vectors for book %s: %s", book_id, exc)
+
     # --- Characters ---
 
     def list_characters(
-        self, auth_user: AuthenticatedUser | None, book_id: str | None = None
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str | None = None,
+        scope: str | None = None,
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
             user = self.resolve_user(session, auth_user, allow_guest=True)
+            user_lib_subquery = select(UserLibraryBook.book_id).where(UserLibraryBook.user_id == user.id)
 
             if book_id:
                 book = session.get(Book, book_id)
                 if book is None:
                     raise NotFoundError("Book not found.")
 
-                if book.owner_user_id != user.id and book.visibility != "featured":
+                user_lib_entry = session.scalar(
+                    select(UserLibraryBook).where(
+                        UserLibraryBook.user_id == user.id,
+                        UserLibraryBook.book_id == book.id,
+                    )
+                )
+                if book.owner_user_id != user.id and book.visibility != "featured" and user_lib_entry is None:
                     raise ForbiddenError("You do not have permission to view characters in this book.")
 
                 records = session.scalars(
@@ -2071,12 +2141,38 @@ class LorelyService:
                     .order_by(CharacterProfileRecord.name.asc())
                 ).all()
             else:
-                stmt = (
-                    select(CharacterProfileRecord)
-                    .join(Book, CharacterProfileRecord.book_id == Book.id)
-                    .where(or_(Book.visibility == "featured", Book.owner_user_id == user.id))
-                    .order_by(CharacterProfileRecord.name.asc())
-                )
+                if scope in ("featured", "store", "catalog"):
+                    stmt = (
+                        select(CharacterProfileRecord)
+                        .join(Book, CharacterProfileRecord.book_id == Book.id)
+                        .where(Book.visibility == "featured")
+                        .order_by(CharacterProfileRecord.name.asc())
+                    )
+                elif scope == "all":
+                    stmt = (
+                        select(CharacterProfileRecord)
+                        .join(Book, CharacterProfileRecord.book_id == Book.id)
+                        .where(
+                            or_(
+                                Book.owner_user_id == user.id,
+                                Book.id.in_(user_lib_subquery),
+                                Book.visibility == "featured",
+                            )
+                        )
+                        .order_by(CharacterProfileRecord.name.asc())
+                    )
+                else:
+                    stmt = (
+                        select(CharacterProfileRecord)
+                        .join(Book, CharacterProfileRecord.book_id == Book.id)
+                        .where(
+                            or_(
+                                Book.owner_user_id == user.id,
+                                Book.id.in_(user_lib_subquery),
+                            )
+                        )
+                        .order_by(CharacterProfileRecord.name.asc())
+                    )
                 records = session.scalars(stmt).all()
 
             results = []
@@ -2119,7 +2215,14 @@ class LorelyService:
 
             book = session.get(Book, char.book_id)
             if book and book.owner_user_id != user.id and book.visibility != "featured":
-                raise ForbiddenError("You do not have access to this character.")
+                user_lib_entry = session.scalar(
+                    select(UserLibraryBook).where(
+                        UserLibraryBook.user_id == user.id,
+                        UserLibraryBook.book_id == book.id,
+                    )
+                )
+                if user_lib_entry is None:
+                    raise ForbiddenError("You do not have access to this character.")
 
             # Load or initialize per-user state
             user_state = session.scalar(
@@ -2606,8 +2709,9 @@ class LorelyService:
             else:
                 max_chapter = None  # unrestricted
 
-            # 1. RAG passage retrieval with strict spoiler boundary
+            # 1. RAG passage retrieval with strict spoiler boundary and tenant isolation
             retrieval_query = f"{cleaned_content} {passage_quote}" if passage_quote else cleaned_content
+            is_pub = (chat_session.book.visibility in ("public", "featured")) if chat_session.book else True
             retrieved = self.retriever.retrieve(
                 session,
                 book_id=chat_session.book_id,
@@ -2615,6 +2719,8 @@ class LorelyService:
                 spoiler_policy=policy,
                 max_allowed_chapter=max_chapter,
                 top_k=3,
+                owner_user_id=user.id,
+                is_public=is_pub,
             )
 
             citations = [
@@ -3471,12 +3577,30 @@ class LorelyService:
         genre: str | None = None,
     ) -> list[dict[str, Any]]:
         with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=True) if auth_user else None
+            user_lib_book_ids: set[str] = set()
+            if user:
+                user_lib_book_ids = set(
+                    session.scalars(
+                        select(UserLibraryBook.book_id).where(UserLibraryBook.user_id == user.id)
+                    ).all()
+                )
+
             query = select(Book).where(Book.visibility == "featured")
             if language:
                 query = query.where(
                     or_(
                         Book.original_language == language.strip().lower(),
                         Book.detected_language == language.strip().lower(),
+                    )
+                )
+            if genre:
+                g = f"%{genre.strip().lower()}%"
+                query = query.where(
+                    or_(
+                        Book.summary.ilike(g),
+                        Book.title.ilike(g),
+                        Book.edition_notes.ilike(g),
                     )
                 )
 
@@ -3489,6 +3613,8 @@ class LorelyService:
                 characters = session.scalars(
                     select(CharacterProfileRecord).where(CharacterProfileRecord.book_id == b.id)
                 ).all()
+
+                is_in_lib = bool(user and (b.id in user_lib_book_ids or b.owner_user_id == user.id))
 
                 results.append({
                     "id": b.id,
@@ -3503,6 +3629,7 @@ class LorelyService:
                     "file_provenance": getattr(b, "file_provenance", None),
                     "cover_art_licence": getattr(b, "cover_art_licence", "Public Domain / CC0"),
                     "chapter_count": chapter_count,
+                    "is_in_library": is_in_lib,
                     "characters": [
                         {
                             "id": c.id,
@@ -3576,6 +3703,39 @@ class LorelyService:
                 "reading_progress_chapter": entry.reading_progress_chapter,
                 "added_at": entry.added_at.isoformat() if entry.added_at else None,
                 "message": f"Added '{book.title}' to your personal library.",
+            }
+
+    def remove_catalog_book_from_library(
+        self,
+        auth_user: AuthenticatedUser | None,
+        book_id: str,
+    ) -> dict[str, Any]:
+        with self.db.session_scope() as session:
+            user = self.resolve_user(session, auth_user, allow_guest=False)
+            book = session.get(Book, book_id)
+            if book is None:
+                raise NotFoundError("Book not found.")
+
+            entry = session.scalar(
+                select(UserLibraryBook).where(
+                    UserLibraryBook.user_id == user.id,
+                    UserLibraryBook.book_id == book.id,
+                )
+            )
+            if entry is not None:
+                session.delete(entry)
+                session.flush()
+                return {
+                    "book_id": book.id,
+                    "title": book.title,
+                    "removed": True,
+                    "message": f"Removed '{book.title}' from your personal bookshelf.",
+                }
+            return {
+                "book_id": book.id,
+                "title": book.title,
+                "removed": False,
+                "message": f"'{book.title}' was not in your bookshelf.",
             }
 
     def admin_publish_catalog_book(

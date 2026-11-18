@@ -11,17 +11,27 @@ import {
 
 describe('Brand Primitives Component Suite', () => {
   describe('BrandLogo', () => {
-    it('renders the Literary Rosette SVG mark with 8 orbital nodes and open book folios', () => {
+    it('renders the Lorely V2 Spine and Dialogue SVG mark with left spine and right dialogue spine', () => {
       const { container } = render(<BrandLogo size={32} />);
       const svg = container.querySelector('svg');
       expect(svg).toBeInTheDocument();
-      expect(svg).toHaveAttribute('viewBox', '0 0 32 32');
-      // 8 orbital circles + 1 center nexus spark = 9 circles
-      const circles = container.querySelectorAll('circle');
-      expect(circles).toHaveLength(9);
-      // Dual open book folio pages
-      const paths = container.querySelectorAll('path');
-      expect(paths).toHaveLength(2);
+      expect(svg).toHaveAttribute('viewBox', '0 0 64 64');
+
+      // Left book spine and right dialogue spine
+      const leftSpine = screen.getByTestId('brand-logo-left-spine');
+      expect(leftSpine).toBeInTheDocument();
+      expect(leftSpine).toHaveAttribute('width', '11');
+      expect(leftSpine).toHaveAttribute('height', '40');
+      expect(leftSpine).toHaveAttribute('rx', '5.5');
+
+      const rightSpine = screen.getByTestId('brand-logo-right-spine');
+      expect(rightSpine).toBeInTheDocument();
+      expect(rightSpine).toHaveAttribute('fill', '#2589FF');
+
+      // Badge
+      const badge = screen.getByTestId('brand-logo-badge');
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveAttribute('fill', '#18181B');
     });
 
     it('renders with brand name and tagline when enabled', () => {
@@ -37,9 +47,15 @@ describe('Brand Primitives Component Suite', () => {
     });
 
     it('applies variant fills correctly', () => {
-      const { container } = render(<BrandLogo variant="white" />);
-      const svg = container.querySelector('svg');
-      expect(svg).toHaveAttribute('fill', '#ffffff');
+      render(<BrandLogo variant="white" />);
+      const leftSpine = screen.getByTestId('brand-logo-left-spine');
+      expect(leftSpine).toHaveAttribute('fill', '#FFFFFF');
+    });
+
+    it('supports transparent variant without badge', () => {
+      render(<BrandLogo variant="transparent" />);
+      expect(screen.queryByTestId('brand-logo-badge')).toBeNull();
+      expect(screen.getByTestId('brand-logo-left-spine')).toBeInTheDocument();
     });
   });
 

@@ -5,6 +5,7 @@ import { getCharacterAvatarUrl } from '../lib/formatters';
 import PillButton from '../components/brand/PillButton';
 import BadgePill from '../components/brand/BadgePill';
 import BrandLogo from '../components/brand/BrandLogo';
+import { Skeleton } from '../components/ui';
 import './CharacterGallery.css';
 
 // Storage helpers to instantly render previously loaded casts without jumping
@@ -118,6 +119,23 @@ export default function CharacterGallery() {
           >
             ← Back
           </button>
+        </div>
+
+        <div className="gallery-title-row">
+          <div className="gallery-title-group">
+            <div className="gallery-title-lockup">
+              <h1 className="gallery-title">Meet the Characters</h1>
+              <BadgePill variant="orange" dotColor="#ef4d23" className="gallery-count-badge">
+                {characters.length} Active {characters.length === 1 ? 'Persona' : 'Personas'}
+              </BadgePill>
+            </div>
+            <p className="gallery-subtitle">
+              {bookId
+                ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})`
+                : 'Legendary personalities across the Lorely library.'}
+            </p>
+          </div>
+
           {bookId && (
             <button
               type="button"
@@ -128,20 +146,6 @@ export default function CharacterGallery() {
             </button>
           )}
         </div>
-
-        <div className="gallery-title-group">
-          <div className="gallery-title-lockup">
-            <h1 className="gallery-title">Meet the Characters</h1>
-            <BadgePill variant="orange" dotColor="#ef4d23" className="gallery-count-badge">
-              {characters.length} Active {characters.length === 1 ? 'Persona' : 'Personas'}
-            </BadgePill>
-          </div>
-          <p className="gallery-subtitle">
-            {bookId
-              ? `Cast of ${bookTitle} (${characters.length} character${characters.length === 1 ? '' : 's'})`
-              : 'Legendary personalities across the Lorely library.'}
-          </p>
-        </div>
       </header>
 
       <div className="characters-card-grid">
@@ -149,33 +153,42 @@ export default function CharacterGallery() {
           // Elegant animated skeleton loaders while reading from database
           [1, 2, 3, 4].map((n) => (
             <article key={`skeleton-${n}`} className="character-portrait-card skeleton" aria-hidden="true">
-              <div className="skeleton-avatar" />
+              <Skeleton.Circle size={96} style={{ margin: '0 auto 16px auto' }} />
               <div className="card-info-body">
-                <div className="skeleton-line medium" />
-                <div className="skeleton-line short" />
-                <div className="skeleton-line long" style={{ marginTop: '8px' }} />
-                <div className="skeleton-line btn" />
+                <Skeleton.Line length="medium" height={18} style={{ marginBottom: 6 }} />
+                <Skeleton.Line length="short" height={14} style={{ marginBottom: 12 }} />
+                <Skeleton.Line length="long" height={12} style={{ marginBottom: 14 }} />
+                <Skeleton width="100%" height={36} borderRadius={18} />
               </div>
             </article>
           ))
         ) : characters.length === 0 ? (
           <div className="gallery-empty-state">
-            <div className="gallery-empty-bubble">📖</div>
+            <div className="gallery-empty-bubble">👥</div>
             <h3 className="gallery-empty-title">No Characters Available</h3>
             <p className="gallery-empty-sub">
               {bookId
                 ? 'No characters have been extracted for this literary work yet.'
-                : 'Explore your library to discover character dialogues.'}
+                : 'Your character gallery reflects books currently on your Bookshelf. Export a book from the Book Store or upload a manuscript to unlock simulated character dialogues.'}
             </p>
-            <PillButton
-              variant="orange"
-              size="md"
-              hasChevron
-              onClick={() => navigate('/library')}
-              className="gallery-browse-btn"
-            >
-              Browse Library →
-            </PillButton>
+            <div className="gallery-empty-actions">
+              <button
+                type="button"
+                className="gallery-store-cta-btn"
+                onClick={() => navigate('/store')}
+              >
+                Browse Book Store →
+              </button>
+              <PillButton
+                variant="orange"
+                size="md"
+                hasChevron
+                onClick={() => navigate('/library')}
+                className="gallery-browse-btn"
+              >
+                Browse Library →
+              </PillButton>
+            </div>
           </div>
         ) : (
           characters.map((char) => {

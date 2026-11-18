@@ -30,6 +30,25 @@ def test_normalize_database_url():
     assert normalized_prefixed.startswith("postgresql+psycopg://")
 
 
+def test_normalize_database_url_sqlite(tmp_path):
+    # In-memory remains untouched
+    assert _normalize_database_url("sqlite:///:memory:") == "sqlite:///:memory:"
+
+    # Relative path resolved against base_dir
+    db_file = tmp_path / "test.db"
+    db_file.touch()
+    normalized = _normalize_database_url("sqlite:///test.db", base_dir=tmp_path)
+    assert normalized == f"sqlite:///{db_file.resolve()}"
+
+    # Handles backend/ prefix
+    sub_dir = tmp_path / "backend"
+    sub_dir.mkdir()
+    sub_db = sub_dir / "lorely.db"
+    sub_db.touch()
+    norm_sub = _normalize_database_url("sqlite:///backend/lorely.db", base_dir=sub_dir)
+    assert norm_sub == f"sqlite:///{sub_db.resolve()}"
+
+
 def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("APP_ENV", "testing")
     monkeypatch.setenv("PORT", "5050")
@@ -41,6 +60,13 @@ def test_settings_from_env(monkeypatch):
     monkeypatch.setenv("R2_SECRET_ACCESS_KEY", "cf-secret-789")
     monkeypatch.setenv("R2_BUCKET_NAME", "my-test-bucket")
     monkeypatch.setenv("R2_PUBLIC_URL", "https://cdn.example.com")
+    monkeypatch.setenv("QDRANT_URL", "https://qdrant.example.cloud:6333")
+    monkeypatch.setenv("QDRANT_API_KEY", "qdrant-secret-key-123")
+    monkeypatch.setenv("QDRANT_COLLECTION", "custom_book_chunks")
+    monkeypatch.setenv("QDRANT_TIMEOUT", "25")
+    monkeypatch.setenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+    monkeypatch.setenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+    monkeypatch.setenv("EMBEDDING_DIMENSIONS", "1536")
 
     settings = Settings.from_env()
     assert settings.app_env == "testing"
@@ -48,8 +74,31 @@ def test_settings_from_env(monkeypatch):
     assert settings.llm_provider == "gemini"
     assert settings.gemini_model == "gemini-3.5-flash"
     assert settings.gemini_api_key == "test-key-12345"
+    assert settings.gemini_embedding_model == "models/gemini-embedding-001"
+    assert settings.openai_embedding_model == "text-embedding-3-small"
+    assert settings.embedding_dimensions == 1536
     assert settings.r2_account_id == "cf-acc-123"
     assert settings.r2_access_key_id == "cf-key-456"
     assert settings.r2_secret_access_key == "cf-secret-789"
     assert settings.r2_bucket_name == "my-test-bucket"
     assert settings.r2_public_url == "https://cdn.example.com"
+    assert settings.qdrant_url == "https://qdrant.example.cloud:6333"
+    assert settings.qdrant_api_key == "qdrant-secret-key-123"
+    assert settings.qdrant_collection == "custom_book_chunks"
+    assert settings.qdrant_timeout == 25
+
+
+def test_qdrant_default_settings(monkeypatch):
+    monkeypatch.setenv("QDRANT_URL", "")
+    monkeypatch.setenv("QDRANT_API_KEY", "")
+    monkeypatch.setenv("QDRANT_COLLECTION", "lorely_book_chunks")
+    monkeypatch.setenv("QDRANT_TIMEOUT", "10")
+
+    settings = Settings.from_env()
+    assert settings.qdrant_url is None
+    assert settings.qdrant_api_key is None
+    assert settings.qdrant_collection == "lorely_book_chunks"
+    assert settings.qdrant_timeout == 10
+    assert settings.gemini_embedding_model == "models/gemini-embedding-001"
+    assert settings.openai_embedding_model == "text-embedding-3-small"
+    assert settings.embedding_dimensions == 1536

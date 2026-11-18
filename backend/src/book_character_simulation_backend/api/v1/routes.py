@@ -524,7 +524,8 @@ def list_characters():
     user = _optional_authenticated_user()
     service = _lorely_service()
     book_id = request.args.get("book_id")
-    return jsonify({"characters": service.list_characters(user, book_id=book_id)})
+    scope = request.args.get("scope")
+    return jsonify({"characters": service.list_characters(user, book_id=book_id, scope=scope)})
 
 
 @v1_blueprint.route("/characters/<character_id>", methods=["GET"])
@@ -858,6 +859,15 @@ def add_catalog_book_to_library(book_id: str):
     progress = int(body.get("reading_progress_chapter", 1))
     result = service.add_catalog_book_to_library(user, book_id, reading_progress_chapter=progress)
     return jsonify(result), 201
+
+
+@v1_blueprint.route("/catalog/books/<book_id>/add-to-library", methods=["DELETE"])
+@v1_blueprint.route("/catalog/books/<book_id>/library", methods=["DELETE"])
+def remove_catalog_book_from_library(book_id: str):
+    user = _authenticated_user()
+    service = _lorely_service()
+    result = service.remove_catalog_book_from_library(user, book_id)
+    return jsonify(result), 200
 
 
 @v1_blueprint.route("/admin/books/<book_id>/publish", methods=["PATCH"])

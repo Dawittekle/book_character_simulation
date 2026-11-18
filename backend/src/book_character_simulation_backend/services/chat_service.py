@@ -8,11 +8,6 @@ from ..errors import NotFoundError
 from ..config import Settings
 from ..llm import LLMProviderFactory
 from ..prompts import chat_prompt, fact_extraction_prompt
-from ..repositories.chroma import (
-    ChromaCharacterRepository,
-    ChromaFactualMemoryRepository,
-    ChromaSessionRepository,
-)
 from ..schemas.chat import (
     ChatMessage,
     ChatReplyPayload,
@@ -33,15 +28,9 @@ class ChatService:
         self,
         *,
         settings: Settings,
-        character_repository: ChromaCharacterRepository,
-        session_repository: ChromaSessionRepository,
-        factual_memory_repository: ChromaFactualMemoryRepository,
         relational_persistence_service: RelationalPersistenceService | None = None,
     ) -> None:
         self.settings = settings
-        self.character_repository = character_repository
-        self.session_repository = session_repository
-        self.factual_memory_repository = factual_memory_repository
         self.provider_factory = LLMProviderFactory(settings)
         self.relational_persistence_service = relational_persistence_service
 
@@ -62,8 +51,6 @@ class ChatService:
                 text_id=text_id,
                 stable_character_key=character_id,
             )
-        if character is None and authenticated_user is None:
-            character = self.character_repository.get_character_by_id(text_id, character_id)
         if character is None:
             raise NotFoundError("Character not found.")
 
@@ -111,8 +98,6 @@ class ChatService:
             user_message=user_message,
             character_response=chat_payload.reply,
         )
-        if authenticated_user is None:
-            self.session_repository.save(session)
         if self.relational_persistence_service is not None:
             self.relational_persistence_service.persist_chat_state(
                 authenticated_user=authenticated_user,
@@ -146,8 +131,6 @@ class ChatService:
                     authenticated_user=authenticated_user,
                     session_id=session_id
                 )
-            if existing is None and authenticated_user is None:
-                existing = self.session_repository.get(session_id)
             if (
                 existing is not None
                 and existing.character_id == character_id
@@ -181,10 +164,6 @@ class ChatService:
                 text_id=text_id,
                 stable_character_key=character_id,
             )
-        if not existing_memories and authenticated_user is None:
-            existing_memories = self.factual_memory_repository.list_for_character(
-                character_id, text_id
-            )
         existing_facts = {memory.fact.strip().lower() for memory in existing_memories}
 
         system_prompt, user_prompt = fact_extraction_prompt(
@@ -213,8 +192,6 @@ class ChatService:
                     fact=normalized_fact,
                     source_session_id=session.id,
                 )
-                if authenticated_user is None:
-                    self.factual_memory_repository.save(memory)
                 existing_memories.append(memory)
                 existing_facts.add(normalized_fact.lower())
         except Exception as exc:
@@ -243,8 +220,6 @@ class ChatService:
                 text_id=text_id,
                 stable_character_key=character_id,
             )
-        if not memories and authenticated_user is None:
-            memories = self.factual_memory_repository.list_for_character(character_id, text_id)
         if not memories:
             return "No previous factual memories."
         return "\n".join(f"- {memory.fact}" for memory in memories)

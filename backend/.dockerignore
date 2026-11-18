@@ -10,7 +10,6 @@ htmlcov
 dist
 build
 *.egg-info
-chroma_db
 storage
 .git
 .env

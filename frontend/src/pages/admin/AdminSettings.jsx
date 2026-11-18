@@ -22,7 +22,7 @@ export default function AdminSettings() {
     status: 'Operational',
     db_connected: true,
     llm_provider: 'gemini (gemini-3.5-flash / fallback ladder)',
-    vector_store: 'ChromaDB semantic indexing active',
+    vector_store: 'Qdrant Cloud vector indexing active',
   });
 
   useEffect(() => {
@@ -269,7 +269,7 @@ export default function AdminSettings() {
             </div>
             <div className="telemetry-item">
               <span className="telemetry-label">RAG Vector Index</span>
-              <span className="telemetry-val">ChromaDB semantic memory namespace</span>
+              <span className="telemetry-val">Qdrant Cloud vector memory namespace</span>
             </div>
             <div className="telemetry-item">
               <span className="telemetry-label">Payment Processing</span>

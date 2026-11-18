@@ -1,5 +1,8 @@
 from pathlib import Path
 import sys
+import warnings
+
+warnings.filterwarnings("ignore", message=".*is not a Python type.*")
 
 SRC_DIR = Path(__file__).resolve().parent / "src"
 if str(SRC_DIR) not in sys.path:

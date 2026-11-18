@@ -22,7 +22,16 @@
 .gallery-header-nav-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  min-height: 36px;
+}
+
+.gallery-title-row {
+  display: flex;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .page-back-btn {
@@ -375,6 +384,63 @@
   margin: 0;
 }
 
+.gallery-empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.gallery-store-cta-btn {
+  background: linear-gradient(135deg, #1cd3ff 0%, #2883ff 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-family: var(--brand-font-sans, 'Inter', sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 14px rgba(40, 131, 255, 0.3);
+}
+
+.gallery-store-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(40, 131, 255, 0.45);
+}
+
 .gallery-browse-btn {
-  margin-top: 6px;
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  .lorely-gallery-page {
+    padding: 16px 16px 36px;
+    gap: 20px;
+  }
+
+  .gallery-header {
+    gap: 12px;
+    padding-bottom: 16px;
+  }
+
+  .gallery-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .gallery-title {
+    font-size: 24px;
+  }
+
+  .gallery-view-all-pill {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 14px;
+  }
 }

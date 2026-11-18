@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: lorely_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-lorely}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - lorely_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-lorely}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -6,10 +24,15 @@ services:
     container_name: lorely_backend
     ports:
       - "5000:5000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     env_file:
       - ./backend/.env
     volumes:
-      - ./backend/chroma_db:/app/chroma_db
+      - ./backend/storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -22,3 +45,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  lorely_postgres_data:

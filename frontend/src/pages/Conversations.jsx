@@ -4,6 +4,7 @@ import { lorelyApi } from '../services/lorelyApi';
 import { getCharacterAvatarUrl, formatRelativeDate } from '../lib/formatters';
 import PillButton from '../components/brand/PillButton';
 import BadgePill from '../components/brand/BadgePill';
+import { Skeleton } from '../components/ui';
 import './Conversations.css';
 
 export default function Conversations() {
@@ -77,13 +78,13 @@ export default function Conversations() {
         <div className="conversations-skeleton-list" aria-label="Loading your conversations" data-testid="conversations-loading-skeleton">
           {[1, 2, 3].map((n) => (
             <div key={n} className="conversation-row-card skeleton-conv-card">
-              <div className="skeleton-avatar skeleton-shimmer" />
-              <div className="skeleton-conv-info">
-                <div className="skeleton-line skeleton-line-title skeleton-shimmer" />
-                <div className="skeleton-line skeleton-line-sub skeleton-shimmer" />
+              <Skeleton.Circle size={52} />
+              <div className="skeleton-conv-info" style={{ flex: 1, marginLeft: 16 }}>
+                <Skeleton.Line length="medium" height={18} style={{ marginBottom: 6 }} />
+                <Skeleton.Line length="long" height={14} />
               </div>
               <div className="skeleton-conv-meta">
-                <div className="skeleton-line skeleton-line-badge skeleton-shimmer" />
+                <Skeleton width={60} height={20} borderRadius={10} />
               </div>
             </div>
           ))}

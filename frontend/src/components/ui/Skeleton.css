@@ -1,0 +1,138 @@
+/* Lorely Universal Skeleton System Styles */
+
+.lorely-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--skeleton-bg, rgba(0, 0, 0, 0.07));
+  border-radius: var(--skeleton-radius, 8px);
+  box-sizing: border-box;
+}
+
+/* Dark theme adaptation */
+.dark .lorely-skeleton,
+[data-theme='dark'] .lorely-skeleton,
+.lorely-admin-layout .lorely-skeleton {
+  background-color: var(--skeleton-bg-dark, rgba(255, 255, 255, 0.08));
+}
+
+/* Shimmer Wave Effect */
+.lorely-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  animation: lorelySkeletonShimmer 1.6s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.dark .lorely-skeleton::after,
+[data-theme='dark'] .lorely-skeleton::after,
+.lorely-admin-layout .lorely-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes lorelySkeletonShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Skeleton Line */
+.lorely-skeleton-line {
+  height: 14px;
+  width: 100%;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.lorely-skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+/* Line length variations */
+.lorely-skeleton-line.short {
+  width: 40%;
+}
+
+.lorely-skeleton-line.medium {
+  width: 70%;
+}
+
+.lorely-skeleton-line.long {
+  width: 95%;
+}
+
+/* Skeleton Circle */
+.lorely-skeleton-circle {
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+/* Skeleton Book Card (5:7 ratio) */
+.lorely-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.lorely-skeleton-cover {
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  border-radius: 14px;
+}
+
+.lorely-skeleton-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Skeleton Table */
+.lorely-skeleton-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.lorely-skeleton-table th,
+.lorely-skeleton-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .lorely-skeleton-table th,
+.dark .lorely-skeleton-table td,
+.lorely-admin-layout .lorely-skeleton-table th,
+.lorely-admin-layout .lorely-skeleton-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Reduced Motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .lorely-skeleton::after {
+    animation: lorelySkeletonPulse 2s ease-in-out infinite !important;
+    transform: none !important;
+    background: transparent !important;
+  }
+
+  @keyframes lorelySkeletonPulse {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}

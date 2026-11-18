@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ePub from 'epubjs';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { LorelyLoader } from '../ui';
 import { READER_THEMES, FONT_FAMILIES } from './ReaderThemes';
 
 export default function EpubReaderAdapter({
@@ -168,8 +169,7 @@ export default function EpubReaderAdapter({
     >
       {loading && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-inherit">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-600 mb-3" />
-          <p className="text-sm font-serif opacity-75">Opening book pages...</p>
+          <LorelyLoader size={48} text="Opening book pages..." transparent />
         </div>
       )}
 

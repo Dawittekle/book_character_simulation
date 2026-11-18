@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { lorelyApi } from '../../services/lorelyApi';
+import { Skeleton } from '../../components/ui';
 import './AdminOverview.css';
 
 export default function AdminOverview() {
@@ -36,16 +37,16 @@ export default function AdminOverview() {
     return (
       <div className="admin-overview-view admin-loading-state" data-testid="admin-overview-loading">
         <div className="overview-skeleton-header">
-          <div className="skeleton-line skeleton-title" />
-          <div className="skeleton-line skeleton-sub" />
+          <Skeleton.Line length="medium" height={28} style={{ marginBottom: 8 }} />
+          <Skeleton.Line length="long" height={16} />
         </div>
-        <div className="admin-metrics-grid">
+        <div className="admin-metrics-grid" style={{ marginTop: 20 }}>
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div key={idx} className="admin-metric-card skeleton-metric-card">
-              <div className="skeleton-circle" />
-              <div className="metric-info">
-                <div className="skeleton-line skeleton-val" />
-                <div className="skeleton-line skeleton-lbl" />
+              <Skeleton.Circle size={40} />
+              <div className="metric-info" style={{ flex: 1, marginLeft: 12 }}>
+                <Skeleton.Line length="short" height={24} style={{ marginBottom: 6 }} />
+                <Skeleton.Line length="medium" height={14} />
               </div>
             </div>
           ))}

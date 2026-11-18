@@ -35,7 +35,7 @@ vi.mock('../services/lorelyApi', () => ({
           category: 'business',
           price_monthly: 100,
           description: 'Dedicated vector search namespace and research exports.',
-          features: ['Isolated Chroma vector namespace', 'Priority classification'],
+          features: ['Isolated Qdrant vector namespace', 'Priority classification'],
           badge: 'Frontier Intelligence',
         },
       ],

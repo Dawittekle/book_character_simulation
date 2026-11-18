@@ -257,7 +257,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
               badge: 'FRONTIER INTELLIGENCE',
               description: 'Dedicated vector search namespace, multi-seat classroom access.',
               features: [
-                'Isolated Chroma vector namespace',
+                'Isolated Qdrant vector namespace',
                 'Multi-seat research access',
                 'Custom persona prompt fine-tuning',
               ],
@@ -978,7 +978,7 @@ export default function LandingPage({ onGetStarted, onSignIn }) {
                 </div>
                 <h3 className="usecase-title">Bring Your Own Books to Life</h3>
                 <p className="usecase-desc">
-                  Ingest personal EPUBs, PDFs, and manuscripts into isolated Chroma vector namespaces. Our narrative classifier extracts characters, identifies chapters, and constructs cognitive dossiers in seconds.
+                  Ingest personal EPUBs, PDFs, and manuscripts into isolated Qdrant vector namespaces. Our narrative classifier extracts characters, identifies chapters, and constructs cognitive dossiers in seconds.
                 </p>
                 <div className="usecase-interactive-widget widget-formats">
                   <div className="format-chips-row">

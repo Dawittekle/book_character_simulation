@@ -178,5 +178,42 @@ describe('Catalog & Library Suite (Phase 5)', () => {
       const inspectBtn = screen.getByRole('button', { name: /Inspect & Classify/i });
       expect(inspectBtn).toBeDisabled();
     });
+
+    it('engages LorelyUploadProgress overlay and LorelyLoader during inspection', async () => {
+      let resolveInspect;
+      const inspectPromise = new Promise((resolve) => {
+        resolveInspect = resolve;
+      });
+      vi.spyOn(lorelyApi, 'inspectSource').mockImplementation(() => inspectPromise);
+
+      render(
+        <AddBookModal isOpen={true} onClose={vi.fn()} accessToken="test-token" />
+      );
+
+      // Switch to paste tab and enter text
+      fireEvent.click(screen.getByText('✍️ Paste Text'));
+      const textarea = screen.getByPlaceholderText(/Paste book chapters or story text here/i);
+      fireEvent.change(textarea, { target: { value: 'Once upon a time in St. Petersburg...' } });
+
+      const inspectBtn = screen.getByRole('button', { name: /Inspect & Classify/i });
+      fireEvent.click(inspectBtn);
+
+      // Upload progress overlay should appear
+      expect(screen.getByTestId('lorely-upload-overlay')).toBeInTheDocument();
+      expect(screen.getByTestId('lorely-upload-percentage')).toBeInTheDocument();
+
+      // Resolve API call
+      resolveInspect({
+        temp_source_id: 'temp-123',
+        title: 'White Nights',
+        author: 'Fyodor Dostoevsky',
+        chapters_count: 4,
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('lorely-upload-overlay')).not.toBeInTheDocument();
+        expect(screen.getByText('Confirm & Ingest Book →')).toBeInTheDocument();
+      });
+    });
   });
 });
